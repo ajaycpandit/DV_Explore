@@ -74,6 +74,16 @@ h2.dt{margin:0 0 4px;font-size:20px}
 .dtree .troot{font-weight:600;padding:2px 0}
 .tnode .link{font-size:13px}
 .phaseframe{width:100%;height:75vh;border:1px solid #e2e8f0;border-radius:6px;background:#fff}
+.fbd-wrap{display:flex;flex-direction:column;gap:14px}
+.fbd-diagram-card{border:1px solid #e2e8f0;border-radius:8px;background:#fcfcfd;overflow:hidden}
+.fbd-head{padding:10px 14px;background:#f1f5f9;font-weight:600;font-size:13px;border-bottom:1px solid #e2e8f0}
+.fbd-sub{color:#64748b;font-weight:400;font-size:12px}
+.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh}
+.fbd-info-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fff}
+.fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+.fbd-comp-link{border-color:#475569}
+.fb-composite rect:first-of-type{transition:fill .15s}
+.fb{cursor:default}
 .stat{display:inline-block;margin:0 18px 10px 0}
 .stat b{font-size:22px;display:block}
 .stat span{font-size:12px;color:#64748b}
@@ -87,10 +97,11 @@ def _badge(otype):
     return m.get(otype, 'b-composite')
 
 
-def build_explorer_html(catalog, fname, phase_views=None):
+def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None):
     """phase_views: optional {phase_name: interactive_html} to embed as drill-down
     leaf views for Phase Class objects."""
     phase_views = phase_views or {}
+    fbd_views = fbd_views or {}
     summary = {
         'Areas': len(catalog['areas']),
         'Unit instances': len(catalog['units']),
@@ -131,10 +142,12 @@ def build_explorer_html(catalog, fname, phase_views=None):
                             'unit_ems': catalog.get('unit_ems', {}),
                             'em_cms': catalog.get('em_cms', {})})
     phase_views_json = json.dumps(phase_views)
+    fbd_views_json = json.dumps(fbd_views)
 
     js = """
 const DB = __DATA__;
 const PHASE_VIEWS = __PHASE_VIEWS__;
+const FBD_VIEWS = __FBD_VIEWS__;
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass'};return m[t]||'b-composite';}
 
@@ -202,7 +215,16 @@ function show(id){
       h+='<div class="card"><h3>Phase logic</h3><span class="empty">No parsed logic available for this phase in this export.</span></div>';
     }
   }
-  if(o._type==='EM Class' || o._type==='CM Class' || o._type==='Recipe' || o._type==='Composite'){
+  // CM Class / Composite -> Function Block Diagram (FHX structure/wiring)
+  if(o._type==='CM Class' || o._type==='Composite'){
+    if(FBD_VIEWS[o.name]){
+      h+='<div class="card" style="max-width:none">'+FBD_VIEWS[o.name]+'</div>';
+      setTimeout(wireFbdLinks, 0);
+    } else {
+      h+='<div class="card"><h3>Detail</h3><span class="empty">No function block diagram in this export (this object may be an expression/action block or referenced type).</span></div>';
+    }
+  }
+  if(o._type==='EM Class' || o._type==='Recipe'){
     h+='<div class="card"><h3>Detail</h3><span class="empty">Detailed '+o._type+' view (logic, parameters, references) plugs in here.</span></div>';
   }
   document.getElementById('detail').innerHTML=h;
@@ -210,6 +232,29 @@ function show(id){
 
 function toggle(el,e){e.stopPropagation();const ul=el.closest('.navgroup').querySelector('.navchildren');if(ul){ul.style.display=ul.style.display==='none'?'block':'none';el.textContent=ul.style.display==='none'?'▸':'▾';}}
 function secToggle(sid,el){const b=document.getElementById(sid);if(!b)return;const open=b.style.display!=='none';b.style.display=open?'none':'block';const a=el.querySelector('.secarrow');if(a)a.textContent=open?'▸':'▾';}
+
+// FBD composite drill-down: clicking a composite block/link shows its diagram.
+function showFbd(defName, label){
+  if(!FBD_VIEWS[defName]){return;}
+  const d=document.getElementById('detail');
+  let h='<h2 class="dt">'+esc(label||defName)+'</h2>';
+  h+='<span class="dt-type b-composite">Composite Definition</span>';
+  h+='<p class="dt-desc">Nested composite inside the parent module. <span class="link" onclick="history.back()">← back</span></p>';
+  h+='<div class="card" style="max-width:none">'+FBD_VIEWS[defName]+'</div>';
+  d.innerHTML=h;
+  d.scrollTop=0;
+  wireFbdLinks();
+}
+function wireFbdLinks(){
+  document.querySelectorAll('.fbd-comp-link').forEach(el=>{
+    el.onclick=()=>{ const def=el.getAttribute('data-fbd'); showFbd(def, el.textContent); };
+  });
+  // also make composite blocks in the SVG clickable
+  document.querySelectorAll('.fb-composite').forEach(g=>{
+    const def=g.getAttribute('data-composite');
+    if(def && FBD_VIEWS[def]){ g.style.cursor='pointer'; g.onclick=()=>showFbd(def, g.getAttribute('data-name')); }
+  });
+}
 """
     # Escape '</' as '<\/' in the embedded JSON so the HTML parser doesn't see a
     # closing </script> when the data (e.g. an embedded phase-viewer HTML)
@@ -219,7 +264,8 @@ function secToggle(sid,el){const b=document.getElementById(sid);if(!b)return;con
     def _script_safe(s):
         return s.replace('</', '<\\/')
     js = (js.replace('__DATA__', _script_safe(data_json))
-            .replace('__PHASE_VIEWS__', _script_safe(phase_views_json)))
+            .replace('__PHASE_VIEWS__', _script_safe(phase_views_json))
+            .replace('__FBD_VIEWS__', _script_safe(fbd_views_json)))
 
     # ── build nav tree ──
     nav = []
