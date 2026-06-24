@@ -61,6 +61,54 @@ def build_fbd_view_html(fbd):
                 f'{html.escape(c["name"])} · {html.escape(c["definition"])}</span>')
         parts.append('</div></div>')
 
+    # structured text view — module parameter interface (I/O + internal refs)
+    iface = fbd.get('interface', [])
+    if iface:
+        conn_label = {'INPUT': 'Input', 'OUTPUT': 'Output',
+                      'INTERNAL_SOURCE': 'Internal (source)',
+                      'INTERNAL_SINK': 'Internal (sink)', 'INTERNAL': 'Internal'}
+        parts.append('<div class="fbd-info-card"><h4>Module Parameter Interface ('
+                     + str(len(iface)) + ')</h4>')
+        parts.append('<table class="fbd-table"><thead><tr><th>Parameter</th>'
+                     '<th>Direction</th><th>Group</th><th>References</th>'
+                     '</tr></thead><tbody>')
+        for p in iface:
+            ref = p['reference']
+            ref_html = (f'<code>{html.escape(ref)}</code>'
+                        if ref and ref != '#IGNORE'
+                        else ('<span style="color:#94a3b8">—</span>'
+                              if not ref else '<span style="color:#cbd5e1">(ignored)</span>'))
+            parts.append(f'<tr><td><b>{html.escape(p["name"])}</b></td>'
+                         f'<td>{conn_label.get(p["connection"], p["connection"])}</td>'
+                         f'<td>{html.escape(p.get("group",""))}</td>'
+                         f'<td>{ref_html}</td></tr>')
+        parts.append('</tbody></table></div>')
+
+    # structured text view — block inventory (documentation, always complete)
+    parts.append('<div class="fbd-info-card"><h4>Block Inventory ('
+                 + str(len(fbd['blocks'])) + ')</h4>')
+    parts.append('<table class="fbd-table"><thead><tr><th>Block</th><th>Type</th>'
+                 '<th>Kind</th><th>Description</th></tr></thead><tbody>')
+    for b in sorted(fbd['blocks'], key=lambda z: z['name']):
+        kind = 'Composite' if b['is_composite'] else 'Function Block'
+        parts.append(f'<tr><td><b>{html.escape(b["name"])}</b></td>'
+                     f'<td>{html.escape(b["definition"])}</td>'
+                     f'<td>{kind}</td>'
+                     f'<td>{html.escape(b.get("description",""))}</td></tr>')
+    parts.append('</tbody></table></div>')
+
+    # structured text view — connections (source -> destination)
+    if fbd['wires']:
+        parts.append('<div class="fbd-info-card"><h4>Connections ('
+                     + str(len(fbd['wires'])) + ')</h4>')
+        parts.append('<table class="fbd-table"><thead><tr><th>Source</th>'
+                     '<th></th><th>Destination</th></tr></thead><tbody>')
+        for w in fbd['wires']:
+            parts.append(f'<tr><td><code>{html.escape(w["source"])}</code></td>'
+                         f'<td style="color:#94a3b8">&#8594;</td>'
+                         f'<td><code>{html.escape(w["destination"])}</code></td></tr>')
+        parts.append('</tbody></table></div>')
+
     parts.append('</div>')
     return '\n'.join(parts)
 
