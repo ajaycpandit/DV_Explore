@@ -74,6 +74,10 @@ h2.dt{margin:0 0 4px;font-size:20px}
 .dtree .troot{font-weight:600;padding:2px 0}
 .tnode .link{font-size:13px}
 .phaseframe{width:100%;height:75vh;border:1px solid #e2e8f0;border-radius:6px;background:#fff}
+.emtabs{display:flex;gap:6px;margin-bottom:12px}
+.emtab{padding:7px 15px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#475569}
+.emtab.on{background:#0f172a;color:#fff;border-color:#0f172a}
+.empanel{display:none}.empanel.on{display:block}
 .fbd-wrap{display:flex;flex-direction:column;gap:14px}
 .fbd-diagram-card{border:1px solid #e2e8f0;border-radius:8px;background:#fcfcfd;overflow:hidden}
 .fbd-head{padding:10px 14px;background:#f1f5f9;font-weight:600;font-size:13px;border-bottom:1px solid #e2e8f0}
@@ -82,6 +86,10 @@ h2.dt{margin:0 0 4px;font-size:20px}
 .fbd-info-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fff}
 .fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
 .fbd-comp-link{border-color:#475569}
+.fbd-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.fbd-table th{text-align:left;padding:5px 8px;background:#f1f5f9;color:#475569;font-size:11px;border-bottom:1px solid #e2e8f0}
+.fbd-table td{padding:4px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+.fbd-table code{font-size:11px;background:#f8fafc;padding:1px 4px;border-radius:3px}
 .fb-composite rect:first-of-type{transition:fill .15s}
 .fb{cursor:default}
 .stat{display:inline-block;margin:0 18px 10px 0}
@@ -97,11 +105,12 @@ def _badge(otype):
     return m.get(otype, 'b-composite')
 
 
-def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None):
+def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_views=None):
     """phase_views: optional {phase_name: interactive_html} to embed as drill-down
     leaf views for Phase Class objects."""
     phase_views = phase_views or {}
     fbd_views = fbd_views or {}
+    em_views = em_views or {}
     summary = {
         'Areas': len(catalog['areas']),
         'Unit instances': len(catalog['units']),
@@ -143,11 +152,13 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None):
                             'em_cms': catalog.get('em_cms', {})})
     phase_views_json = json.dumps(phase_views)
     fbd_views_json = json.dumps(fbd_views)
+    em_views_json = json.dumps(em_views)
 
     js = """
 const DB = __DATA__;
 const PHASE_VIEWS = __PHASE_VIEWS__;
 const FBD_VIEWS = __FBD_VIEWS__;
+const EM_VIEWS = __EM_VIEWS__;
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass'};return m[t]||'b-composite';}
 
@@ -224,8 +235,31 @@ function show(id){
       h+='<div class="card"><h3>Detail</h3><span class="empty">No function block diagram in this export (this object may be an expression/action block or referenced type).</span></div>';
     }
   }
-  if(o._type==='EM Class' || o._type==='Recipe'){
-    h+='<div class="card"><h3>Detail</h3><span class="empty">Detailed '+o._type+' view (logic, parameters, references) plugs in here.</span></div>';
+  // EM Class -> full view: Function Blocks + Command/State Logic + Control Modules
+  if(o._type==='EM Class'){
+    const ev=EM_VIEWS[o.name];
+    if(ev){
+      h+='<div class="card" style="max-width:none">';
+      h+='<div class="emtabs">';
+      h+='<button class="emtab on" data-e="fb" onclick="emTab(this,\\'fb\\')">Function Blocks</button>';
+      if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">Command / State Logic</button>';
+      if(ev.cms&&ev.cms.length) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+ev.cms.length+')</button>';
+      h+='</div>';
+      h+='<div class="empanel on" data-e="fb" id="empanel_fb">'+(ev.fbd||'<span class="empty">No function block layer.</span>')+'</div>';
+      if(ev.state) h+='<div class="empanel" data-e="state"><iframe class="phaseframe" srcdoc="'+ev.state.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe></div>';
+      if(ev.cms&&ev.cms.length){
+        h+='<div class="empanel" data-e="cms"><div class="chips">';
+        ev.cms.forEach(c=>{h+='<span class="chip" onclick="show(\\'cm:'+esc(c.name)+'\\')">'+esc(c.name)+' · '+c.n_blocks+' blocks</span>';});
+        h+='</div></div>';
+      }
+      h+='</div>';
+      setTimeout(wireFbdLinks,0);
+    } else {
+      h+='<div class="card"><h3>Detail</h3><span class="empty">No parsed EM view available in this export.</span></div>';
+    }
+  }
+  if(o._type==='Recipe'){
+    h+='<div class="card"><h3>Detail</h3><span class="empty">Detailed Recipe view (procedure tree, parameters) plugs in here.</span></div>';
   }
   document.getElementById('detail').innerHTML=h;
 }
@@ -244,6 +278,12 @@ function showFbd(defName, label){
   d.innerHTML=h;
   d.scrollTop=0;
   wireFbdLinks();
+}
+function emTab(btn,which){
+  const card=btn.closest('.card');
+  card.querySelectorAll('.emtab').forEach(t=>t.classList.toggle('on',t===btn));
+  card.querySelectorAll('.empanel').forEach(p=>p.classList.toggle('on',p.dataset.e===which));
+  if(which==='fb') wireFbdLinks();
 }
 function wireFbdLinks(){
   document.querySelectorAll('.fbd-comp-link').forEach(el=>{
@@ -265,7 +305,8 @@ function wireFbdLinks(){
         return s.replace('</', '<\\/')
     js = (js.replace('__DATA__', _script_safe(data_json))
             .replace('__PHASE_VIEWS__', _script_safe(phase_views_json))
-            .replace('__FBD_VIEWS__', _script_safe(fbd_views_json)))
+            .replace('__FBD_VIEWS__', _script_safe(fbd_views_json))
+            .replace('__EM_VIEWS__', _script_safe(em_views_json)))
 
     # ── build nav tree ──
     nav = []

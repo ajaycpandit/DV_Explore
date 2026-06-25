@@ -1,31 +1,56 @@
-# DeltaV Single-Object Viewers
+# DeltaV Database Explorer
 
-Standalone tools to view ONE control module (CM) or equipment module (EM)
-export at a time — for quick verification without running the whole database
-explorer. They reuse the same parsing/rendering engines as the explorer, so
-output stays consistent.
+Upload a DeltaV database FHX export and browse it live: areas, units,
+equipment/control/phase classes, recipes, composites — with class/instance
+cross-linking and interactive phase logic (SFC diagram, parameters, monitors).
 
-## CM Viewer
-    python cm_viewer.py  CM_export.fhx  [output.html]
+## Run locally
+    pip install -r requirements.txt
+    python server.py
+    # open http://localhost:5000
 
-Produces a focused page for the control module:
-- sectioned function block diagram (resembles the DeltaV print)
-- clickable nested composite drill-down
-- module parameter interface table (params -> internal references)
-- block inventory + connection list
+## Deploy on Render  (NO Dockerfile needed)
+Create a new **Web Service** from this repo with:
+- **Language / Runtime:** Python 3
+- **Build Command:**  `pip install -r requirements.txt`
+- **Start Command:**  `gunicorn server:app`
+- **Plan:** Free is fine
 
-## EM Viewer
-    python em_viewer.py  EM_export.fhx  [output.html]
+That's it. The earlier "failed to read dockerfile" error happened because
+Render didn't detect a Python web service and fell back to Docker. Setting the
+Build/Start commands above (or committing the included `render.yaml`) makes
+Render use the Python runtime instead — no Dockerfile required.
 
-Produces a focused page for the equipment module, with tabs:
-- Function Blocks: the EM's FBD layer (acquire/release, monitors, timers)
-- Command / State Logic: each command (HOLD, RUN, etc.) as its own SFC diagram
-- Control Modules: the embedded CMs the EM references
+## Project layout
+- `server.py`        — Flask web app (upload form + /explore route)
+- `db_parser.py`     — catalogs an FHX export into the object model
+- `db_explorer.py`   — renders the navigable explorer HTML
+- `phase_bridge.py`  — bridges to the parsing core for phase drill-down
+- `core/`            — copy of the converter's parsing core (phase parser,
+                       sfc_html, sfc_image, recipe_module). Self-contained so
+                       the explorer deploys independently of the converter repo.
+- `requirements.txt`, `render.yaml`, `Procfile` — deployment config
 
 ## Notes
-- FHX-only: structure, wiring, composites, interface, command logic. No
-  configured tuning/alarm values (those aren't in a class export).
-- Reuses ../db_explorer (FBD engine) and ../db_explorer/core (converter SFC
-  engine). Keep those alongside, or set FHX_CORE_DIR.
-- If an export bundles multiple modules, the most substantial one is shown by
-  default; others are listed.
+- Free tier spins down after ~15 min idle (30–60 s cold start). Large exports
+  (full Area, ~30 MB) take a minute to parse on first request.
+- Phase drill-down reuses the validated converter parsing core; if `core/` is
+  absent the explorer still works (catalog + navigation), just without the
+  embedded phase viewer.
+
+## Run locally WITHOUT a server (no hosting, no card)
+The explorer turns an FHX into a self-contained HTML file. You can do that
+entirely on your own machine:
+
+    pip install -r requirements.txt
+    python make_explorer.py  your_export.fhx
+
+This writes `your_export_explorer.html` — open it in any browser. Fully offline.
+
+Or run the live upload interface locally:
+
+    python server.py        # then open http://localhost:5000
+
+The generated HTML is static, so you can also host the OUTPUT for free on
+GitHub Pages (the live upload step needs the Python server, but finished
+explorers are just files).

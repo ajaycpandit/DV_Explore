@@ -104,7 +104,20 @@ def explore():
         except Exception:
             phase_views = {}   # explorer still works without drill-down
 
-    html = db_explorer.build_explorer_html(catalog, fname, phase_views=phase_views)
+    fbd_views, em_views = {}, {}
+    try:
+        import fbd_bridge
+        fbd_views = fbd_bridge.build_fbd_views(text)
+    except Exception:
+        fbd_views = {}
+    try:
+        import em_bridge
+        em_views = em_bridge.build_em_views(text)
+    except Exception:
+        em_views = {}
+
+    html = db_explorer.build_explorer_html(catalog, fname, phase_views=phase_views,
+                                           fbd_views=fbd_views, em_views=em_views)
     return Response(html, mimetype='text/html')
 
 

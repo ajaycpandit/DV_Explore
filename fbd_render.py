@@ -28,34 +28,45 @@ def _color(b):
 
 
 def render_fbd_svg(fbd, scale=0.5, pad=40):
-    """Return an SVG string for the parsed fbd dict."""
+    """Return an SVG string for the parsed fbd dict, including DeltaV's section
+    frames and labels so the layout resembles the Control Studio print."""
     blocks = fbd['blocks']
     wires = fbd['wires']
+    frames = fbd.get('frames', [])
+    labels = fbd.get('labels', [])
     if not blocks:
         return '<p style="color:#94a3b8">No function blocks to display.</p>'
 
-    # bounds (include terminal columns on the sides)
-    minx = min(b['x'] for b in blocks)
-    miny = min(b['y'] for b in blocks)
-    maxx = max(b['x'] + b['w'] for b in blocks)
-    maxy = max(b['y'] + b['h'] for b in blocks)
-    term_col_w = 150          # left/right terminal lanes
+    # limit to the logic-diagram region: ignore frames/labels far below the
+    # lowest block (help text, revision history, module-config notes). Also drop
+    # frames that start above but extend far past the block region.
+    maxby = max(b['y'] + b['h'] for b in blocks)
+    region_cut = maxby + 60
+    frames = [f for f in frames if f['y'] < region_cut and (f['y'] + f['h']) < region_cut + 400]
+    labels = [l for l in labels if l['y'] < region_cut]
+
+    # bounds (include frames so section boxes aren't clipped)
+    allx = [b['x'] for b in blocks] + [f['x'] for f in frames]
+    ally = [b['y'] for b in blocks] + [f['y'] for f in frames]
+    allx2 = [b['x'] + b['w'] for b in blocks] + [f['x'] + f['w'] for f in frames]
+    ally2 = [b['y'] + b['h'] for b in blocks] + [f['y'] + f['h'] for f in frames]
+    minx, miny = min(allx), min(ally)
+    maxx, maxy = max(allx2), max(ally2)
+    term_col_w = 150
     W = (maxx - minx) * scale + pad * 2 + term_col_w * 2
     H = (maxy - miny) * scale + pad * 2
 
     def sx(x): return (x - minx) * scale + pad + term_col_w
     def sy(y): return (y - miny) * scale + pad
 
-    # index blocks by name for wire endpoints
     bmap = {b['name']: b for b in blocks}
 
-    # terminal vertical positions: assign inputs on the left, outputs on the right
     left_terms, right_terms = [], []
     for w in wires:
         if w['src_block'] is None and w['source'] not in left_terms:
-            left_terms.append(w['source'])      # terminal -> block = input
+            left_terms.append(w['source'])
         if w['dst_block'] is None and w['destination'] not in right_terms:
-            right_terms.append(w['destination'])  # block -> terminal = output
+            right_terms.append(w['destination'])
     term_y = {}
     for i, tname in enumerate(left_terms):
         term_y[('L', tname)] = pad + 30 + i * 34
@@ -69,6 +80,18 @@ def render_fbd_svg(fbd, scale=0.5, pad=40):
     svg.append('<defs><marker id="arr" markerWidth="8" markerHeight="8" '
                'refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" '
                'fill="#94a3b8"/></marker></defs>')
+
+    # --- section frames (drawn first, behind everything) ---
+    for f in frames:
+        x, y = sx(f['x']), sy(f['y'])
+        w, h = f['w'] * scale, f['h'] * scale
+        svg.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{w:.0f}" height="{h:.0f}" '
+                   f'fill="none" stroke="#dbe3ec" stroke-width="1"/>')
+    # --- section labels ---
+    for l in labels:
+        lx, ly = sx(l['x']), sy(l['y'])
+        svg.append(f'<text x="{lx:.0f}" y="{ly:.0f}" font-size="11" '
+                   f'fill="#64748b" font-weight="600">{html.escape(l["text"])}</text>')
 
     # --- wires first (under blocks) ---
     def port_xy(endpoint_block, port, is_source):
@@ -140,8 +163,8 @@ def render_fbd_svg(fbd, scale=0.5, pad=40):
         svg.append(f'<text x="{x+w/2:.0f}" y="{y+h/2+6:.0f}" font-size="10" '
                    f'fill="#0f172a" text-anchor="middle">{html.escape(b["name"])}</text>')
         if b['is_composite']:
-            svg.append(f'<text x="{x+w-4:.0f}" y="{y+h-4:.0f}" font-size="9" '
-                       f'fill="{col}" text-anchor="end">⧉</text>')
+            svg.append(f'<text x="{x+w-4:.0f}" y="{y+h-4:.0f}" font-size="8" '
+                       f'fill="{col}" text-anchor="end">[+]</text>')
         svg.append('</g>')
 
     svg.append('</svg>')
