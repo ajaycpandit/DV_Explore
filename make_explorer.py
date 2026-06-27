@@ -45,8 +45,12 @@ try:
     import fbd_bridge
     fbd_views = fbd_bridge.build_fbd_views(text)
     print(f"  {len(fbd_views)} FBD view(s)")
+    _ix = fbd_bridge.build_indexes(text)
+    param_index, expr_index = _ix['params'], _ix['exprs']
+    print(f"  {len(param_index)} parameter(s), {len(expr_index)} expression(s) indexed")
 except Exception as e:
     print(f"  (FBD views skipped: {e})")
+    param_index, expr_index = {}, []
 try:
     import em_bridge
     em_views = em_bridge.build_em_views(text)
@@ -55,6 +59,7 @@ except Exception as e:
     print(f"  (EM views skipped: {e})")
 
 html = db_explorer.build_explorer_html(catalog, fname, phase_views=phase_views,
-                                       fbd_views=fbd_views, em_views=em_views)
+                                       fbd_views=fbd_views, em_views=em_views,
+                                       param_index=param_index, expr_index=expr_index)
 open(outfile, "w", encoding="utf-8").write(html)
 print(f"\nDone -> {outfile}\nOpen that file in any browser.")

@@ -55,6 +55,48 @@ def _classify_module_class(name, category, block):
     return 'CM Class'
 
 
+# Standard DeltaV function block types: a curated "what it does" glossary. The
+# FHX export carries an authoritative short DESCRIPTION for each; this adds a
+# one-line elaboration for the common standard blocks. Falls back to the FHX
+# description when a type isn't listed here.
+_FB_TYPE_GLOSSARY = {
+    'AI': 'Analog Input — reads and scales a measured analog value, with filtering and alarms.',
+    'AIWCALARM': 'Analog Input with conditional alarming on the measured value.',
+    'AO': 'Analog Output — drives an analog output (e.g. valve position or a downstream setpoint).',
+    'DI': 'Discrete Input — reads an on/off field signal.',
+    'DO': 'Discrete Output — drives an on/off field output.',
+    'PID': 'PID Control — proportional-integral-derivative closed-loop control.',
+    'PIDWCALARM': 'PID control with conditional alarming.',
+    'CALC': 'Calc/Logic — evaluates a user structured-text expression to compute its outputs.',
+    'ACT': 'Action — runs a structured-text action expression (assignments), typically in sequencing logic.',
+    'CND': 'Condition — evaluates a structured-text boolean condition expression.',
+    'AND': 'Boolean AND gate.',
+    'OR': 'Boolean OR gate.',
+    'NOT': 'Boolean NOT (inverter).',
+    'XOR': 'Boolean exclusive-OR gate.',
+    'PDE': 'Positive Edge Trigger — emits a one-shot pulse on a 0→1 (rising) transition.',
+    'NDE': 'Negative Edge Trigger — emits a one-shot pulse on a 1→0 (falling) transition.',
+    'BDE': 'Edge Trigger — emits a one-shot pulse on an input transition.',
+    'AT': 'Analog Tracking — tracks/holds an analog value under condition control.',
+    'EDC': 'Enhanced Device Control — commands a discrete device (valve/motor) with confirmed-state feedback and interlocks.',
+    'DCC': 'Discrete Control Condition — supplies fail / interlock / permissive conditions to a device control block.',
+    'RTLM': 'Rate Limit — limits the rate of change of a signal.',
+    'INTEG': 'Integrator.',
+    'FILTER': 'Signal filter (smoothing).',
+    'LIM': 'Limit — clamps a signal between high/low bounds.',
+    'SCLR': 'Scaler — linearly scales a signal.',
+    'SEL': 'Selector — chooses among multiple inputs.',
+    'MULDIV': 'Multiply/Divide arithmetic.',
+    'ADD': 'Addition arithmetic.',
+    'SUB': 'Subtraction arithmetic.',
+    'CTD': 'Down counter.',
+    'CTU': 'Up counter.',
+    'CND': 'Condition — evaluates a structured-text boolean condition expression.',
+    'ALMWCALARM': 'Alarm block with conditional alarming.',
+    'CAV': 'Control Action / value block.',
+}
+
+
 def parse_database(text):
     """Return a catalog dict describing all objects + relationships in the export."""
     catalog = {
@@ -65,7 +107,8 @@ def parse_database(text):
         'cm_classes': [],   # {name, category, description, control_type}
         'phase_classes': [],# {name, category, description}
         'recipes': [],      # {name, type, category, description}
-        'composites': [],   # {name, category, description}
+        'composites': [],   # {name, category, description, anonymous}
+        'fb_types': [],     # standard DeltaV block types referenced: {name, description, glossary}
         'modules': [],      # all instances: {name, class, area}
         'index': {},        # name -> object summary (for cross-linking)
     }
@@ -140,12 +183,32 @@ def parse_database(text):
             'name': name, 'type': rm.group(2) or '', 'category': rm.group(3) or '',
             'description': desc.group(1).strip() if desc else ''})
 
-    # ── Composites (FUNCTION_BLOCK_TEMPLATE). The CATEGORY may be on the
-    #    declaration line OR inside the block, so check both. ────────────────
+    # ── Function block types vs composites ─────────────────────────────────
+    #   FUNCTION_BLOCK_TEMPLATE  = the standard DeltaV block *types* referenced
+    #                              by the modules (ACT, CND, EDC, PID, ...). Not
+    #                              composites — these are primitive blocks.
+    #   FUNCTION_BLOCK_DEFINITION = the actual composite definitions (user/library
+    #                              composites such as C_ARB_MOD_EM_V01, and DeltaV's
+    #                              anonymous inline composites named __HEX__).
+    #   DeltaV stores a DESCRIPTION on each, which is the authoritative "what it
+    #   does"; we capture it (and supplement standard types with a glossary).
+    seen_t = set()
+    for tm in re.finditer(r'FUNCTION_BLOCK_TEMPLATE\s+NAME="([^"]+)"', text):
+        name = tm.group(1)
+        if name in seen_t:
+            continue
+        seen_t.add(name)
+        blk = extract_block(text, tm.end())
+        desc = re.search(r'DESCRIPTION="([^"]*)"', blk[:300])
+        fhx_desc = desc.group(1).strip() if desc else ''
+        catalog['fb_types'].append({
+            'name': name,
+            'description': fhx_desc,
+            'glossary': _FB_TYPE_GLOSSARY.get(name, ''),
+        })
+
     seen_comp = set()
-    # names already classified as CM/EM library types (basic control blocks)
-    basic_types = {'AI', 'AO', 'DI', 'DO', 'PID', 'CALC'}
-    for cm in re.finditer(r'FUNCTION_BLOCK_TEMPLATE\s+NAME="([^"]+)"(?:\s+CATEGORY="([^"]*)")?', text):
+    for cm in re.finditer(r'FUNCTION_BLOCK_DEFINITION\s+NAME="([^"]+)"(?:\s+CATEGORY="([^"]*)")?', text):
         name = cm.group(1)
         if name in seen_comp:
             continue
@@ -155,13 +218,18 @@ def parse_database(text):
         if not cat:
             cm2 = re.search(r'CATEGORY="([^"]*)"', blk[:400])
             cat = cm2.group(1) if cm2 else ''
-        desc = re.search(r'DESCRIPTION="([^"]*)"', blk)
-        # treat as composite if category says so, or it's not a basic control block
-        is_composite = ('composite' in cat.lower()) or (name not in basic_types)
-        if is_composite:
-            catalog['composites'].append({
-                'name': name, 'category': cat, 'cat_lib': _cat_leaf(cat),
-                'description': desc.group(1).strip() if desc else ''})
+        desc = re.search(r'DESCRIPTION="([^"]*)"', blk[:600])
+        anon = bool(re.match(r'^__[0-9A-Fa-f_]+__$', name))
+        # A composite is a reusable *class* when it's a saved/library definition
+        # (named, with a category — typically Library/CompositeTemplates/...).
+        # The anonymous __HEX__ definitions with no category are *local* inline
+        # composites that belong to a single parent object; in a full-database
+        # view they shouldn't clutter the top-level Composites section.
+        scope = 'class' if (not anon and cat) else 'local'
+        catalog['composites'].append({
+            'name': name, 'category': cat, 'cat_lib': _cat_leaf(cat),
+            'description': desc.group(1).strip() if desc else '',
+            'anonymous': anon, 'scope': scope})
 
     # ── build cross-reference index (class -> instances using it) ──────────
     instances_by_class = {}
@@ -178,22 +246,63 @@ def parse_database(text):
     for c in catalog['cm_classes']:   _add(c['name'], 'CM Class')
     for p in catalog['phase_classes']:_add(p['name'], 'Phase Class')
     for r in catalog['recipes']:      _add(r['name'], 'Recipe')
+    for c in catalog['composites']:   _add(c['name'], 'Composite')
+    for t in catalog['fb_types']:     _add(t['name'], 'FB Type', description=t['description'], glossary=t['glossary'])
 
-    # ── derive relationships for the tree view ─────────────────────────────
-    # When a single Unit Class is the subject of the export, the phase classes
-    # exported alongside it are that unit's phases (DeltaV bundles a unit's
-    # phases with it). Same heuristic for EM classes co-exported with a unit.
+    # ── real containment references via MODULE_BLOCK ───────────────────────
+    #   A module class embeds child modules as:
+    #     MODULE_BLOCK NAME="<instance>" MODULE="<referenced class>"
+    #   This is the authoritative "class X is used by parent Y as instance Z"
+    #   link (e.g. an EM embedding its control-module classes). Works across the
+    #   whole database, not just single-object exports.
+    class_used_by = {}   # class name -> [{parent, instance}]
+    parent_uses = {}     # parent class -> [referenced class names]
+    instances = {}       # "parent\u0001tag" -> {tag, cls, parent, desc, ownership}
+    parent_instances = {}  # parent -> [instance ids] (in declaration order)
+    cat_by_class = {c['name']: c.get('category', '') for c in catalog['cm_classes']}
+    cat_by_class.update({c['name']: c.get('category', '') for c in catalog['composites']})
+    for mm in re.finditer(r'MODULE_CLASS\s+NAME="([^"]+)"', text):
+        parent = mm.group(1)
+        blk = extract_block(text, mm.end())
+        for mb in re.finditer(r'MODULE_BLOCK\s+NAME="([^"]+)"\s+MODULE="([^"]+)"', blk):
+            inst, cls = mb.group(1), mb.group(2)
+            class_used_by.setdefault(cls, []).append({'parent': parent, 'instance': inst})
+            parent_uses.setdefault(parent, []).append(cls)
+            ib = extract_block(blk, mb.end())
+            dm = re.search(r'DESCRIPTION="([^"]*)"', ib)
+            om = re.search(r'OWNERSHIP=([^\s}]+)', ib)
+            iid = parent + '\u0001' + inst
+            instances[iid] = {'tag': inst, 'cls': cls, 'parent': parent,
+                              'desc': (dm.group(1).strip() if dm else ''),
+                              'ownership': (om.group(1) if om else ''),
+                              'category': cat_by_class.get(cls, '')}
+            parent_instances.setdefault(parent, []).append(iid)
+    catalog['class_used_by'] = class_used_by
+    catalog['instances'] = instances
+    catalog['parent_instances'] = parent_instances
+
+    em_names = {e['name'] for e in catalog['em_classes']}
+    cm_names = {c['name'] for c in catalog['cm_classes']}
+    # EM class -> the CM classes it embeds (real, from MODULE_BLOCK)
+    em_cms = {}
+    for parent, used in parent_uses.items():
+        if parent in em_names:
+            cms = sorted({c for c in used if c in cm_names})
+            if cms:
+                em_cms[parent] = cms
+    catalog['em_cms'] = em_cms
+
+    # ── unit relationships (still heuristic for single-unit class exports) ──
     if len(catalog['unit_classes']) == 1 and catalog['phase_classes']:
         uc = catalog['unit_classes'][0]['name']
         catalog.setdefault('unit_phases', {})[uc] = [p['name'] for p in catalog['phase_classes']]
         if catalog['em_classes']:
             catalog.setdefault('unit_ems', {})[uc] = [e['name'] for e in catalog['em_classes']]
-    # When an EM class is the subject, CM classes alongside it are its CMs
-    if len(catalog['em_classes']) >= 1 and catalog['cm_classes']:
-        # associate all CMs to each EM only when a single EM (unambiguous)
-        if len(catalog['em_classes']) == 1:
-            em = catalog['em_classes'][0]['name']
-            catalog.setdefault('em_cms', {})[em] = [c['name'] for c in catalog['cm_classes']]
+    # Fallback: if no MODULE_BLOCK linkage found but exactly one EM with CMs,
+    # associate them (covers exports that don't carry child-module records).
+    if not em_cms and len(catalog['em_classes']) == 1 and catalog['cm_classes']:
+        em = catalog['em_classes'][0]['name']
+        catalog['em_cms'][em] = [c['name'] for c in catalog['cm_classes']]
 
     return catalog
 
@@ -209,4 +318,5 @@ def catalog_summary(catalog):
         'phase_classes': len(catalog['phase_classes']),
         'recipes': len(catalog['recipes']),
         'composites': len(catalog['composites']),
+        'fb_types': len(catalog['fb_types']),
     }

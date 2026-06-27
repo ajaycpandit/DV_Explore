@@ -12,7 +12,10 @@ Deploys on Render as a standard Python web service (no Dockerfile needed):
 
 import io
 import os
-from flask import Flask, request, send_file, Response
+import re
+import secrets
+import tempfile
+from flask import Flask, request, send_file, Response, abort
 
 import db_parser
 import db_explorer
@@ -25,6 +28,37 @@ except Exception:
     _HAS_PHASE = False
 
 app = Flask(__name__)
+
+# uploaded FHX is stashed here so the explorer's Export buttons can regenerate
+# Excel/Word from the original text via the converter core.
+_STASH = os.path.join(tempfile.gettempdir(), 'dvexp_stash')
+os.makedirs(_STASH, exist_ok=True)
+
+
+def _stash_fhx(text):
+    token = secrets.token_urlsafe(12)
+    with open(os.path.join(_STASH, token + '.fhx'), 'w', encoding='utf-8') as fh:
+        fh.write(text)
+    return token
+
+
+def _read_stash(token):
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,40}', token or ''):
+        return None
+    path = os.path.join(_STASH, token + '.fhx')
+    if not os.path.isfile(path):
+        return None
+    return open(path, encoding='utf-8').read()
+
+
+_EXPORT_OPTS = {
+    'summary': True, 'transitions': True, 'expressions': True,
+    'columns': ['step', 'description', 'action', 'qualifier', 'expression',
+                'delay', 'confirm_expression'],
+    'procedure': True, 'parameters': True, 'formulas': True,
+    'step_params': False, 'all_params': False, 'show_limits': True,
+    'diagram_detail': False,
+}
 
 UPLOAD_PAGE = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -96,6 +130,7 @@ def explore():
     text = db_parser.decode_fhx(raw)
 
     catalog = db_parser.parse_database(text)
+    export_token = _stash_fhx(text)
 
     phase_views = {}
     if _HAS_PHASE:
@@ -104,10 +139,12 @@ def explore():
         except Exception:
             phase_views = {}   # explorer still works without drill-down
 
-    fbd_views, em_views = {}, {}
+    fbd_views, em_views, param_index, expr_index = {}, {}, {}, []
     try:
         import fbd_bridge
         fbd_views = fbd_bridge.build_fbd_views(text)
+        _ix = fbd_bridge.build_indexes(text)
+        param_index, expr_index = _ix['params'], _ix['exprs']
     except Exception:
         fbd_views = {}
     try:
@@ -117,8 +154,34 @@ def explore():
         em_views = {}
 
     html = db_explorer.build_explorer_html(catalog, fname, phase_views=phase_views,
-                                           fbd_views=fbd_views, em_views=em_views)
+                                           fbd_views=fbd_views, em_views=em_views,
+                                           param_index=param_index, expr_index=expr_index,
+                                           export_token=export_token)
     return Response(html, mimetype='text/html')
+
+
+@app.route('/export')
+def export():
+    """Regenerate an Excel workbook or Word DDS from the stashed FHX, reusing the
+    converter core. fmt = excel | word | data_excel."""
+    token = request.args.get('token', '')
+    fmt = request.args.get('fmt', 'excel')
+    text = _read_stash(token)
+    if text is None:
+        abort(404, 'Export source expired — re-open the database to export again.')
+    fname = re.sub(r'[^A-Za-z0-9_.-]', '_', request.args.get('name', 'export'))
+    try:
+        import phase_bridge as _pb
+        ns, _ = _pb._core()
+        ftype = ns['detect_fhx_type'](text)
+        buf, _sheets = ns['parse_and_build'](text, ftype, fname, _EXPORT_OPTS, fmt)
+    except Exception as e:
+        abort(500, f'Export failed: {e}')
+    if fmt == 'word':
+        return send_file(buf, as_attachment=True, download_name=fname + '_DDS.docx',
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    return send_file(buf, as_attachment=True, download_name=fname + '.xlsx',
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
 if __name__ == '__main__':

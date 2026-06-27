@@ -32,11 +32,79 @@ def _extract_block(text, start):
 
 # Basic DeltaV function block types (everything else is treated as a composite)
 _BASIC_FB = {
-    'PID', 'PIDWCALARM', 'AI', 'AO', 'DI', 'DO', 'AT', 'CND', 'ACT', 'CALC',
-    'ALMWCALARM', 'BDE', 'CAV', 'INTEG', 'FILTER', 'LIM', 'SCLR', 'SPLTR',
-    'NDE', 'OR', 'AND', 'NOT', 'XOR', 'RAMP', 'DT', 'LL', 'RATE', 'SGCR',
-    'TRIG', 'SEL', 'MULDIV', 'ADD', 'SUB', 'BIASGN', 'CHAR', 'CTD', 'CTU',
+    'PID', 'PIDWCALARM', 'AI', 'AIWCALARM', 'AO', 'DI', 'DO', 'AT', 'CND', 'ACT',
+    'CALC', 'ALMWCALARM', 'BDE', 'CAV', 'INTEG', 'FILTER', 'LIM', 'SCLR', 'SPLTR',
+    'NDE', 'PDE', 'EDC', 'DCC', 'RTLM', 'OR', 'AND', 'NOT', 'XOR', 'RAMP', 'DT',
+    'LL', 'RATE', 'SGCR', 'TRIG', 'SEL', 'MULDIV', 'ADD', 'SUB', 'BIASGN', 'CHAR',
+    'CTD', 'CTU', 'DCC', 'EDC', 'PDE',
 }
+
+
+# Expression-bearing blocks (ACT/CALC/CND/AT/DCC/...) store their structured-text
+# logic in module-scope ATTRIBUTE_INSTANCE objects named "<block>/<attr>" whose
+# VALUE holds TYPE=<kind> EXPRESSION="...". The expression string uses FHX quoting:
+# embedded double-quotes are doubled ("" -> "). We read it with that rule.
+_EXPR_ATTR_HEAD = re.compile(
+    r'ATTRIBUTE_INSTANCE\s+NAME="([^"]+)"\s*\{\s*VALUE\s*\{\s*TYPE=(\w+)\s+EXPRESSION="')
+
+# DCC condition groups (Device Control): attr prefix -> human label
+_DCC_PREFIX = {'F_': 'Fail', 'I_': 'Interlock', 'P_': 'Permissive'}
+
+
+def _read_fhx_string(text, pos):
+    """Read an FHX double-quoted string whose opening quote has already been
+    consumed (pos points at the first char of the content). Returns
+    (decoded_string, index_after_closing_quote). A doubled quote ("") is an
+    escaped literal quote; a lone quote terminates the string."""
+    out = []
+    i = pos
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            if i + 1 < n and text[i + 1] == '"':
+                out.append('"')
+                i += 2
+                continue
+            return ''.join(out), i + 1
+        out.append(ch)
+        i += 1
+    return ''.join(out), i
+
+
+def _expr_kind_label(attr, type_kw):
+    """Friendly label for an expression attribute (uses DCC F_/I_/P_ grouping
+    when present, else the declared TYPE)."""
+    for pfx, lab in _DCC_PREFIX.items():
+        if attr.startswith(pfx):
+            return lab
+    return (type_kw or '').replace('_', ' ').title() or 'Expression'
+
+
+def parse_block_expressions(block_text):
+    """Return {block_name: [{attr, kind, type, expression}, ...]} for every
+    expression-bearing ATTRIBUTE_INSTANCE in the block. Generic across block
+    types (ACT, CALC, CND, AT, DCC, ...): keyed off the "<block>/<attr>" name,
+    not the block's definition, so new expression blocks need no special-casing."""
+    out = {}
+    for m in _EXPR_ATTR_HEAD.finditer(block_text):
+        full, type_kw = m.group(1), m.group(2)
+        block = full.split('/', 1)[0]
+        attr = full.split('/', 1)[1] if '/' in full else full
+        expr, _ = _read_fhx_string(block_text, m.end())
+        expr = expr.strip()
+        if not expr:
+            continue
+        out.setdefault(block, []).append({
+            'attr': attr,
+            'type': type_kw,
+            'kind': _expr_kind_label(attr, type_kw),
+            'expression': expr,
+        })
+    # stable order within a block: by attribute name (T_EXP1, T_EXP2, ...)
+    for v in out.values():
+        v.sort(key=lambda e: e['attr'])
+    return out
 
 
 def parse_fbd(block_text):
@@ -58,8 +126,12 @@ def parse_fbd(block_text):
         })
 
     wires = []
+    seen_wires = set()
     for m in re.finditer(r'WIRE\s+SOURCE="([^"]+)"\s+DESTINATION="([^"]+)"', block_text):
         src, dst = m.group(1), m.group(2)
+        if (src, dst) in seen_wires:
+            continue  # FHX can list each wire twice; keep one
+        seen_wires.add((src, dst))
         wires.append({
             'source': src, 'destination': dst,
             'src_block': src.split('/')[0] if '/' in src else None,
@@ -100,8 +172,13 @@ def parse_fbd(block_text):
         if w['dst_block'] and w['dst_block'] not in block_names:
             terminals.add(w['dst_block'])
 
+    # attach structured-text expressions (ACT/CALC/CND/AT/DCC/...) to their blocks
+    exprs = parse_block_expressions(block_text)
+    for b in blocks:
+        b['expressions'] = exprs.get(b['name'], [])
+
     return {'blocks': blocks, 'wires': wires, 'terminals': sorted(terminals),
-            'frames': frames, 'labels': labels}
+            'frames': frames, 'labels': labels, 'expressions': exprs}
 
 
 def parse_module_fbd(text, module_name=None):
