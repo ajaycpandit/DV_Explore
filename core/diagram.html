@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SFC Diagram · FHX Converter</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--white:#fff;--s1:#f8f9fc;--s2:#f0f4ff;
+  --bd:#e4e7ed;--bd2:#d0d4de;
+  --blue:#2563eb;--blue50:#eff4ff;--blue100:#dbeafe;--blue700:#1d4ed8;--blue900:#1e3a8a;
+  --green:#059669;--green50:#ecfdf5;--green100:#d1fae5;--green800:#065f46;
+  --red:#dc2626;--red50:#fef2f2;
+  --purple:#7c3aed;--purple50:#f5f3ff;
+  --amber:#d97706;--amber50:#fffbeb;--orange100:#fed7aa;
+  --text:#0f172a;--text2:#334155;--muted:#64748b;--dim:#94a3b8;
+  --sans:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* HEADER */
+header{
+  height:52px;display:flex;align-items:center;gap:12px;padding:0 20px;
+  background:var(--blue);flex-shrink:0;z-index:20;
+}
+.h-back{color:rgba(255,255,255,.75);text-decoration:none;display:flex;align-items:center;gap:5px;font-size:12px;transition:color .15s}
+.h-back:hover{color:#fff}
+.h-back svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.h-sep{width:1px;height:18px;background:rgba(255,255,255,.2)}
+.h-icon{width:28px;height:28px;background:rgba(255,255,255,.2);border-radius:6px;display:grid;place-items:center;flex-shrink:0}
+.h-icon svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round}
+.h-title{font-size:14px;font-weight:600;color:#fff}
+.h-file{font-size:12px;color:rgba(255,255,255,.65);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.h-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.hbtn{
+  display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:7px;
+  font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .15s;
+}
+.hbtn.ghost{background:rgba(255,255,255,.12);color:#fff}
+.hbtn.ghost:hover{background:rgba(255,255,255,.22)}
+.hbtn:disabled{opacity:.35;cursor:default}
+.hbtn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+
+/* TOOLBAR */
+.toolbar{
+  height:42px;display:flex;align-items:center;gap:6px;padding:0 14px;
+  background:var(--white);border-bottom:1px solid var(--bd);flex-shrink:0;z-index:10;
+}
+.block-tabs{display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none}
+.block-tabs::-webkit-scrollbar{display:none}
+.btab{
+  padding:4px 12px;border-radius:6px;font-size:12px;font-weight:500;
+  border:1px solid var(--bd);background:transparent;color:var(--muted);
+  cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0;
+}
+.btab:hover{color:var(--text2)}
+.btab.on{background:var(--blue50);border-color:var(--blue100);color:var(--blue700);font-weight:600}
+.zoom-row{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
+.zb{width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);
+  background:var(--white);color:var(--muted);cursor:pointer;font-size:14px;
+  display:grid;place-items:center;transition:all .15s;}
+.zb:hover{border-color:var(--bd2);color:var(--text2);background:var(--s1)}
+.zl{font-size:11px;color:var(--muted);font-family:var(--mono);min-width:38px;text-align:center}
+.fit-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--bd);
+  font-size:11px;font-weight:500;color:var(--muted);background:var(--white);cursor:pointer;transition:all .15s}
+.fit-btn:hover{border-color:var(--bd2);color:var(--text2);background:var(--s1)}
+
+/* MAIN */
+.main{flex:1;display:flex;overflow:hidden;min-height:0;position:relative}
+
+/* DROP */
+.drop-overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:var(--bg);z-index:5;
+}
+.drop-overlay.hidden{display:none}
+.drop-card{
+  background:var(--white);border:2px dashed var(--bd2);border-radius:16px;
+  padding:48px 40px;text-align:center;max-width:400px;transition:all .2s;
+}
+.drop-card.over{border-color:var(--blue);background:var(--blue50)}
+.dci{font-size:48px;margin-bottom:14px}
+.dct{font-size:20px;font-weight:600;color:var(--text);margin-bottom:8px}
+.dcs{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.dcbtn{
+  display:inline-flex;align-items:center;gap:7px;padding:10px 22px;
+  background:var(--blue);color:#fff;border-radius:8px;
+  font-size:13px;font-weight:500;border:none;cursor:pointer;transition:all .15s;
+}
+.dcbtn:hover{background:var(--blue700)}
+.dcinput{position:absolute;width:1px;height:1px;opacity:0}
+.load-state{display:none;flex-direction:column;align-items:center;gap:14px}
+.load-state.show{display:flex}
+.spin{width:36px;height:36px;border:3px solid var(--bd);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CANVAS */
+.canvas-wrap{
+  flex:1;overflow:hidden;position:relative;cursor:grab;
+  background:var(--s1);
+  background-image:radial-gradient(circle,#d0d5de 1px,transparent 1px);
+  background-size:24px 24px;
+}
+.canvas-wrap.grabbing{cursor:grabbing}
+.canvas-wrap.hidden{display:none}
+.diagram-svg{position:absolute;top:0;left:0;overflow:visible;user-select:none}
+
+/* SVG styles */
+.sfc-step{cursor:pointer}
+.sfc-step:hover .step-rect{filter:brightness(1.12)}
+.sfc-trans{cursor:pointer}
+.sfc-trans:hover .trans-rect{filter:brightness(1.15)}
+
+/* LEGEND */
+.legend{
+  position:absolute;bottom:16px;left:16px;
+  background:rgba(255,255,255,.94);border:1px solid var(--bd);border-radius:10px;
+  padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+  display:flex;flex-direction:column;gap:6px;
+}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.leg-sw{width:14px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* ── MODAL ── */
+.modal-bd{
+  position:fixed;inset:0;background:rgba(15,23,42,.4);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;padding:20px;
+  opacity:0;pointer-events:none;transition:opacity .18s;
+  backdrop-filter:blur(4px);
+}
+.modal-bd.show{opacity:1;pointer-events:all}
+.modal{
+  background:var(--white);border-radius:14px;
+  width:820px;height:560px;min-width:400px;min-height:300px;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.18);
+  transform:scale(.97) translateY(6px);transition:transform .18s;
+  position:relative;resize:both;
+}
+.modal-bd.show .modal{transform:scale(1) translateY(0)}
+/* Resize handle visual cue */
+.modal::after{
+  content:'';position:absolute;bottom:4px;right:4px;
+  width:12px;height:12px;
+  border-right:2px solid var(--bd2);border-bottom:2px solid var(--bd2);
+  border-radius:0 0 4px 0;pointer-events:none;opacity:.6;
+}
+.modal-head{
+  padding:16px 20px 14px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:flex-start;gap:12px;flex-shrink:0;
+}
+.mh-icon{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  display:grid;place-items:center;font-size:17px;
+}
+.mh-icon.step{background:var(--blue50)}
+.mh-icon.trans{background:var(--green50)}
+.mh-title{font-size:15px;font-weight:600;color:var(--text)}
+.mh-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.mh-close{
+  margin-left:auto;width:28px;height:28px;border-radius:6px;
+  background:none;border:none;cursor:pointer;color:var(--dim);
+  font-size:17px;display:grid;place-items:center;transition:all .15s;flex-shrink:0;
+}
+.mh-close:hover{background:var(--s1);color:var(--text)}
+/* Drag to move */
+.modal-head{cursor:move}
+
+.modal-body{overflow-y:auto;flex:1;padding:0 20px 16px}
+.modal-body::-webkit-scrollbar{width:5px}
+.modal-body::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+
+.sec-hd{
+  display:flex;align-items:center;gap:8px;padding:14px 0 10px;
+  font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--white);z-index:1;
+}
+.sec-hd .cnt{background:var(--blue50);color:var(--blue700);font-size:10px;padding:2px 7px;border-radius:20px}
+
+.act-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.act-tbl th{
+  padding:8px 10px;font-size:10px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.06em;text-align:left;
+  background:var(--s1);border-bottom:1px solid var(--bd);
+}
+.act-tbl td{padding:9px 10px;vertical-align:top;border-bottom:1px solid var(--bd);line-height:1.5}
+.act-tbl tr:last-child td{border-bottom:none}
+.act-tbl tr:hover td{background:var(--s2)}
+.act-tbl .mono{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.act-tbl .expr{font-family:var(--mono);font-size:11px;color:var(--blue900);white-space:pre-wrap;word-break:break-word}
+.act-tbl .muted{color:var(--muted);font-style:italic}
+.type-badge{font-size:9px;font-weight:600;padding:2px 6px;border-radius:20px}
+.type-badge.SH{background:var(--blue50);color:var(--blue700)}
+.type-badge.ST{background:var(--green50);color:var(--green800)}
+.type-badge.other{background:var(--s1);color:var(--muted)}
+
+.expr-block{
+  margin:14px 0 0;background:var(--s1);border-radius:10px;
+  border:1px solid var(--bd);padding:14px 16px;
+}
+.ebl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.ebc{font-family:var(--mono);font-size:12px;color:var(--blue900);white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.term-badge{
+  display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
+  border-radius:20px;font-size:11px;font-weight:600;margin-top:10px;
+}
+.term-badge.end{background:var(--red50);color:var(--red)}
+.term-badge.next{background:var(--green50);color:var(--green800)}
+.tdesc{font-size:13px;color:var(--text2);margin-top:12px;line-height:1.6;
+  padding:10px 14px;background:var(--amber50);border-radius:8px;border-left:3px solid var(--amber)}
+.out-trans-row td{background:var(--green50)!important}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="h-back" href="/">
+    <svg viewBox="0 0 12 12"><polyline points="8,2 3,6 8,10"/></svg>
+    Back
+  </a>
+  <div class="h-sep"></div>
+  <div class="h-icon">
+    <svg viewBox="0 0 14 14"><rect x="2" y="1" width="10" height="5" rx="1.5"/><rect x="2" y="9" width="10" height="4" rx="1.5"/><line x1="7" y1="6" x2="7" y2="9"/></svg>
+  </div>
+  <div class="h-title">SFC Diagram Viewer</div>
+  <div class="h-sep"></div>
+  <div class="h-file" id="hFile">No file loaded</div>
+  <div class="h-right">
+    <button class="hbtn ghost" id="dlBtn" disabled onclick="downloadExcel()">
+      <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="8"/><polyline points="2,5 6,8 10,5"/><line x1="1" y1="11" x2="11" y2="11"/></svg>
+      Download Excel
+    </button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="block-tabs" id="blockTabs"></div>
+  <div class="zoom-row">
+    <button class="zb" onclick="zoom(-0.2)" title="Zoom out">−</button>
+    <div class="zl" id="zoomLbl">100%</div>
+    <button class="zb" onclick="zoom(+0.2)" title="Zoom in">+</button>
+    <button class="fit-btn" onclick="fitView()">Fit</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="drop-overlay" id="dropOverlay">
+    <div class="drop-card" id="dropCard">
+      <div class="dci">🗺️</div>
+      <div class="dct">SFC Diagram Viewer</div>
+      <div class="dcs">Drop a DeltaV Phase FHX file to render its SFC logic as an interactive flow diagram.</div>
+      <label>
+        <input type="file" class="dcinput" id="fileIn" accept=".fhx,.FHX"/>
+        <div class="dcbtn">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" viewBox="0 0 14 14"><rect x="1" y="3" width="12" height="10" rx="2"/><polyline points="4,3 7,0 10,3"/></svg>
+          Browse file
+        </div>
+      </label>
+    </div>
+    <div class="load-state" id="loadState">
+      <div class="spin"></div>
+      <div id="loadTxt" style="font-size:14px;color:var(--muted)">Parsing FHX…</div>
+    </div>
+  </div>
+
+  <div class="canvas-wrap hidden" id="canvasWrap">
+    <svg class="diagram-svg" id="svgEl" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <div class="legend hidden" id="legend">
+    <div class="leg-item"><div class="leg-sw" style="background:#1e40af;border-radius:4px"></div>Step — click to inspect actions</div>
+    <div class="leg-item"><div class="leg-sw" style="background:#065f46;height:6px;border-radius:2px"></div>Transition — click to inspect condition</div>
+    <div class="leg-item"><div class="leg-sw" style="background:#7f1d1d;height:6px;border-radius:2px"></div>Terminating transition</div>
+    <div class="leg-item" style="color:var(--dim);font-size:10px">Scroll to zoom · Drag to pan</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bd" id="modalBd" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-head" id="modalHead">
+      <div class="mh-icon" id="mIcon">📋</div>
+      <div>
+        <div class="mh-title" id="mTitle"></div>
+        <div class="mh-sub"   id="mSub"></div>
+      </div>
+      <button class="mh-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+var parsedData=null, currentBlock=null, currentFile=null, resultBlob=null;
+var svgEl=document.getElementById('svgEl');
+var canvasWrap=document.getElementById('canvasWrap');
+var scale=1, panX=40, panY=20;
+var isPanning=false, dragStartX=0, dragStartY=0, panStartX=0, panStartY=0;
+
+// ── File handling ─────────────────────────────────────────────────────────────
+var dropCard=document.getElementById('dropCard');
+var fileIn=document.getElementById('fileIn');
+document.addEventListener('dragover',function(e){e.preventDefault();dropCard.classList.add('over');});
+document.addEventListener('dragleave',function(e){if(!e.relatedTarget)dropCard.classList.remove('over');});
+document.addEventListener('drop',function(e){e.preventDefault();dropCard.classList.remove('over');var f=e.dataTransfer.files[0];if(f)loadFile(f);});
+fileIn.addEventListener('change',function(e){if(e.target.files[0])loadFile(e.target.files[0]);});
+
+function loadFile(f){
+  currentFile=f;
+  document.getElementById('loadState').classList.add('show');
+  dropCard.style.display='none';
+  document.getElementById('loadTxt').textContent='Parsing '+f.name+'…';
+  var fd=new FormData();fd.append('file',f,f.name);
+  fetch('/parse',{method:'POST',body:fd})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.error){showErr(data.error);return;}
+      parsedData=data;
+      document.getElementById('hFile').textContent=data.filename;
+      buildTabs(data.blocks);
+      var first=Object.keys(data.blocks)[0];
+      if(first)showBlock(first);
+      preloadExcel(f);
+    })
+    .catch(function(e){showErr(e.message);});
+}
+function preloadExcel(f){
+  var fd=new FormData();
+  fd.append('file',f,f.name);fd.append('fhx_type','auto');fd.append('format','excel');
+  fd.append('transitions','true');fd.append('summary','true');fd.append('expressions','true');
+  fd.append('columns','step,description,action,qualifier,expression,delay,confirm_expression');
+  fetch('/convert',{method:'POST',body:fd})
+    .then(function(r){return r.ok?r.blob():null;})
+    .then(function(b){if(b){resultBlob=b;document.getElementById('dlBtn').disabled=false;}})
+    .catch(function(){});
+}
+function showErr(msg){
+  document.getElementById('loadState').classList.remove('show');
+  dropCard.style.display='';
+  dropCard.querySelector('.dcs').textContent='Error: '+msg+'. Please try another file.';
+}
+function downloadExcel(){
+  if(!resultBlob||!currentFile)return;
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(resultBlob);
+  a.download=currentFile.name.replace(/\.fhx$/i,'')+'_Logic.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function buildTabs(blocks){
+  var el=document.getElementById('blockTabs');
+  el.innerHTML='';
+  Object.keys(blocks).forEach(function(lbl){
+    var b=document.createElement('button');
+    b.className='btab';b.textContent=lbl;b.dataset.lbl=lbl;
+    b.onclick=function(){showBlock(lbl);};
+    el.appendChild(b);
+  });
+}
+function showBlock(lbl){
+  currentBlock=lbl;
+  document.querySelectorAll('.btab').forEach(function(b){b.classList.toggle('on',b.dataset.lbl===lbl);});
+  document.getElementById('dropOverlay').classList.add('hidden');
+  canvasWrap.classList.remove('hidden');
+  document.getElementById('legend').classList.remove('hidden');
+  renderBlock(parsedData.blocks[lbl]);
+  fitView();
+}
+
+// ── Renderer ──────────────────────────────────────────────────────────────────
+var SW=140, SH=36;   // step box
+var TW=90,  TH=14;   // transition bar
+
+function ns(tag,attrs){
+  var el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  if(attrs)Object.keys(attrs).forEach(function(k){el.setAttribute(k,attrs[k]);});
+  return el;
+}
+
+function renderBlock(block){
+  svgEl.innerHTML='';
+  var steps=block.steps, trans=block.transitions;
+  if(!steps.length){
+    var t=ns('text',{x:40,y:40,'font-family':'Inter','font-size':'14','fill':'#64748b'});
+    t.textContent='No SFC steps in this block.';svgEl.appendChild(t);return;
+  }
+
+  var allX=steps.map(function(s){return s.x;}).concat(Object.values(trans).map(function(t){return t.x;}));
+  var allY=steps.map(function(s){return s.y;}).concat(Object.values(trans).map(function(t){return t.y;}));
+  var xMin=Math.min.apply(null,allX), yMin=Math.min.apply(null,allY);
+  var xMax=Math.max.apply(null,allX), yMax=Math.max.apply(null,allY);
+
+  // Scale to comfortable pixel distances
+  var rangeX=Math.max(xMax-xMin,1), rangeY=Math.max(yMax-yMin,1);
+  var SX=Math.min(4, Math.max(1.0, 500/rangeX));
+  var SY=Math.min(4, Math.max(0.8, 1400/rangeY));
+
+  function px(x){return Math.round((x-xMin)*SX)+80;}
+  function py(y){return Math.round((y-yMin)*SY)+60;}
+
+  // Defs: arrow marker
+  var defs=ns('defs');
+  var mk=ns('marker',{id:'arr',markerWidth:'7',markerHeight:'7',refX:'5',refY:'3.5',orient:'auto'});
+  mk.appendChild(ns('polygon',{points:'0,0 7,3.5 0,7',fill:'#b4b2a9'}));
+  defs.appendChild(mk);
+  svgEl.appendChild(defs);
+
+  // Build position maps
+  var sPos={}, tPos={};
+  steps.forEach(function(s){
+    var bx=px(s.x), by=py(s.y);
+    sPos[s.name]={bx:bx,by:by,cx:bx+SW/2,cy:by,bot:by+SH,mid:bx+SW/2};
+  });
+  Object.values(trans).forEach(function(t){
+    var bx=px(t.x), by=py(t.y);
+    tPos[t.name]={bx:bx,by:by,cx:bx+TW/2,cy:by,bot:by+TH,mid:bx+TW/2};
+  });
+
+  // ── Build connection map ───────────────────────────────────────────────────
+  // For each transition, find the next step (step with smallest Y still > trans Y, same X branch)
+  var transToNextStep={};
+  Object.values(trans).forEach(function(t){
+    if(t.termination==='T'){transToNextStep[t.name]=null;return;}
+    var ty=t.y, tx=t.x;
+    var cands=steps.filter(function(s){return s.y>ty;})
+      .map(function(s){return{name:s.name,dy:s.y-ty,dx:Math.abs(s.x-tx)};});
+    // prefer same-X-branch first
+    var sameX=cands.filter(function(c){return c.dx<150;});
+    var pool=sameX.length?sameX:cands;
+    if(pool.length){
+      pool.sort(function(a,b){return a.dy-b.dy;});
+      transToNextStep[t.name]=pool[0].name;
+    } else {
+      transToNextStep[t.name]=null;
+    }
+  });
+
+  // ── Draw arrows (behind everything) ───────────────────────────────────────
+  var arrowG=ns('g');
+
+  function orthoPath(x1,y1,x2,y2){
+    // Prefer straight vertical when x positions are close enough
+    // "Close enough" = within half a step width (70px)
+    if(Math.abs(x1-x2) < 70){
+      // Snap to the midpoint X and go straight
+      var mx=Math.round((x1+x2)/2);
+      if(Math.abs(x1-x2)<4){
+        // Exactly aligned — pure vertical
+        return 'M'+x1+','+y1+' L'+x2+','+y2;
+      }
+      // Very close — small horizontal jog then straight down
+      return 'M'+x1+','+y1+
+             ' L'+mx+','+y1+
+             ' L'+mx+','+y2;
+    }
+    // Further apart — proper elbow: down to midpoint, across, then down
+    var midY=Math.round((y1+y2)/2);
+    return 'M'+x1+','+y1+
+           ' L'+x1+','+midY+
+           ' L'+x2+','+midY+
+           ' L'+x2+','+y2;
+  }
+
+  // Step → Transition arrows
+  steps.forEach(function(s){
+    var sp=sPos[s.name];
+    s.transitions.forEach(function(tname){
+      var tp=tPos[tname];if(!tp)return;
+      var p=ns('path',{
+        d:orthoPath(sp.mid, sp.bot, tp.mid, tp.by),
+        fill:'none',stroke:'#b4b2a9','stroke-width':'1.5',
+        'marker-end':'url(#arr)'
+      });
+      arrowG.appendChild(p);
+    });
+  });
+
+  // Transition → Next Step arrows
+  Object.entries(transToNextStep).forEach(function(pair){
+    var tname=pair[0], sname=pair[1];
+    if(!sname)return;
+    var tp=tPos[tname], sp=sPos[sname];
+    if(!tp||!sp)return;
+    var p=ns('path',{
+      d:orthoPath(tp.mid, tp.bot, sp.mid, sp.by),
+      fill:'none',stroke:'#b4b2a9','stroke-width':'1.5',
+      'marker-end':'url(#arr)'
+    });
+    arrowG.appendChild(p);
+  });
+  svgEl.appendChild(arrowG);
+
+  // ── Draw transitions ───────────────────────────────────────────────────────
+  var tG=ns('g');
+  Object.values(trans).forEach(function(t){
+    var bx=px(t.x), by=py(t.y);
+    var isEnd=t.termination==='T';
+    var g2=ns('g',{'class':'sfc-trans'});
+
+    var rect=ns('rect',{x:bx,y:by,width:TW,height:TH,rx:'4',
+      fill:isEnd?'#993c1d':'#0f6e56',
+      stroke:isEnd?'#f5c4b3':'#9fe1cb','stroke-width':'1.5',
+      'class':'trans-rect'
+    });
+    var lbl=ns('text',{
+      x:bx+TW/2,y:by+TH/2,
+      'text-anchor':'middle','dominant-baseline':'middle',
+      fill:'#fff','font-size':'8.5','font-family':'Inter','font-weight':'500'
+    });
+    lbl.textContent=(isEnd?'⏹ ':'')+t.name;
+    g2.appendChild(rect);g2.appendChild(lbl);
+    g2.addEventListener('click',function(e){e.stopPropagation();openTransModal(t);});
+    tG.appendChild(g2);
+  });
+  svgEl.appendChild(tG);
+
+  // ── Draw steps ─────────────────────────────────────────────────────────────
+  var sG=ns('g');
+  steps.forEach(function(s,idx){
+    var bx=px(s.x), by=py(s.y);
+    var isInit=idx===0;
+    var g2=ns('g',{'class':'sfc-step'});
+
+    // Drop shadow
+    var sh=ns('rect',{x:bx+1,y:by+2,width:SW,height:SH,rx:'7',fill:'rgba(0,0,0,.07)'});
+
+    var rect=ns('rect',{x:bx,y:by,width:SW,height:SH,rx:'7',
+      fill:isInit?'#0c447c':'#185fa5',
+      stroke:isInit?'#b5d4f4':'#b5d4f4','stroke-width':'2',
+      'class':'step-rect'
+    });
+
+    var nameT=ns('text',{
+      x:bx+SW/2,y:by+SH/2-5,
+      'text-anchor':'middle','dominant-baseline':'middle',
+      fill:'#fff','font-size':'10','font-family':'Inter','font-weight':'600'
+    });
+    var nm=s.name.length>17?s.name.slice(0,16)+'…':s.name;
+    nameT.textContent=nm;
+
+    var badgeBg=ns('rect',{x:bx+SW/2-20,y:by+SH-15,width:40,height:11,rx:'5.5',fill:'rgba(255,255,255,.18)'});
+    var badgeT=ns('text',{
+      x:bx+SW/2,y:by+SH-9,
+      'text-anchor':'middle','dominant-baseline':'middle',
+      fill:'rgba(255,255,255,.8)','font-size':'7.5','font-family':'Inter'
+    });
+    badgeT.textContent=s.actions.length+' act'+(s.actions.length!==1?'s':'');
+
+    g2.appendChild(sh);g2.appendChild(rect);
+    g2.appendChild(nameT);g2.appendChild(badgeBg);g2.appendChild(badgeT);
+    g2.addEventListener('click',function(e){e.stopPropagation();openStepModal(s);});
+    sG.appendChild(g2);
+  });
+  svgEl.appendChild(sG);
+
+  // Set SVG size
+  var allBx=steps.map(function(s){return px(s.x)+SW;})
+    .concat(Object.values(trans).map(function(t){return px(t.x)+TW;}));
+  var allBy=steps.map(function(s){return py(s.y)+SH;})
+    .concat(Object.values(trans).map(function(t){return py(t.y)+TH;}));
+  var W=Math.max.apply(null,allBx)+80;
+  var H=Math.max.apply(null,allBy)+80;
+  svgEl.setAttribute('width',W);svgEl.setAttribute('height',H);
+  svgEl._natW=W;svgEl._natH=H;
+}
+
+// ── Pan & Zoom ────────────────────────────────────────────────────────────────
+canvasWrap.addEventListener('mousedown',function(e){
+  if(e.target.closest('.sfc-step,.sfc-trans'))return;
+  isPanning=true;dragStartX=e.clientX;dragStartY=e.clientY;
+  panStartX=panX;panStartY=panY;canvasWrap.classList.add('grabbing');
+});
+window.addEventListener('mousemove',function(e){
+  if(!isPanning)return;
+  panX=panStartX+(e.clientX-dragStartX);
+  panY=panStartY+(e.clientY-dragStartY);
+  applyTransform();
+});
+window.addEventListener('mouseup',function(){isPanning=false;canvasWrap.classList.remove('grabbing');});
+canvasWrap.addEventListener('wheel',function(e){
+  e.preventDefault();
+  var delta=e.deltaY>0?-0.12:0.12;
+  var rect=canvasWrap.getBoundingClientRect();
+  var ox=e.clientX-rect.left, oy=e.clientY-rect.top;
+  var old=scale;
+  scale=Math.max(0.15,Math.min(5,scale+delta));
+  panX=ox-(ox-panX)*(scale/old);
+  panY=oy-(oy-panY)*(scale/old);
+  applyTransform();
+  document.getElementById('zoomLbl').textContent=Math.round(scale*100)+'%';
+},{passive:false});
+
+function zoom(d){
+  scale=Math.max(0.15,Math.min(5,scale+d));
+  applyTransform();
+  document.getElementById('zoomLbl').textContent=Math.round(scale*100)+'%';
+}
+function applyTransform(){
+  svgEl.style.transform='translate('+panX+'px,'+panY+'px) scale('+scale+')';
+  svgEl.style.transformOrigin='0 0';
+}
+function fitView(){
+  if(!svgEl._natW)return;
+  var cw=canvasWrap.clientWidth, ch=canvasWrap.clientHeight;
+  var sc=Math.min((cw-80)/svgEl._natW,(ch-80)/svgEl._natH,1);
+  scale=sc;panX=(cw-svgEl._natW*sc)/2;panY=40;
+  applyTransform();
+  document.getElementById('zoomLbl').textContent=Math.round(scale*100)+'%';
+}
+
+// ── Modals ────────────────────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function openStepModal(step){
+  document.getElementById('mIcon').className='mh-icon step';
+  document.getElementById('mIcon').textContent='📋';
+  document.getElementById('mTitle').textContent=step.name;
+  document.getElementById('mSub').textContent=step.actions.length+' action'+(step.actions.length!==1?'s':'')+' · Step';
+
+  var hasDelay=step.actions.some(function(a){return a.delay_time||a.delay_expression;});
+  var hasConfirm=step.actions.some(function(a){return a.confirm_expression;});
+
+  var h='<div class="sec-hd">Actions <span class="cnt">'+step.actions.length+'</span></div>';
+  h+='<table class="act-tbl"><thead><tr>';
+  h+='<th style="width:110px">Action ID</th><th>Description</th><th style="width:46px">Type</th><th>Expression</th>';
+  if(hasDelay)h+='<th style="width:90px">Delay</th>';
+  if(hasConfirm)h+='<th style="width:120px">Confirm</th>';
+  h+='</tr></thead><tbody>';
+  step.actions.forEach(function(a){
+    var tc=a.type==='SH'?'SH':a.type==='ST'?'ST':'other';
+    h+='<tr>';
+    h+='<td class="mono">'+esc(a.action)+'</td>';
+    h+='<td>'+(a.description?esc(a.description):'<span class="muted">—</span>')+'</td>';
+    h+='<td><span class="type-badge '+tc+'">'+esc(a.type||'—')+'</span></td>';
+    h+='<td class="expr">'+(a.expression?esc(a.expression):'<span class="muted">—</span>')+'</td>';
+    if(hasDelay){var d=a.delay_time||a.delay_expression||'';h+='<td class="mono">'+(d?esc(d):'<span class="muted">—</span>')+'</td>';}
+    if(hasConfirm){var c=a.confirm_expression||'';h+='<td class="mono">'+(c?esc(c):'<span class="muted">—</span>')+'</td>';}
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+
+  // Outgoing transitions
+  if(step.transitions&&step.transitions.length){
+    h+='<div class="sec-hd" style="margin-top:16px">Outgoing transitions <span class="cnt">'+step.transitions.length+'</span></div>';
+    h+='<table class="act-tbl"><thead><tr><th style="width:120px">Transition</th><th style="width:70px">Type</th><th>Condition Expression</th></tr></thead><tbody>';
+    step.transitions.forEach(function(tname){
+      var t=parsedData.blocks[currentBlock].transitions[tname];
+      if(!t)return;
+      var term=t.termination==='T';
+      h+='<tr class="out-trans-row">';
+      h+='<td class="mono">'+esc(tname)+'</td>';
+      h+='<td><span class="term-badge '+(term?'end':'next')+'" style="font-size:9px;padding:2px 7px">'+(term?'⏹ END':'→ NEXT')+'</span></td>';
+      h+='<td class="expr">'+(t.expression?esc(t.expression):'<span class="muted">(always true)</span>')+'</td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table>';
+  }
+
+  document.getElementById('mBody').innerHTML=h;
+  showModal();
+}
+
+function openTransModal(trans){
+  document.getElementById('mIcon').className='mh-icon trans';
+  document.getElementById('mIcon').textContent='◆';
+  document.getElementById('mTitle').textContent=trans.name;
+  var term=trans.termination==='T';
+  document.getElementById('mSub').textContent=(term?'Terminating transition':'Transition')+(trans.description?' · '+trans.description:'');
+
+  var h='<div class="term-badge '+(term?'end':'next')+'" style="margin-top:14px">'+(term?'⏹ Terminates the sequence':'→ Continues to next step')+'</div>';
+  if(trans.description)h+='<div class="tdesc">'+esc(trans.description)+'</div>';
+  h+='<div class="expr-block"><div class="ebl">Transition Condition</div>';
+  h+='<div class="ebc">'+(trans.expression?esc(trans.expression):'<span style="color:var(--muted);font-style:italic">(no expression — always true)</span>')+'</div></div>';
+
+  document.getElementById('mBody').innerHTML=h;
+  showModal();
+}
+
+function showModal(){document.getElementById('modalBd').classList.add('show');}
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modalBd'))return;
+  document.getElementById('modalBd').classList.remove('show');
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+// ── Modal drag to move ────────────────────────────────────────────────────────
+var modal=document.getElementById('modal');
+var modalHead=document.getElementById('modalHead');
+var mdx=0,mdy=0,mleft=0,mtop=0,isMoving=false;
+modalHead.addEventListener('mousedown',function(e){
+  if(e.target.closest('.mh-close'))return;
+  isMoving=true;
+  var r=modal.getBoundingClientRect();
+  mleft=r.left;mtop=r.top;mdx=e.clientX;mdy=e.clientY;
+  modal.style.position='fixed';
+  modal.style.margin='0';
+  modal.style.left=mleft+'px';modal.style.top=mtop+'px';
+  e.preventDefault();
+});
+window.addEventListener('mousemove',function(e){
+  if(!isMoving)return;
+  modal.style.left=(mleft+e.clientX-mdx)+'px';
+  modal.style.top =(mtop +e.clientY-mdy)+'px';
+});
+window.addEventListener('mouseup',function(){isMoving=false;});
+</script>
+</body>
+</html>

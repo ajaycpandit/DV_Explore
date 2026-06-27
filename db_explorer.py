@@ -759,6 +759,7 @@ function wireFbdLinks(){
             f'title="Download an Excel workbook generated from this database">&#8681; Excel</a>'
             f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=word&amp;name={ft}" '
             f'title="Download a Word DDS document generated from this database">&#8681; Word DDS</a>'
+            f'<a class="exp-btn" href="/tool/" title="Open the FHX Converter wizard">&#9881; Converter</a>'
             f'</div>')
 
     return f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">

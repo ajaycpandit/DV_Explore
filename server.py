@@ -29,6 +29,17 @@ except Exception:
 
 app = Flask(__name__)
 
+# Mount the FHX Converter (Backup 1) under /tool so one deployment serves both
+# the explorer (/) and the converter wizard (/tool/). Optional — explorer still
+# works if the converter core is unavailable.
+try:
+    from werkzeug.middleware.dispatcher import DispatcherMiddleware
+    import converter_app
+    app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {converter_app.MOUNT: converter_app.capp})
+    _HAS_CONVERTER = True
+except Exception:
+    _HAS_CONVERTER = False
+
 # uploaded FHX is stashed here so the explorer's Export buttons can regenerate
 # Excel/Word from the original text via the converter core.
 _STASH = os.path.join(tempfile.gettempdir(), 'dvexp_stash')
@@ -100,6 +111,8 @@ button:disabled{background:#475569;cursor:not-allowed}
     <button type="submit" id="btn" disabled>Build Explorer</button>
   </form>
   <div class="note">Large exports (e.g. full Area, 30&nbsp;MB) may take a minute to parse.</div>
+  <div class="note" style="margin-top:10px">Need the FHX&nbsp;&rarr;&nbsp;Excel / Word converter?
+    <a href="/tool/" style="color:#93c5fd;text-decoration:none;font-weight:600">Open the Converter tool &rarr;</a></div>
 </div>
 <script>
 var fi=document.getElementById('file'),fn=document.getElementById('fn'),btn=document.getElementById('btn');

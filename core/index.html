@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FHX Converter · DeltaV</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;
+  --white:#ffffff;
+  --s1:#f2f1ee;
+  --s2:#eae9e5;
+  --bd:#e0dfd9;
+  --bd2:#cccbc4;
+  --text:#1a1a18;
+  --text2:#3d3d38;
+  --muted:#706f68;
+  --dim:#a8a79f;
+
+  --ink:#1a1a18;        /* near-black for primary actions */
+  --ink-hover:#000000;
+
+  --sage:#4a6741;       /* muted green — success */
+  --sage50:#f0f4ef;
+  --sage100:#d4e2d2;
+
+  --stone:#5f5e58;      /* neutral secondary */
+  --stone50:#f2f1ee;
+
+  --teal:#2c6b70;       /* info/accent */
+  --teal50:#eef5f6;
+  --teal100:#c4dfe1;
+
+  --rust:#7a3d2a;       /* warning/EM type */
+  --rust50:#f7eeeb;
+  --rust100:#e8c9bf;
+
+  --indigo:#3d4a8a;     /* diagram/purple */
+  --indigo50:#eef0f9;
+  --indigo100:#c9ceeb;
+
+  --amber:#7a5c1e;
+  --amber50:#faf5e8;
+  --amber100:#edd9a3;
+
+  --red:#8a2c2c;
+  --red50:#f7eeee;
+
+  --sans:'Inter',system-ui,sans-serif;
+  --r4:4px;--r6:6px;--r8:8px;--r10:10px;--r12:12px;--r16:16px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+body{display:flex;flex-direction:column;overflow:hidden}
+
+/* ── HEADER ── */
+header{
+  height:54px;padding:0 32px;flex-shrink:0;
+  display:flex;align-items:center;gap:16px;
+  background:var(--white);border-bottom:1px solid var(--bd);
+}
+.h-mark{
+  display:flex;align-items:center;gap:9px;
+  text-decoration:none;
+}
+.h-logobox{
+  width:30px;height:30px;border-radius:var(--r6);
+  background:var(--ink);display:grid;place-items:center;
+}
+.h-logobox svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.h-appname{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.02em}
+.h-badge{
+  font-size:10px;color:var(--muted);background:var(--s1);
+  border:1px solid var(--bd);padding:2px 8px;border-radius:20px;
+  letter-spacing:.03em;font-weight:500;
+}
+.h-nav{margin-left:auto;display:flex;align-items:center;gap:4px}
+.h-navbtn{
+  padding:5px 12px;border-radius:var(--r6);font-size:12px;font-weight:500;
+  color:var(--muted);background:none;border:none;cursor:pointer;transition:all .15s;
+  text-decoration:none;display:flex;align-items:center;gap:5px;
+}
+.h-navbtn:hover{color:var(--text2);background:var(--s1)}
+.h-navbtn.active{color:var(--text);background:var(--s1)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;padding:32px}
+.main::-webkit-scrollbar{width:4px}
+.main::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* ── WIZARD STEPS ── */
+.wizard{
+  max-width:680px;margin:0 auto;
+  display:flex;flex-direction:column;
+}
+
+/* Step connector */
+.step-connector{
+  padding:0 0 0 36px;
+}
+.step-connector .line{
+  width:2px;height:18px;background:var(--bd);
+}
+.step-connector .line.done{background:var(--sage100)}
+
+/* Step container */
+.wstep{
+  border:1px solid var(--bd);border-radius:var(--r12);
+  background:var(--white);
+  transition:border-color .2s,box-shadow .2s;
+}
+.wstep.active{
+  border-color:var(--bd2);
+  box-shadow:0 2px 16px rgba(0,0,0,.07);
+}
+.wstep.done{border-color:var(--sage100)}
+.wstep.locked{
+  background:var(--s1);
+  border-color:var(--bd);
+}
+.wstep.locked .step-title{color:var(--dim)}
+.wstep.locked .step-desc{color:var(--dim)}
+.wstep.locked .step-hd{cursor:default}
+/* Locked steps show NO body content at all */
+.wstep.locked .step-body{display:none!important}
+
+/* Step header */
+.step-hd{
+  padding:16px 20px;display:flex;align-items:center;gap:14px;
+  cursor:pointer;user-select:none;
+}
+.step-num{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:grid;place-items:center;font-size:13px;font-weight:600;
+  background:var(--s1);color:var(--muted);border:1.5px solid var(--bd);
+  transition:all .2s;
+}
+.wstep.active .step-num{background:var(--ink);color:#fff;border-color:var(--ink)}
+.wstep.done .step-num{background:var(--sage);color:#fff;border-color:var(--sage)}
+.step-hd-text{flex:1}
+.step-title{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+.step-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.step-badge{
+  font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;
+  background:var(--s1);color:var(--muted);border:1px solid var(--bd);flex-shrink:0;
+}
+.wstep.done .step-badge{background:var(--sage50);color:var(--sage);border-color:var(--sage100)}
+.wstep.active .step-badge{background:var(--teal50);color:var(--teal);border-color:var(--teal100)}
+
+/* Step body */
+.step-body{padding:0 20px 20px;display:none}
+.wstep.active .step-body{display:block}
+
+/* ── STEP 1 — FILE ── */
+.drop-zone{
+  display:block;
+  border:2px dashed var(--bd2);border-radius:var(--r10);
+  padding:36px 24px;text-align:center;cursor:pointer;
+  transition:all .18s;background:var(--s1);position:relative;
+}
+.drop-zone:hover,.drop-zone.over{border-color:var(--teal);background:var(--teal50)}
+.drop-zone input{position:absolute;width:1px;height:1px;opacity:0}
+.dz-icon{
+  width:48px;height:48px;border-radius:var(--r10);
+  background:var(--white);border:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 12px;
+}
+.dz-icon svg{width:22px;height:22px;fill:none;stroke:var(--muted);stroke-width:1.5;stroke-linecap:round}
+.dz-title{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px}
+.dz-sub{font-size:12px;color:var(--muted)}
+
+.file-card{
+  display:none;align-items:center;gap:12px;
+  padding:12px 16px;border-radius:var(--r8);
+  border:1px solid var(--sage100);background:var(--sage50);
+  margin-top:10px;
+}
+.file-card.show{display:flex}
+.fc-icon{width:36px;height:36px;background:var(--white);border:1px solid var(--bd);
+  border-radius:var(--r6);display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.fc-name{font-size:13px;font-weight:600;color:var(--text2);font-family:monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.fc-meta{font-size:11px;color:var(--sage);margin-top:2px}
+.fc-rm{background:none;border:none;cursor:pointer;color:var(--dim);font-size:15px;
+  padding:3px 5px;border-radius:var(--r4);transition:all .12s;flex-shrink:0;line-height:1}
+.fc-rm:hover{color:var(--red);background:var(--red50)}
+
+/* Detected type */
+.detected-row{
+  display:none;align-items:center;justify-content:space-between;
+  margin-top:12px;padding:10px 14px;
+  border-radius:var(--r8);background:var(--s1);border:1px solid var(--bd);
+}
+.detected-row.show{display:flex}
+.det-label{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.08em}
+.det-pills{display:flex;gap:6px;align-items:center}
+.det-pill{
+  font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+  letter-spacing:.03em;cursor:pointer;transition:all .15s;
+  border:1px solid var(--bd);background:var(--white);color:var(--muted);
+}
+.det-pill.active-teal{border-color:var(--teal);background:var(--teal50);color:var(--teal)}
+.det-pill.active-rust{border-color:var(--rust);background:var(--rust50);color:var(--rust)}
+.det-pill.active-indigo{border-color:var(--indigo);background:var(--indigo50);color:var(--indigo)}
+.det-pill.active-amber{border-color:var(--amber);background:var(--amber50);color:var(--amber)}
+
+/* Stats strip */
+.stats-strip{
+  display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;
+}
+.stats-strip.show{display:grid}
+.stat-item{
+  padding:10px 14px;border-radius:var(--r8);
+  background:var(--white);border:1px solid var(--bd);text-align:center;
+}
+.stat-n{font-size:20px;font-weight:600;color:var(--text);font-family:monospace;line-height:1}
+.stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px;font-weight:500}
+
+/* ── STEP 2 — CONFIGURE ── */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.cfg-card{
+  padding:14px;border-radius:var(--r8);border:1.5px solid var(--bd);
+  background:var(--white);cursor:pointer;transition:all .15s;
+}
+.cfg-card:hover{border-color:var(--bd2)}
+.cfg-card.on-xl{border-color:var(--sage);background:var(--sage50)}
+.cfg-card.on-wd{border-color:var(--teal);background:var(--teal50)}
+.cfg-card.on-dg{border-color:var(--indigo);background:var(--indigo50)}
+.cfg-card.on-xl.cfg-card{border-color:var(--sage)}
+
+.cc-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.cc-icon{
+  width:32px;height:32px;border-radius:var(--r6);
+  display:grid;place-items:center;font-size:15px;flex-shrink:0;
+  background:var(--s1);border:1px solid var(--bd);
+}
+.on-xl .cc-icon{background:var(--sage100);border-color:var(--sage100)}
+.on-wd .cc-icon{background:var(--teal100);border-color:var(--teal100)}
+.on-dg .cc-icon{background:var(--indigo100);border-color:var(--indigo100)}
+.cc-name{font-size:13px;font-weight:600;color:var(--text2)}
+.on-xl .cc-name{color:var(--sage)}
+.on-wd .cc-name{color:var(--teal)}
+.on-dg .cc-name{color:var(--indigo)}
+.cc-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.cc-ext{font-size:10px;font-weight:500;color:var(--dim);margin-top:3px}
+
+/* Three column grid for diagram option */
+.cfg-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+
+/* Section labels */
+.cfg-label{
+  font-size:10px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;
+}
+.cfg-section{margin-bottom:16px}
+.cfg-section:last-child{margin-bottom:0}
+
+/* Column chips */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid var(--bd);background:var(--white);
+  font-size:11px;font-weight:500;color:var(--muted);
+  cursor:pointer;transition:all .12s;user-select:none;
+}
+.chip:hover{border-color:var(--bd2);color:var(--text2)}
+.chip.on{border-color:var(--teal);background:var(--teal50);color:var(--teal)}
+.chip.fixed{color:var(--dim);cursor:default}
+.chip .ck{font-size:9px;font-weight:700}
+
+/* Options */
+.opts{display:flex;flex-direction:column;gap:0}
+.opt-row{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 0;border-bottom:1px solid var(--bd)}
+.opt-row:last-child{border-bottom:none}
+.opt-row.hidden{display:none}
+.ol{font-size:13px;font-weight:500;color:var(--text2)}
+.os{font-size:11px;color:var(--muted);margin-top:1px}
+.tog{width:32px;height:17px;border-radius:20px;background:var(--bd2);
+  border:none;cursor:pointer;position:relative;flex-shrink:0;
+  transition:background .18s;outline:none}
+.tog.on{background:var(--teal)}
+.tog::after{content:'';position:absolute;width:12px;height:12px;background:#fff;
+  border-radius:50%;top:2.5px;left:2.5px;transition:transform .18s;
+  box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tog.on::after{transform:translateX(15px)}
+
+/* ── PROCESS BUTTON ── */
+.proc-wrap{margin-top:16px}
+.proc-btn{
+  width:100%;padding:11px 16px;border-radius:var(--r8);
+  background:var(--ink);color:#fff;border:none;
+  font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  letter-spacing:.01em;
+}
+.proc-btn:hover:not(:disabled){background:var(--ink-hover)}
+.proc-btn:disabled{background:var(--s2);color:var(--dim);cursor:not-allowed}
+.proc-btn.busy{background:var(--amber);color:var(--white)}
+.proc-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── STEP 3 — RESULT ── */
+.log-card{
+  border-radius:var(--r8);overflow:hidden;
+  border:1px solid var(--bd);margin-bottom:12px;
+}
+.lc-head{
+  padding:9px 14px;background:var(--s1);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:8px;
+}
+.lc-dots{display:flex;gap:4px}
+.lc-dot{width:8px;height:8px;border-radius:50%}
+.lc-title{font-size:12px;font-weight:500;color:var(--text2)}
+.lc-badge{margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;
+  border-radius:20px;background:var(--s1);color:var(--muted);border:1px solid var(--bd)}
+.lc-badge.run{background:var(--amber50);color:var(--amber);border-color:var(--amber100)}
+.lc-badge.done{background:var(--sage50);color:var(--sage);border-color:var(--sage100)}
+.lc-badge.err{background:var(--red50);color:var(--red);border-color:#e8bfbf}
+.lc-prog{height:2px;background:var(--bd)}
+.lc-fill{height:100%;width:0;background:var(--teal);transition:width .4s}
+.lc-body{
+  padding:10px 14px;font-family:monospace;font-size:11.5px;line-height:1.85;
+  background:#1c1e2a;max-height:160px;overflow-y:auto;
+}
+.lc-body::-webkit-scrollbar{width:3px}
+.lc-body::-webkit-scrollbar-thumb{background:#363947}
+.lr{display:flex;gap:10px;animation:pop .1s ease}
+@keyframes pop{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+.lr .lt{color:#3d4060;flex-shrink:0;font-size:10px;padding-top:2px;min-width:50px}
+.lr .lm{flex:1;word-break:break-word}
+.lr.ok .lm{color:#7fbf9e}
+.lr.step .lm{color:#8cb8d4;font-weight:500}
+.lr.warn .lm{color:#c9a96e}
+.lr.err .lm{color:#bf8f8f}
+.lr.head .lm{color:#c4a06a;font-weight:600;font-size:13px;font-family:var(--sans)}
+.lr.dim .lm{color:#454760}
+
+/* Result download card */
+.result-card{
+  border-radius:var(--r8);overflow:hidden;
+  border:1px solid var(--sage100);
+}
+.rc-head{
+  padding:12px 16px;background:var(--sage50);border-bottom:1px solid var(--sage100);
+  display:flex;align-items:center;gap:10px;
+}
+.rc-icon{font-size:18px}
+.rc-title{font-size:13px;font-weight:600;color:var(--sage)}
+.rc-body{padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pills{display:flex;flex-wrap:wrap;gap:4px;flex:1}
+.pill{display:inline-flex;align-items:center;gap:3px;font-family:monospace;font-size:10px;
+  font-weight:500;padding:3px 8px;border-radius:20px;
+  border:1px solid var(--bd);background:var(--s1);color:var(--muted)}
+.pill .pd{width:5px;height:5px;border-radius:50%}
+.pill-p{border-color:var(--teal100);background:var(--teal50);color:var(--teal)}.pill-p .pd{background:var(--teal)}
+.pill-c{border-color:var(--rust100);background:var(--rust50);color:var(--rust)}.pill-c .pd{background:var(--rust)}
+.pill-s{border-color:var(--indigo100);background:var(--indigo50);color:var(--indigo)}.pill-s .pd{background:var(--indigo)}
+.pill-r{border-color:var(--amber100);background:var(--amber50);color:var(--amber)}.pill-r .pd{background:var(--amber)}
+.pill-z .pd{background:var(--dim)}
+.dl-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:9px 18px;border-radius:var(--r8);
+  font-size:12px;font-weight:500;cursor:pointer;border:none;transition:all .15s;
+}
+.dl-btn:hover{opacity:.88;transform:translateY(-1px)}
+.dl-btn.xl{background:var(--sage);color:#fff}
+.dl-btn.wd{background:var(--teal);color:#fff}
+.dl-btn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+
+/* Restart button */
+.restart-btn{
+  display:block;width:100%;margin-top:10px;padding:9px;
+  border-radius:var(--r8);border:1px solid var(--bd);background:var(--white);
+  font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;
+  text-align:center;
+}
+.restart-btn:hover{border-color:var(--bd2);color:var(--text2);background:var(--s1)}
+
+/* Diagram link */
+.diag-link{
+  display:flex;align-items:center;gap:10px;margin-top:20px;padding:12px 16px;
+  border-radius:var(--r10);border:1px solid var(--indigo100);
+  background:var(--indigo50);text-decoration:none;transition:all .15s;cursor:pointer;
+}
+.diag-link:hover{background:var(--indigo100)}
+.dl-ic{width:32px;height:32px;border-radius:var(--r6);background:var(--indigo100);
+  display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.dl-tt{font-size:12px;font-weight:600;color:var(--indigo)}
+.dl-ss{font-size:11px;color:var(--indigo);opacity:.7;margin-top:1px}
+.new-tag{font-size:9px;font-weight:700;background:var(--indigo);color:#fff;
+  padding:1px 5px;border-radius:20px;margin-left:5px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="h-mark" href="/">
+    <div class="h-logobox">
+      <svg viewBox="0 0 14 14"><polyline points="1,10 5,6 8,8 13,2"/><polyline points="10,2 13,2 13,5"/></svg>
+    </div>
+    <div class="h-appname">FHX Converter</div>
+  </a>
+  <div class="h-badge">DeltaV · Phase &amp; EM</div>
+  <nav class="h-nav">
+    <a class="h-navbtn active" href="/">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" rx="2"/></svg>
+      Converter
+    </a>
+    <a class="h-navbtn" href="/diagram" target="_blank">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 12 12"><rect x="1" y="1" width="5" height="4" rx="1"/><rect x="1" y="7" width="5" height="4" rx="1"/><rect x="7" y="3" width="4" height="6" rx="1"/><line x1="6" y1="3" x2="7" y2="3"/><line x1="6" y1="9" x2="7" y2="9"/></svg>
+      SFC Diagram
+    </a>
+  </nav>
+</header>
+
+<div class="main">
+<div class="wizard">
+
+  <!-- ── STEP 1 — LOAD FILE ── -->
+  <div class="wstep active" id="step1">
+    <div class="step-hd" onclick="stepClick(1)">
+      <div class="step-num">1</div>
+      <div class="step-hd-text">
+        <div class="step-title">Load file</div>
+        <div class="step-desc">Drop a DeltaV .fhx export — type is auto-detected</div>
+      </div>
+      <div class="step-badge" id="s1badge">Waiting</div>
+    </div>
+    <div class="step-body">
+      <label class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" multiple/>
+        <div class="dz-icon">
+          <svg viewBox="0 0 22 22"><rect x="2" y="4" width="18" height="15" rx="2"/><polyline points="8,4 11,1 14,4"/><line x1="11" y1="8" x2="11" y2="15"/><line x1="7" y1="12" x2="11" y2="15"/><line x1="15" y1="12" x2="11" y2="15"/></svg>
+        </div>
+        <div class="dz-title">Click to browse or drag &amp; drop</div>
+        <div class="dz-sub">Supports Phase, Command Driven EM and State Driven EM exports</div>
+      </label>
+
+      <div class="file-card" id="fileCard">
+        <div class="fc-icon">📄</div>
+        <div style="flex:1;min-width:0">
+          <div class="fc-name" id="fcName">—</div>
+          <div class="fc-meta" id="fcMeta">—</div>
+        </div>
+        <button class="fc-rm" onclick="clearFile(event)">✕</button>
+      </div>
+
+      <div class="detected-row" id="detRow">
+        <span class="det-label">Detected type</span>
+        <div class="det-pills" id="detPills">
+          <span class="det-pill" id="dpPhase" onclick="setType('phase')">Phase</span>
+          <span class="det-pill" id="dpCD"    onclick="setType('em_cd')">Command EM</span>
+          <span class="det-pill" id="dpSD"    onclick="setType('em_sd')">State EM</span>
+          <span class="det-pill" id="dpRec"   onclick="setType('recipe')">Recipe</span>
+        </div>
+      </div>
+
+      <div class="stats-strip" id="statsStrip">
+        <div class="stat-item"><div class="stat-n" id="sA">—</div><div class="stat-l" id="sAL">Blocks</div></div>
+        <div class="stat-item"><div class="stat-n" id="sB">—</div><div class="stat-l" id="sBL">Steps</div></div>
+        <div class="stat-item"><div class="stat-n" id="sC">—</div><div class="stat-l" id="sCL">Actions</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-connector"><div class="line" id="conn1"></div></div>
+
+  <!-- ── STEP 2 — CONFIGURE ── -->
+  <div class="wstep locked" id="step2">
+    <div class="step-hd" onclick="stepClick(2)">
+      <div class="step-num">2</div>
+      <div class="step-hd-text">
+        <div class="step-title">Configure output</div>
+        <div class="step-desc">Choose format, columns and options</div>
+      </div>
+      <div class="step-badge" id="s2badge">Pending</div>
+    </div>
+    <div class="step-body">
+
+      <div class="cfg-section">
+        <div class="cfg-label">Output format</div>
+        <div class="cfg-grid-3">
+          <div class="cfg-card on-xl" id="fmtXL" onclick="setFmt('excel')">
+            <div class="cc-top"><div class="cc-icon">📊</div><div class="cc-name">Excel</div></div>
+            <div class="cc-desc">Styled workbook with step/action/transition sheets</div>
+            <div class="cc-ext">.xlsx</div>
+          </div>
+          <div class="cfg-card" id="fmtWD" onclick="setFmt('word')">
+            <div class="cc-top"><div class="cc-icon">📄</div><div class="cc-name">Word DDS</div></div>
+            <div class="cc-desc">Design description spec with sign-off table</div>
+            <div class="cc-ext">.docx</div>
+          </div>
+          <div class="cfg-card" id="fmtDG" onclick="setFmt('diagram')" title="Phase only">
+            <div class="cc-top"><div class="cc-icon">🗺️</div><div class="cc-name">Diagram</div></div>
+            <div class="cc-desc">Interactive Excel SFC diagram with hyperlinks</div>
+            <div class="cc-ext">.xlsx · Phase only</div>
+          </div>
+          <div class="cfg-card" id="fmtHT" onclick="setFmt('diagram_html')" title="Phase only">
+            <div class="cc-top"><div class="cc-icon">🌐</div><div class="cc-name">Interactive HTML</div></div>
+            <div class="cc-desc">Self-contained page: hover, click-to-expand, zoom, searchable table</div>
+            <div class="cc-ext">.html · Phase only</div>
+          </div>
+          <div class="cfg-card" id="fmtDA" onclick="setFmt('data_excel')" title="Phase only">
+            <div class="cc-top"><div class="cc-icon">📋</div><div class="cc-name">Data Workbook</div></div>
+            <div class="cc-desc">Summary, Parameters, Monitors, Actions as filterable tables + diagrams</div>
+            <div class="cc-ext">.xlsx · Phase only</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cfg-section">
+        <div class="cfg-label">Columns in output</div>
+        <div class="chips">
+          <span class="chip fixed"><span class="ck">✓</span> Step</span>
+          <span class="chip fixed"><span class="ck">✓</span> Description</span>
+          <span class="chip fixed"><span class="ck">✓</span> Action</span>
+          <span class="chip on" data-col="qualifier"          onclick="toggleChip(this)"><span class="ck">✓</span> Qualifier</span>
+          <span class="chip on" data-col="expression"         onclick="toggleChip(this)"><span class="ck">✓</span> Expression</span>
+          <span class="chip on" data-col="delay"              onclick="toggleChip(this)"><span class="ck">✓</span> Delay</span>
+          <span class="chip"    data-col="delay_expression"   onclick="toggleChip(this)"><span class="ck">○</span> Delay Expr</span>
+          <span class="chip on" data-col="confirm_expression" onclick="toggleChip(this)"><span class="ck">✓</span> Confirm</span>
+          <span class="chip"    data-col="confirm_timeout"    onclick="toggleChip(this)"><span class="ck">○</span> Timeout</span>
+        </div>
+      </div>
+
+      <div class="cfg-section">
+        <div class="cfg-label">Options</div>
+        <div class="opts">
+          <div class="opt-row" id="rowTrans">
+            <div><div class="ol">Transitions under steps</div><div class="os">Show outgoing transitions inline per step</div></div>
+            <button class="tog on" id="togT" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="opt-row">
+            <div><div class="ol">Summary sheet</div><div class="os">Overview tab with all logic blocks</div></div>
+            <button class="tog on" id="togS" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="opt-row hidden" id="rowRecipe">
+            <div><div class="ol">Step parameters sheet</div><div class="os">Per-UP deferred-parameter links</div></div>
+            <button class="tog" id="togSP" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="opt-row hidden" id="rowRecipe2">
+            <div><div class="ol">Show all formula params</div><div class="os">Include params with no per-formula value</div></div>
+            <button class="tog" id="togAP" onclick="this.classList.toggle('on')"></button>
+          </div>
+          <div class="opt-row hidden" id="rowDiagram">
+            <div><div class="ol">Show transition detail</div><div class="os">Add description &amp; condition expression beside each transition</div></div>
+            <button class="tog" id="togDD" onclick="this.classList.toggle('on')"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="proc-wrap">
+        <button class="proc-btn" id="procBtn" onclick="run()">
+          <svg viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg>
+          Process file
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="step-connector"><div class="line" id="conn2"></div></div>
+
+  <!-- ── STEP 3 — RESULT ── -->
+  <div class="wstep locked" id="step3">
+    <div class="step-hd" onclick="stepClick(3)">
+      <div class="step-num">3</div>
+      <div class="step-hd-text">
+        <div class="step-title">Download</div>
+        <div class="step-desc">Processing log and output file</div>
+      </div>
+      <div class="step-badge" id="s3badge">Pending</div>
+    </div>
+    <div class="step-body">
+      <div class="log-card">
+        <div class="lc-head">
+          <div class="lc-dots">
+            <div class="lc-dot" style="background:#c97b6e"></div>
+            <div class="lc-dot" style="background:#c9b06e"></div>
+            <div class="lc-dot" style="background:#6ea86e"></div>
+          </div>
+          <div class="lc-title">Processing log</div>
+          <div class="lc-badge" id="lcBadge">IDLE</div>
+        </div>
+        <div class="lc-prog"><div class="lc-fill" id="progFill"></div></div>
+        <div class="lc-body" id="logBody"></div>
+      </div>
+
+      <div class="result-card" id="resultCard" style="display:none">
+        <div class="rc-head">
+          <div class="rc-icon">✅</div>
+          <div class="rc-title" id="rcTitle">Output ready</div>
+        </div>
+        <div class="rc-body">
+          <div class="pills" id="pillsEl"></div>
+          <div id="dlRow"></div>
+        </div>
+      </div>
+
+      <button class="restart-btn" onclick="restart()" style="display:none" id="restartBtn">
+        ↺ Convert another file
+      </button>
+    </div>
+  </div>
+
+  <!-- SFC Diagram link -->
+  <a class="diag-link" href="/diagram" target="_blank">
+    <div class="dl-ic">🗺️</div>
+    <div>
+      <div class="dl-tt">SFC Diagram Viewer<span class="new-tag">NEW</span></div>
+      <div class="dl-ss">Interactive flow diagram — click any step or transition to inspect</div>
+    </div>
+    <svg style="margin-left:auto;flex-shrink:0;color:var(--indigo);opacity:.5" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 12 12"><polyline points="4,2 10,6 4,10"/></svg>
+  </a>
+
+</div><!-- /wizard -->
+</div><!-- /main -->
+
+<script>
+var mode='single', fhxType='phase', outFmt='excel';
+var fileMap={}, resultBlob=null, resultName='', t0=null;
+var currentStep=1;
+
+function g(id){return document.getElementById(id);}
+
+// ── WIZARD NAVIGATION ──────────────────────────────────────────────────────
+function goStep(n){
+  currentStep=n;
+  [1,2,3].forEach(function(i){
+    var el=g('step'+i);
+    el.classList.remove('active','locked','done');
+    if(i===n) el.classList.add('active');
+    else if(i<n) el.classList.add('done');
+    else el.classList.add('locked');
+  });
+  g('conn1').classList.toggle('done', n>1);
+  g('conn2').classList.toggle('done', n>2);
+}
+
+function stepClick(n){
+  if(n===1) return; // always accessible via drop
+  if(n===2 && Object.keys(fileMap).length===0) return;
+  if(n===3 && !resultBlob) return;
+  if(!g('step'+n).classList.contains('locked')) goStep(n);
+}
+
+function setStep2(){
+  g('step2').classList.remove('locked');
+  goStep(2);
+  g('s1badge').textContent='✓ Done';
+  g('s2badge').textContent='Configure';
+}
+
+// ── TYPE SELECTOR ──────────────────────────────────────────────────────────
+var HINTS = {
+  phase: null,
+  em_cd: null,
+  em_sd: null,
+  recipe: null,
+};
+
+function setType(t){
+  fhxType=t;
+  ['dpPhase','dpCD','dpSD','dpRec'].forEach(function(id){g(id).className='det-pill';});
+  var cls={phase:'active-teal', em_cd:'active-rust', em_sd:'active-indigo', recipe:'active-amber'}[t]||'active-teal';
+  var map={phase:'dpPhase', em_cd:'dpCD', em_sd:'dpSD', recipe:'dpRec'};
+  if(map[t]) g(map[t]).className='det-pill '+cls;
+  g('rowTrans').className='opt-row'+((t==='em_sd'||t==='recipe')?' hidden':'');
+  // Recipe-specific option rows (shown only for recipe)
+  var recRow=g('rowRecipe'); if(recRow) recRow.className='opt-row'+(t==='recipe'?'':' hidden');
+  var recRow2=g('rowRecipe2'); if(recRow2) recRow2.className='opt-row'+(t==='recipe'?'':' hidden');
+  if(t==='recipe'){
+    g('sAL').textContent='Unit Procs';
+    g('sBL').textContent='Formula Params';
+    g('sCL').textContent='Formulas';
+  } else {
+    g('sAL').textContent=t==='em_sd'?'EM':t==='em_cd'?'Cmds':'Blocks';
+    g('sBL').textContent=t==='em_sd'?'States':'Steps';
+    g('sCL').textContent=t==='em_sd'?'Devices':'Actions';
+  }
+}
+
+// ── FORMAT ──────────────────────────────────────────────────────────────────
+function setFmt(f){
+  outFmt=f;
+  ['fmtXL','fmtWD','fmtDG','fmtHT','fmtDA'].forEach(function(id){
+    var el=g(id); if(el) el.className='cfg-card';
+  });
+  var map={excel:['fmtXL','on-xl'], word:['fmtWD','on-wd'], diagram:['fmtDG','on-dg'], diagram_html:['fmtHT','on-dg'], data_excel:['fmtDA','on-xl']};
+  if(map[f] && g(map[f][0])) g(map[f][0]).className='cfg-card '+map[f][1];
+  var rd=g('rowDiagram'); if(rd) rd.className='opt-row'+((f==='diagram'||f==='diagram_html')?'':' hidden');
+}
+
+// ── COLUMNS ─────────────────────────────────────────────────────────────────
+function toggleChip(el){
+  el.classList.toggle('on');
+  el.querySelector('.ck').textContent=el.classList.contains('on')?'✓':'○';
+}
+function getCols(){
+  var c=['step','description','action'];
+  document.querySelectorAll('.chip[data-col].on').forEach(function(el){c.push(el.dataset.col);});
+  return c.join(',');
+}
+function optOn(id){return g(id).classList.contains('on');}
+function sz(b){return b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
+
+// ── FILE HANDLING ────────────────────────────────────────────────────────────
+var dz=g('dropZone'), fi=g('fileInput');
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+dz.addEventListener('drop',function(e){
+  e.preventDefault();dz.classList.remove('over');
+  addFiles(e.dataTransfer.files);
+});
+fi.addEventListener('change',function(e){addFiles(e.target.files);});
+
+function addFiles(list){
+  if(!list||!list.length) return;
+  var f=list[0]; // single file mode for now
+  fileMap={};
+  fileMap[f.name]={file:f,type:null};
+
+  g('fcName').textContent=f.name;
+  g('fcMeta').textContent=sz(f.size)+' · detecting type…';
+  g('fileCard').classList.add('show');
+  g('s1badge').textContent='Detecting…';
+
+  var fd=new FormData();fd.append('file',f,f.name);
+  fetch('/detect',{method:'POST',body:fd})
+    .then(function(r){return r.text().then(function(t){
+      try{return JSON.parse(t);}
+      catch(e){return{type:'phase',fb_count:0,steps:0,actions:0};}
+    });})
+    .then(function(d){
+      var t=d.type||'phase';
+      fileMap[f.name].type=t;
+      g('fcMeta').textContent=sz(f.size);
+
+      setType(t);
+      g('detRow').classList.add('show');
+      g('statsStrip').classList.add('show');
+      g('sA').textContent=d.fb_count||1;
+      g('sB').textContent=d.steps||'—';
+      g('sC').textContent=d.actions||'—';
+
+      setStep2();
+    })
+    .catch(function(){
+      fileMap[f.name].type='phase';
+      setType('phase');
+      g('fcMeta').textContent=sz(f.size);
+      setStep2();
+    });
+}
+
+function clearFile(e){
+  if(e){e.preventDefault();e.stopPropagation();}
+  fileMap={};fi.value='';
+  g('fileCard').classList.remove('show');
+  g('detRow').classList.remove('show');
+  g('statsStrip').classList.remove('show');
+  g('step2').classList.add('locked');
+  g('step3').classList.add('locked');
+  g('s1badge').textContent='Waiting';
+  goStep(1);
+}
+
+// ── LOGGING ─────────────────────────────────────────────────────────────────
+function ts(){
+  if(!t0) return '--:--';
+  var d=Date.now()-t0;
+  return('0'+Math.floor(d/60000)).slice(-2)+':'+
+         ('0'+Math.floor(d/1000)%60).slice(-2)+'.'+
+         ('00'+d%1000).slice(-3);
+}
+function lg(msg,cls){
+  var el=g('logBody'),r=document.createElement('div');
+  r.className='lr '+(cls||'dim');
+  r.innerHTML='<span class="lt">'+ts()+'</span><span class="lm">'+msg+'</span>';
+  el.appendChild(r);el.scrollTop=el.scrollHeight;
+}
+function setProg(p){g('progFill').style.width=p+'%';}
+function setBadge(s){
+  var el=g('lcBadge'),m={idle:'IDLE',run:'RUNNING',done:'DONE',err:'ERROR'};
+  el.className='lc-badge'+(s==='run'?' run':s==='done'?' done':s==='err'?' err':'');
+  el.textContent=m[s]||s.toUpperCase();
+}
+
+// ── RUN ──────────────────────────────────────────────────────────────────────
+function run(){
+  var items=Object.values(fileMap);
+  if(!items.length) return;
+  var item=items[0];
+  t0=Date.now();
+  g('logBody').innerHTML='';
+  g('pillsEl').innerHTML='';
+  g('dlRow').innerHTML='';
+  g('resultCard').style.display='none';
+  g('restartBtn').style.display='none';
+  resultBlob=null;
+
+  var btn=g('procBtn');
+  btn.disabled=true;btn.className='proc-btn busy';
+  btn.innerHTML='<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="1" y="1" width="4" height="10"/><rect x="7" y="1" width="4" height="10"/></svg> Processing…';
+  setBadge('run');setProg(5);
+
+  // Move to step 3
+  g('step3').classList.remove('locked');
+  goStep(3);
+  g('s2badge').textContent='✓ Done';
+  g('s3badge').textContent='Processing…';
+
+  var DL_SVG='<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="8"/><polyline points="2,5 6,8 10,5"/><line x1="1" y1="11" x2="11" y2="11"/></svg>';
+  var TN={phase:'PHASE',em_cd:'CMD DRIVEN EM',em_sd:'STATE DRIVEN EM',recipe:'RECIPE / PROCEDURE'};
+
+  lg('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','head');
+  lg('FHX → '+(outFmt==='word'?'WORD DDS':outFmt==='diagram'?'SFC DIAGRAM':outFmt==='diagram_html'?'INTERACTIVE HTML':'EXCEL')+' · '+new Date().toLocaleTimeString(),'head');
+  lg('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','head');
+  lg('File: '+item.file.name+' ('+sz(item.file.size)+')','ok');
+  lg('Type: '+(TN[fhxType]||fhxType),'dim');
+  lg('Uploading to server…','step');
+  setProg(25);
+
+  var fd=new FormData();
+  fd.append('file',item.file,item.file.name);
+  fd.append('fhx_type',fhxType);
+  fd.append('format',outFmt);
+  fd.append('columns',getCols());
+  fd.append('transitions',optOn('togT')?'true':'false');
+  fd.append('summary',optOn('togS')?'true':'false');
+  fd.append('expressions','true');
+  fd.append('step_params',optOn('togSP')?'true':'false');
+  fd.append('all_params',optOn('togAP')?'true':'false');
+  fd.append('diagram_detail',optOn('togDD')?'true':'false');
+
+  fetch('/convert',{method:'POST',body:fd})
+    .then(function(resp){
+      setProg(80);lg('Server responded…','dim');
+      var hdr=resp.headers.get('X-Sheet-Names');
+      if(hdr){
+        hdr.split('|').forEach(function(n){
+          n=n.trim();
+          var cls=n==='SUMMARY'?'pill-z':
+            fhxType==='phase'?'pill-p':fhxType==='em_cd'?'pill-c':fhxType==='recipe'?'pill-r':'pill-s';
+          var p=document.createElement('div');
+          p.className='pill '+cls;
+          p.innerHTML='<div class="pd"></div>'+n;
+          g('pillsEl').appendChild(p);
+        });
+      }
+      if(!resp.ok){
+        return resp.text().then(function(t){
+          var m='Server error '+resp.status;
+          try{m=JSON.parse(t).error||m;}catch(e){}
+          throw new Error(m);
+        });
+      }
+      return resp.blob();
+    })
+    .then(function(blob){
+      resultBlob=blob;
+      var isW=outFmt==='word',isDG=outFmt==='diagram',isHT=outFmt==='diagram_html',isDA=outFmt==='data_excel';
+      resultName=Object.keys(fileMap)[0].replace(/\.fhx$/i,'')+
+        (isW?'_DDS.docx':isDG?'_SFC_Diagram.xlsx':isHT?'_SFC.html':isDA?'_Data.xlsx':'_Logic.xlsx');
+      setProg(100);setBadge('done');
+      lg('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','head');
+      lg('Done · elapsed '+ts(),'ok');
+      lg('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━','head');
+      g('rcTitle').textContent=isW?'Word DDS ready':isDG?'SFC Diagram ready':'Excel workbook ready';
+      var b=document.createElement('button');
+      b.className='dl-btn '+(isW||isDG?'wd':'xl');
+      b.innerHTML=DL_SVG+' Download '+(isW?'Word DDS':isDG?'SFC Diagram':'Excel');
+      b.onclick=function(){dlBlob(resultBlob,resultName);};
+      g('dlRow').appendChild(b);
+      g('resultCard').style.display='block';
+      g('restartBtn').style.display='block';
+      g('s3badge').textContent='✓ Ready';
+      resetBtn();
+    })
+    .catch(function(err){
+      lg('Error: '+err.message,'err');
+      setBadge('err');setProg(0);
+      g('s3badge').textContent='Error';
+      resetBtn();
+    });
+}
+
+function resetBtn(){
+  var btn=g('procBtn');btn.disabled=false;btn.className='proc-btn';
+  btn.innerHTML='<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="2,1 11,6 2,11"/></svg> Process file';
+}
+
+function dlBlob(blob,name){
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  lg('Downloaded: '+name,'ok');
+}
+
+function restart(){
+  clearFile(null);
+  g('step3').classList.add('locked');
+  g('s2badge').textContent='Pending';
+  g('s3badge').textContent='Pending';
+  resultBlob=null;
+}
+</script>
+</body>
+</html>
