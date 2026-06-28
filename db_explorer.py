@@ -17,124 +17,179 @@ import fbd_bridge  # for the shared expression-popup modal assets
 
 
 _CSS = """
+:root{
+  --canvas:#f6f8fb;--surface:#ffffff;--surface-2:#f3f6fa;--border:#dde4ec;--border-strong:#c7d2de;
+  --ink:#16202c;--ink-2:#46566b;--ink-3:#7689a0;
+  --accent:#1d4ed8;--accent-soft:#e7eefb;--link:#0e7490;
+  --ok:#047857;--ok-soft:#e6f4ee;--alarm:#dc2626;--bypass:#b45309;
+  --rail:#10202f;--rail-ink:#9fb4c9;--rail-ink-active:#ffffff;
+  --mark:#fde68a;--mark-ink:#92400e;
+  --shadow:0 1px 2px rgba(16,32,47,.04),0 8px 24px -12px rgba(16,32,47,.16);
+  --grid:rgba(29,78,216,.045);
+  --b-area:#0284c7;--b-cell:#0891b2;--b-unit:#059669;--b-uclass:#047857;--b-em:#7c3aed;
+  --b-cm:#d97706;--b-phase:#db2777;--b-recipe:#dc2626;--b-composite:#475569;--b-fbtype:#0d9488;--b-inst:#7c3aed;
+}
+[data-theme="dark"]{
+  --canvas:#0e141b;--surface:#161e27;--surface-2:#1b2531;--border:#28333f;--border-strong:#3a4856;
+  --ink:#e6edf3;--ink-2:#a7b6c6;--ink-3:#73879b;
+  --accent:#60a5fa;--accent-soft:#16263d;--link:#38bdf8;
+  --ok:#34d399;--ok-soft:#10261f;--alarm:#f87171;--bypass:#fbbf24;
+  --rail:#0a0f15;--rail-ink:#7f93a8;--rail-ink-active:#ffffff;
+  --mark:#7c5e12;--mark-ink:#fde68a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -14px rgba(0,0,0,.55);
+  --grid:rgba(96,165,250,.06);
+}
 *{box-sizing:border-box}
-body{margin:0;font:14px -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0f172a;height:100vh;display:flex;flex-direction:column;background:#f8fafc}
-header{flex:0 0 auto;padding:12px 18px;background:#0f172a;color:#fff;display:flex;align-items:baseline;gap:14px}
-header h1{margin:0;font-size:15px;font-weight:600}
-header .sub{color:#94a3b8;font-size:12px}
-.hdr-export{margin-left:auto;display:flex;gap:8px;align-self:center}
-.exp-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:7px;
-  background:#1e293b;border:1px solid #334155;color:#cbd5e1;font-size:12px;font-weight:600;
-  text-decoration:none;cursor:pointer}
-.exp-btn:hover{background:#334155;color:#fff;border-color:#475569}
-.main{flex:1 1 auto;display:flex;overflow:hidden}
-.nav{flex:0 0 320px;overflow:auto;background:#fff;border-right:1px solid #e2e8f0;padding:8px 0}
-.detail{flex:1 1 auto;overflow:auto;padding:20px 26px}
-.navsec{padding:6px 14px 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8}
-.navsec-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:5px;padding-top:9px}
-.navsec-tog:hover{color:#475569}
-.secarrow{font-size:10px;width:10px;display:inline-block}
-.navitem{padding:4px 14px 4px 20px;cursor:pointer;font-size:13px;border-left:3px solid transparent;display:flex;align-items:center;gap:7px}
-.navitem:hover{background:#f1f5f9}
-.navitem.sel{background:#eff6ff;border-left-color:#2563eb;font-weight:600}
-.navitem .badge{font-size:10px;padding:0 6px;border-radius:8px;color:#fff;flex:0 0 auto}
-.navitem .ic-badge{display:inline-flex;align-items:center;justify-content:center;padding:2px;width:18px;height:18px;border-radius:5px}
-.navitem .ic-badge svg{display:block}
-.navchild{padding-left:40px}
-.navchild2{padding-left:54px}
-.navinst{align-items:center;padding-top:3px;padding-bottom:3px}
-.navinst .inst-tag{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.navinst .inst-cls{color:#a3acba;font-size:10.5px;margin-left:auto;padding-left:8px;
-  font-family:ui-monospace,Menlo,monospace;white-space:nowrap;flex:0 0 auto}
-.navinst.sel .inst-cls{color:#6d28d9}
-.badge.b-inst{background:#ede9fe;color:#6d28d9}
-.bigbtn{margin-top:12px;width:100%;padding:9px 12px;border:1px solid #c7d2fe;background:#eef2ff;
-  color:#4338ca;font-weight:600;font-size:13px;border-radius:8px;cursor:pointer}
-.bigbtn:hover{background:#e0e7ff}
-.navsearch{position:relative;padding:8px 12px;border-bottom:1px solid #eef2f7;background:#fff;position:sticky;top:0;z-index:5}
-.navsearch input{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #cbd5e1;
-  border-radius:7px;font-size:13px;outline:none}
-.navsearch input:focus{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.15)}
-.navres{position:absolute;left:12px;right:12px;top:46px;background:#fff;border:1px solid #cbd5e1;
-  border-radius:8px;box-shadow:0 12px 30px rgba(15,23,42,.16);max-height:60vh;overflow:auto;z-index:20}
-.navres-item{padding:7px 11px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;
-  border-bottom:1px solid #f1f5f9}
+html,body{height:100%}
+body{margin:0;font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--ink);background:var(--canvas);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono,code,.inst-cls,.dt-tag{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace}
+::selection{background:var(--accent-soft)}
+button{font-family:inherit}
+
+/* shell */
+.app{display:grid;grid-template-columns:60px 1fr;grid-template-rows:56px 1fr;height:100vh}
+.rail{grid-row:1/3;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
+.rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
+  background:linear-gradient(140deg,#2563eb,#0e7490)}
+.rail a.rail-btn{width:42px;height:42px;border-radius:11px;color:var(--rail-ink);display:grid;place-items:center;
+  position:relative;transition:.15s;text-decoration:none}
+.rail a.rail-btn svg{width:21px;height:21px}
+.rail a.rail-btn:hover{background:rgba(255,255,255,.07);color:#cfe0f0}
+.rail a.rail-btn.active{background:rgba(96,165,250,.16);color:var(--rail-ink-active)}
+.rail a.rail-btn.active::before{content:"";position:absolute;left:-10px;top:9px;bottom:9px;width:3px;border-radius:3px;background:#60a5fa}
+.rail a.rail-btn .tip{position:absolute;left:50px;white-space:nowrap;background:#10202f;color:#e6edf3;padding:5px 9px;
+  border-radius:7px;font-size:12px;opacity:0;pointer-events:none;transform:translateX(-4px);transition:.12s;box-shadow:var(--shadow);z-index:30}
+.rail a.rail-btn:hover .tip{opacity:1;transform:translateX(0)}
+.rail .spacer{flex:1}
+
+.topbar{grid-column:2;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);z-index:5}
+.topbar h1{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topbar .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.hdr-theme{display:flex;align-items:center;gap:7px}
+.hdr-theme label{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.hdr-theme select{background:var(--surface-2);color:var(--ink);border:1px solid var(--border);border-radius:8px;
+  padding:6px 9px;font-size:12px;font-weight:600;cursor:pointer;outline:none}
+.hdr-theme select:hover{border-color:var(--border-strong)}
+.iconbtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--border);background:var(--surface);
+  color:var(--ink-2);display:grid;place-items:center;cursor:pointer;transition:.15s}
+.iconbtn:hover{border-color:var(--border-strong);color:var(--ink)}
+.iconbtn svg{width:18px;height:18px}
+.hdr-export{display:flex;gap:8px}
+.exp-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;background:var(--surface-2);
+  border:1px solid var(--border);color:var(--ink-2);font-size:12px;font-weight:600;text-decoration:none;cursor:pointer}
+.exp-btn:hover{border-color:var(--border-strong);color:var(--ink)}
+
+.main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;
+  background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/26px 26px,var(--canvas)}
+.panes{flex:1;display:grid;grid-template-columns:316px 1fr;overflow:hidden}
+
+/* tree */
+.nav{border-right:1px solid var(--border);overflow:auto;background:color-mix(in srgb,var(--surface) 55%,transparent);padding:6px 8px}
+.navsearch{position:sticky;top:0;z-index:5;padding:8px 6px 10px;background:var(--surface);border-bottom:1px solid var(--border);margin:-6px -8px 6px}
+.navsearch input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;
+  outline:none;background:var(--surface-2);color:var(--ink);font-family:inherit}
+.navsearch input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.navres{position:absolute;left:10px;right:10px;top:48px;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:10px;box-shadow:var(--shadow);max-height:60vh;overflow:auto;z-index:20}
+.navres-item{padding:8px 11px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
 .navres-item:last-child{border-bottom:0}
-.navres-item.act,.navres-item:hover{background:#eff6ff}
+.navres-item.act,.navres-item:hover{background:var(--accent-soft)}
 .navres-item .rtype{font-size:10px;color:#fff;border-radius:8px;padding:0 6px;flex:0 0 auto}
-.navres-item .rname{font-weight:600;color:#0f172a}
-.navres-empty{padding:10px 11px;color:#94a3b8;font-size:12px}
-.navmode{display:flex;gap:0;margin-top:6px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;width:fit-content}
-.navmode .nm-btn{padding:3px 10px;background:#fff;border:0;cursor:pointer;font-size:11px;color:#64748b;font-weight:600}
-.navmode .nm-btn+.nm-btn{border-left:1px solid #e2e8f0}
-.navmode .nm-btn.active{background:#0891b2;color:#fff}
-.navres-item .rsnip{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#475569;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.navres-item .rsnip mark,.navres-item .rname mark{background:#fde68a;color:#92400e;padding:0 1px;border-radius:2px}
-.navres-item .rsub{font-size:10px;color:#94a3b8}
+.navres-item .rname{font-weight:600;color:var(--ink)}
+.navres-empty{padding:10px 11px;color:var(--ink-3);font-size:12px}
+.navmode{display:flex;margin-top:6px;border:1px solid var(--border);border-radius:7px;overflow:hidden;width:fit-content}
+.navmode .nm-btn{padding:4px 11px;background:var(--surface);border:0;cursor:pointer;font-size:11px;color:var(--ink-3);font-weight:600}
+.navmode .nm-btn+.nm-btn{border-left:1px solid var(--border)}
+.navmode .nm-btn.active{background:var(--accent);color:#fff}
+.navres-item .rsnip{font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.navres-item .rsnip mark,.navres-item .rname mark{background:var(--mark);color:var(--mark-ink);padding:0 1px;border-radius:2px}
+.navres-item .rsub{font-size:10px;color:var(--ink-3)}
 .navres-item.col{flex-direction:column;align-items:flex-start;gap:2px}
-/* tree connector lines */
+.navsec{padding:11px 10px 4px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.navsec-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+.navsec-tog:hover{color:var(--ink-2)}
+.secarrow{font-size:10px;width:10px;display:inline-block}
+.navitem{padding:5px 9px;cursor:pointer;font-size:13px;border-radius:8px;display:flex;align-items:center;gap:8px;color:var(--ink-2);position:relative}
+.navitem:hover{background:var(--surface-2)}
+.navitem.sel{background:var(--accent-soft);color:var(--ink);font-weight:500}
+.navitem.sel::before{content:"";position:absolute;left:-8px;top:6px;bottom:6px;width:3px;border-radius:3px;background:var(--accent)}
+.navitem .badge{font-size:10px;padding:0 6px;border-radius:7px;color:#fff;flex:0 0 auto}
+.navitem .ic-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex:0 0 auto}
+.navitem .ic-badge svg{display:block}
+.ic-area{color:var(--b-area)}.ic-cell{color:var(--b-cell)}.ic-unit{color:var(--b-unit)}.ic-uclass{color:var(--b-uclass)}
+.ic-em{color:var(--b-em)}.ic-cm{color:var(--b-cm)}.ic-phase{color:var(--b-phase)}.ic-recipe{color:var(--b-recipe)}
+.ic-composite{color:var(--b-composite)}.ic-fbtype{color:var(--b-fbtype)}
+.navchild{padding-left:34px}
+.navchild2{padding-left:50px}
+.navinst{align-items:center}
+.navinst .inst-tag{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navinst .inst-cls{color:var(--ink-3);font-size:10.5px;margin-left:auto;padding-left:8px;white-space:nowrap;flex:0 0 auto}
+.bigbtn{margin-top:12px;width:100%;padding:10px 12px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;border-radius:9px;cursor:pointer;box-shadow:var(--shadow)}
+.bigbtn:hover{filter:brightness(1.06)}
 .navgroup{position:relative}
 .navchildren{position:relative}
 .navchildren .navchild{position:relative}
-.navchildren .navchild::before{
-  content:"";position:absolute;left:26px;top:0;bottom:50%;
-  border-left:1.5px solid #d8dee6;border-bottom:1.5px solid #d8dee6;
-  width:10px;
-}
-.navchildren .navchild:not(:last-child)::after{
-  content:"";position:absolute;left:26px;top:50%;bottom:-2px;
-  border-left:1.5px solid #d8dee6;
-}
-.navchildren .navchild::before{border-bottom-left-radius:3px}
-.tree-line{border-left:1.5px solid #e2e8f0;margin-left:22px;padding-left:0}
-.b-area{background:#0ea5e9}.b-unit{background:#10b981}.b-em{background:#8b5cf6}
-.b-cm{background:#f59e0b}.b-phase{background:#ec4899}.b-recipe{background:#ef4444}
-.b-composite{background:#64748b}.b-uclass{background:#059669}.b-fbtype{background:#0d9488}
-.tog{cursor:pointer;user-select:none;color:#64748b;width:12px;display:inline-block}
-h2.dt{margin:0 0 4px;font-size:20px}
-.dt-type{display:inline-block;font-size:11px;color:#fff;padding:2px 9px;border-radius:10px;margin-bottom:12px}
-.dt-desc{color:#475569;margin:0 0 16px;font-size:14px}
-.kv{display:grid;grid-template-columns:160px 1fr;gap:4px 14px;font-size:13px;margin-bottom:18px;max-width:760px}
-.kv .k{color:#64748b}
-.card{border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:14px;background:#fff;max-width:860px}
-.card h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
+.navchildren .navchild::before{content:"";position:absolute;left:20px;top:0;bottom:50%;border-left:1px dashed var(--border-strong);border-bottom:1px dashed var(--border-strong);width:9px;border-bottom-left-radius:3px}
+.navchildren .navchild:not(:last-child)::after{content:"";position:absolute;left:20px;top:50%;bottom:-2px;border-left:1px dashed var(--border-strong)}
+.navchildren .navchild2::before{left:34px}
+.navchildren .navchild2:not(:last-child)::after{left:34px}
+.tog{cursor:pointer;user-select:none;color:var(--ink-3);width:12px;display:inline-block;font-size:10px}
+.b-area{background:var(--b-area)}.b-unit{background:var(--b-unit)}.b-em{background:var(--b-em)}
+.b-cm{background:var(--b-cm)}.b-phase{background:var(--b-phase)}.b-recipe{background:var(--b-recipe)}
+.b-composite{background:var(--b-composite)}.b-uclass{background:var(--b-uclass)}.b-fbtype{background:var(--b-fbtype)}
+.badge.b-inst{background:var(--b-inst)}
+
+/* detail */
+.detail{overflow:auto;padding:22px 24px 48px}
+h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:'IBM Plex Mono'}
+.dt-type{display:inline-block;font-size:11px;color:#fff;padding:3px 10px;border-radius:8px;margin:8px 0 14px;font-weight:600;letter-spacing:.02em}
+.dt-desc{color:var(--ink-2);margin:0 0 18px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:5px 16px;font-size:13px;margin-bottom:6px;max-width:760px}
+.kv .k{color:var(--ink-3)}
+.card{border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px;background:var(--surface);max-width:920px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 11px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{padding:3px 10px;border:1px solid #cbd5e1;border-radius:14px;font-size:12px;cursor:pointer;background:#fff}
-.chip:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff}
-.link{color:#2563eb;cursor:pointer;text-decoration:underline}
-.empty{color:#94a3b8;font-style:italic}
-.welcome{color:#475569;max-width:680px}
-.welcome h2{font-size:18px}
-/* detail panel tree */
+.chip{padding:4px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface-2);color:var(--ink-2);font-family:'IBM Plex Mono'}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.link{color:var(--link);cursor:pointer;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--link) 35%,transparent)}
+.link:hover{border-bottom-color:var(--link)}
+.empty{color:var(--ink-3);font-style:italic}
+.welcome{color:var(--ink-2);max-width:680px}
+.welcome h2{font-size:18px;color:var(--ink)}
 .dtree{margin:6px 0 0 4px}
 .dtree .tnode{position:relative;padding:3px 0 3px 22px;font-size:13px}
-.dtree .tnode::before{content:"";position:absolute;left:6px;top:0;height:14px;width:12px;border-left:1.5px solid #cbd5e1;border-bottom:1.5px solid #cbd5e1;border-bottom-left-radius:3px}
-.dtree .tnode:not(:last-child)::after{content:"";position:absolute;left:6px;top:14px;bottom:-3px;border-left:1.5px solid #cbd5e1}
+.dtree .tnode::before{content:"";position:absolute;left:6px;top:0;height:14px;width:12px;border-left:1px dashed var(--border-strong);border-bottom:1px dashed var(--border-strong);border-bottom-left-radius:3px}
+.dtree .tnode:not(:last-child)::after{content:"";position:absolute;left:6px;top:14px;bottom:-3px;border-left:1px dashed var(--border-strong)}
 .dtree .troot{font-weight:600;padding:2px 0}
 .tnode .link{font-size:13px}
-.phaseframe{width:100%;height:75vh;border:1px solid #e2e8f0;border-radius:6px;background:#fff}
+.phaseframe{width:100%;height:75vh;border:1px solid var(--border);border-radius:10px;background:#fff}
 .emtabs{display:flex;gap:6px;margin-bottom:12px}
-.emtab{padding:7px 15px;border:1px solid #e2e8f0;border-radius:7px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#475569}
-.emtab.on{background:#0f172a;color:#fff;border-color:#0f172a}
+.emtab{padding:7px 15px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2)}
+.emtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .empanel{display:none}.empanel.on{display:block}
 .fbd-wrap{display:flex;flex-direction:column;gap:14px}
-.fbd-diagram-card{border:1px solid #e2e8f0;border-radius:8px;background:#fcfcfd;overflow:hidden}
-.fbd-head{padding:10px 14px;background:#f1f5f9;font-weight:600;font-size:13px;border-bottom:1px solid #e2e8f0}
-.fbd-sub{color:#64748b;font-weight:400;font-size:12px}
-.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh}
-.fbd-info-card{border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#fff}
-.fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:#475569}
-.fbd-comp-link{border-color:#475569}
-.fbd-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
-.fbd-table th{text-align:left;padding:5px 8px;background:#f1f5f9;color:#475569;font-size:11px;border-bottom:1px solid #e2e8f0}
-.fbd-table td{padding:4px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-.fbd-table code{font-size:11px;background:#f8fafc;padding:1px 4px;border-radius:3px}
+.fbd-diagram-card{border:1px solid var(--border);border-radius:10px;background:#fcfcfd;overflow:hidden}
+.fbd-head{padding:10px 14px;background:var(--surface-2);font-weight:600;font-size:13px;border-bottom:1px solid var(--border);color:var(--ink)}
+.fbd-sub{color:var(--ink-3);font-weight:400;font-size:12px}
+.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh;background:#fcfcfd}
+.fbd-info-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-3)}
+.fbd-comp-link{border-color:var(--border-strong)}
+.fbd-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+.fbd-table th{text-align:left;padding:7px 12px;color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);font-weight:600}
+.fbd-table td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:top;font-family:'IBM Plex Mono';font-size:12px}
+.fbd-table td.p,.fbd-table th{font-family:'IBM Plex Sans'}
+.fbd-table tr:last-child td{border-bottom:0}
+.fbd-table code{font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:4px}
 .fb-composite rect:first-of-type{transition:fill .15s}
 .fb{cursor:default}
-.stat{display:inline-block;margin:0 18px 10px 0}
-.stat b{font-size:22px;display:block}
-.stat span{font-size:12px;color:#64748b}
+.stat{display:inline-block;margin:0 20px 12px 0}
+.stat b{font-size:24px;display:block;font-family:'IBM Plex Mono'}
+.stat span{font-size:12px;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 """
 
 
@@ -145,32 +200,164 @@ def _badge(otype):
     return m.get(otype, 'b-composite')
 
 
-_NAV_BADGE_CLS = {'area': 'b-area', 'unit': 'b-unit', 'em': 'b-em', 'cm': 'b-cm',
-                  'inst': 'b-inst', 'phase': 'b-phase', 'recipe': 'b-recipe',
-                  'composite': 'b-composite', 'uclass': 'b-uclass', 'fbtype': 'b-fbtype'}
+_NAV_BADGE_CLS = {'area': 'ic-area', 'unit': 'ic-unit', 'em': 'ic-em', 'cm': 'ic-cm',
+                  'inst': 'ic-cm', 'phase': 'ic-phase', 'recipe': 'ic-recipe',
+                  'composite': 'ic-composite', 'uclass': 'ic-uclass', 'fbtype': 'ic-fbtype',
+                  'cell': 'ic-cell'}
 _NAV_TITLE = {'area': 'Area', 'unit': 'Unit', 'em': 'Equipment Module',
-              'cm': 'Control Module', 'inst': 'Control Module instance', 'phase': 'Phase',
+              'cm': 'Control Module', 'inst': 'Control Module', 'phase': 'Phase',
               'recipe': 'Recipe', 'composite': 'Composite', 'uclass': 'Unit Class',
-              'fbtype': 'Function Block Type'}
+              'fbtype': 'Function Block Type', 'cell': 'Process Cell'}
+# Line/outline icons (stroke = currentColor); Control Module is a filled valve bow-tie.
+_O = 'fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"'
+_F = 'fill="currentColor" stroke="none"'
 _NAV_ICON = {
-    'area': '<rect x="2" y="3.2" width="11" height="2.1" rx="1"/><rect x="2" y="6.5" width="11" height="2.1" rx="1"/><rect x="2" y="9.8" width="11" height="2.1" rx="1"/>',
-    'unit': '<path d="M3.5 3h8v5.5a4 4 0 0 1-8 0z"/>',
-    'uclass': '<path d="M3.5 3h8v5.5a4 4 0 0 1-8 0z" fill="none" stroke="#fff" stroke-width="1.4"/>',
-    'em': '<path d="M7.5 1.8l4.6 2.7v5.4l-4.6 2.7l-4.6-2.7V4.5z"/>',
-    'cm': '<rect x="4" y="4" width="7" height="7" rx="1.3"/><rect x="2" y="5.6" width="1.6" height="1.2"/><rect x="2" y="8" width="1.6" height="1.2"/><rect x="11.4" y="5.6" width="1.6" height="1.2"/><rect x="11.4" y="8" width="1.6" height="1.2"/>',
-    'inst': '<rect x="4" y="4" width="7" height="7" rx="1.3"/><rect x="2" y="5.6" width="1.6" height="1.2"/><rect x="2" y="8" width="1.6" height="1.2"/><rect x="11.4" y="5.6" width="1.6" height="1.2"/><rect x="11.4" y="8" width="1.6" height="1.2"/>',
-    'phase': '<path d="M4.5 3l7 4.5l-7 4.5z"/>',
-    'recipe': '<path d="M4 2.3h4.7l2.8 2.8v7.6h-7.5z"/><rect x="5.4" y="7" width="4.2" height="0.9" rx="0.4" fill="#fff" opacity=".55"/><rect x="5.4" y="9" width="4.2" height="0.9" rx="0.4" fill="#fff" opacity=".55"/>',
-    'composite': '<rect x="2.6" y="2.6" width="6.3" height="6.3" rx="1" fill="none" stroke="#fff" stroke-width="1.4"/><rect x="6.1" y="6.1" width="6.3" height="6.3" rx="1"/>',
-    'fbtype': '<rect x="3.2" y="3.2" width="8.6" height="8.6" rx="1.6"/><rect x="5.4" y="5.4" width="4.2" height="4.2" rx="0.8" fill="#fff" opacity=".5"/>',
+    'area': f'<rect x="2" y="3" width="11" height="2.4" rx="1" {_O}/><rect x="2" y="6.3" width="11" height="2.4" rx="1" {_O}/><rect x="2" y="9.6" width="11" height="2.4" rx="1" {_O}/>',
+    'cell': f'<rect x="2" y="2.5" width="11" height="10" rx="1.4" {_O} stroke-dasharray="2.3 1.5"/><rect x="4" y="5.4" width="3" height="4.2" rx="0.6" {_O}/><rect x="8" y="5.4" width="3" height="4.2" rx="0.6" {_O}/>',
+    'unit': f'<ellipse cx="7.5" cy="4" rx="3.6" ry="1.4" {_O}/><path d="M3.9 4v6.8a3.6 1.4 0 0 0 7.2 0V4" {_O}/>',
+    'uclass': f'<ellipse cx="7.5" cy="4" rx="3.6" ry="1.4" {_O} stroke-dasharray="2 1.3"/><path d="M3.9 4v6.8a3.6 1.4 0 0 0 7.2 0V4" {_O} stroke-dasharray="2 1.3"/>',
+    'em': f'<path d="M7.5 2l4.7 2.75v5.5L7.5 13l-4.7-2.75v-5.5z" {_O}/>',
+    'cm': f'<path d="M2.5 4 7.5 7.5 2.5 11Z" {_F}/><path d="M12.5 4 7.5 7.5 12.5 11Z" {_F}/>',
+    'phase': f'<rect x="3" y="4" width="9" height="7" rx="1.2" {_O}/><path d="M7.5 2v2M7.5 11v2" {_O}/>',
+    'recipe': f'<path d="M4 2.4h4.6l2.6 2.6v7.6h-7.2z" {_O}/><path d="M8.4 2.4v2.8h2.8M5.5 8h4M5.5 10h3" {_O}/>',
+    'composite': f'<rect x="2.4" y="2.4" width="7" height="7" rx="1.1" {_O}/><rect x="5.6" y="5.6" width="7" height="7" rx="1.1" {_O}/>',
+    'fbtype': f'<rect x="3.6" y="3.6" width="7.8" height="7.8" rx="1.1" {_O}/><path d="M1.9 6h1.7M1.9 9h1.7M11.4 6h1.7M11.4 9h1.7" {_O}/>',
 }
+_NAV_ICON['inst'] = _NAV_ICON['cm']
+
+# ── switchable icon themes (re-skinnable live in the browser) ──
+# Each theme provides an SVG glyph per type, all using currentColor so the JS
+# switcher only has to swap markup + set the element colour.
+_TYPE_KEYS = ['area', 'cell', 'unit', 'uclass', 'em', 'cm', 'inst', 'phase',
+              'recipe', 'composite', 'fbtype']
+
+
+def _isa(code, fs):
+    return (f'<circle cx="7.5" cy="7.5" r="6" fill="#fff" stroke="currentColor" stroke-width="1.4"/>'
+            f'<text x="7.5" y="{7.5 + fs * 0.36:.1f}" font-size="{fs}" fill="currentColor" '
+            f'text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700">{code}</text>')
+
+
+_ICON_THEMES = {
+    'outline': dict(_NAV_ICON),
+    'deltav': {
+        'area': f'<rect x="2.4" y="9" width="9" height="2.7" rx="0.7" {_F}/><rect x="3" y="6.1" width="9" height="2.7" rx="0.7" {_F} opacity="0.82"/><rect x="3.6" y="3.2" width="9" height="2.7" rx="0.7" {_F} opacity="0.64"/>',
+        'cell': f'<path d="M7.5 2l1.7 1.7L7.5 5.4 5.8 3.7Z" {_F}/><path d="M4.2 6.3l1.7 1.7L4.2 9.7 2.5 8Z" {_F}/><path d="M10.8 6.3l1.7 1.7-1.7 1.7L9.1 8Z" {_F}/><path d="M7.5 9.6l1.7 1.7-1.7 1.7-1.7-1.7Z" {_F}/>',
+        'unit': f'<ellipse cx="7.5" cy="3.9" rx="4" ry="1.5" {_F}/><path d="M3.5 3.9v6.8a4 1.5 0 0 0 8 0V3.9" {_O}/>',
+        'uclass': f'<ellipse cx="7.5" cy="3.9" rx="4" ry="1.5" {_O}/><path d="M3.5 3.9v6.8a4 1.5 0 0 0 8 0V3.9" {_O}/>',
+        'em': f'<rect x="2.4" y="2.4" width="4.3" height="4.3" rx="0.8" {_F}/><rect x="8.3" y="2.4" width="4.3" height="4.3" rx="0.8" {_F} opacity="0.8"/><rect x="2.4" y="8.3" width="4.3" height="4.3" rx="0.8" {_F} opacity="0.8"/><rect x="8.3" y="8.3" width="4.3" height="4.3" rx="0.8" {_F}/>',
+        'cm': f'<path d="M2.5 4 7.5 7.5 2.5 11Z" {_F}/><path d="M12.5 4 7.5 7.5 12.5 11Z" {_F}/>',
+        'inst': f'<circle cx="7.5" cy="4.4" r="2" {_F}/><circle cx="4.4" cy="7.5" r="2" {_F}/><circle cx="10.6" cy="7.5" r="2" {_F}/><circle cx="7.5" cy="10.6" r="2" {_F}/>',
+        'phase': f'<path d="M7.5 1.8V3.8M7.5 11.2V13.2" {_O}/><rect x="3" y="3.8" width="9" height="7.4" rx="1" {_O}/><rect x="3" y="3.8" width="2" height="7.4" {_F}/>',
+        'recipe': f'<path d="M2 4.5a1 1 0 0 1 1-1h3l1.2 1.3H12a1 1 0 0 1 1 1v5.4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1Z" {_F}/>',
+        'composite': f'<rect x="2.6" y="2.6" width="6.3" height="6.3" rx="1" {_O}/><rect x="6.1" y="6.1" width="6.3" height="6.3" rx="1" {_F}/>',
+        'fbtype': f'<rect x="3.6" y="3.6" width="7.8" height="7.8" rx="1.1" {_O}/><path d="M1.9 6h1.7M1.9 9h1.7M11.4 6h1.7M11.4 9h1.7" {_O}/>',
+    },
+    'geometric': {
+        'area': f'<rect x="2" y="2" width="11" height="11" rx="2.4" {_F}/>',
+        'cell': f'<rect x="2" y="2" width="11" height="11" rx="2.4" {_O}/>',
+        'unit': f'<circle cx="7.5" cy="7.5" r="5.6" {_F}/>',
+        'uclass': f'<circle cx="7.5" cy="7.5" r="5.4" {_O}/>',
+        'em': f'<path d="M7.5 1.6l5.1 2.95v5.9L7.5 13.4l-5.1-2.95v-5.9z" {_F}/>',
+        'cm': f'<path d="M7.5 2 13 12.5 2 12.5z" {_F}/>',
+        'inst': f'<path d="M7.5 3 11.6 11 3.4 11z" {_F}/>',
+        'phase': f'<path d="M7.5 1.8 13.2 7.5 7.5 13.2 1.8 7.5z" {_F}/>',
+        'recipe': f'<path d="M7.5 1.8l5.4 3.9-2.06 6.35h-6.68L2.1 5.7z" {_F}/>',
+        'composite': f'<rect x="2.4" y="2.4" width="7" height="7" rx="1.1" {_O}/><rect x="5.6" y="5.6" width="7" height="7" rx="1.1" {_F}/>',
+        'fbtype': f'<rect x="2.4" y="2.4" width="10.2" height="10.2" rx="2" {_F}/>',
+    },
+    'isa': {
+        'area': _isa('A', 7), 'cell': _isa('PC', 5.2), 'unit': _isa('U', 7),
+        'uclass': _isa('UC', 5.2), 'em': _isa('EM', 5.2), 'cm': _isa('CM', 5.2),
+        'inst': _isa('CM', 5.2), 'phase': _isa('PH', 5.2), 'recipe': _isa('R', 7),
+        'composite': _isa('CX', 5.2), 'fbtype': _isa('FB', 5.2),
+    },
+}
+
+_COL_OUTLINE = {'area': '#0284c7', 'cell': '#0891b2', 'unit': '#059669', 'uclass': '#047857',
+                'em': '#7c3aed', 'cm': '#d97706', 'inst': '#d97706', 'phase': '#db2777',
+                'recipe': '#dc2626', 'composite': '#475569', 'fbtype': '#0d9488'}
+_COL_DELTAV = {'area': '#a9772b', 'cell': '#7e3ff2', 'unit': '#1f6fb2', 'uclass': '#1f6fb2',
+               'em': '#e08a00', 'cm': '#9b2c2c', 'inst': '#cf3d9e', 'phase': '#d6409f',
+               'recipe': '#b8860b', 'composite': '#475569', 'fbtype': '#0d9488'}
+_THEME_COLORS = {'outline': _COL_OUTLINE, 'deltav': _COL_DELTAV,
+                 'geometric': _COL_OUTLINE, 'isa': _COL_OUTLINE}
+_THEME_LABELS = [('outline', 'Line / outline'), ('deltav', 'DeltaV-matched'),
+                 ('block', 'Module-block'), ('pid', 'P&ID physical'),
+                 ('geometric', 'Geometric'), ('pill', 'Filled pill'),
+                 ('duotone', 'Duotone'), ('mono', 'Monogram'), ('isa', 'ISA balloon')]
+
+_CODES = {'area': 'A', 'cell': 'PC', 'unit': 'U', 'uclass': 'UC', 'em': 'EM',
+          'cm': 'CM', 'inst': 'CM', 'phase': 'PH', 'recipe': 'R', 'composite': 'CX',
+          'fbtype': 'FB'}
+_WHF = 'fill="#ffffff" stroke="none"'
+_WHO = 'fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"'
+
+# Module-block theme (DeltaV Control Studio block-with-header motif)
+_ICON_THEMES['block'] = {
+    'area': f'<rect x="2" y="3" width="11" height="9.2" rx="1.3" {_O}/><rect x="2" y="3" width="11" height="2.7" rx="1.2" {_F}/><path d="M4 8h7M4 10h5" {_O}/>',
+    'cell': f'<rect x="2" y="2.5" width="11" height="10" rx="1.4" {_O} stroke-dasharray="2.3 1.5"/><rect x="4" y="5.4" width="3" height="4.2" rx="0.6" {_F}/><rect x="8" y="5.4" width="3" height="4.2" rx="0.6" {_F}/>',
+    'unit': f'<rect x="2.3" y="3" width="10.4" height="9" rx="1.2" {_O}/><rect x="2.3" y="3" width="10.4" height="2.7" rx="1.2" {_F}/><path d="M6 7.2a1.5 1 0 0 1 3 0v2a1.5 1 0 0 1-3 0Z" {_F}/>',
+    'uclass': f'<rect x="2.3" y="3" width="10.4" height="9" rx="1.2" {_O} stroke-dasharray="2 1.3"/><rect x="2.3" y="3" width="10.4" height="2.7" rx="1.2" {_F}/>',
+    'em': f'<rect x="2" y="3" width="11" height="9" rx="1.1" {_O}/><rect x="2" y="3" width="11" height="2.4" {_F}/><rect x="3.6" y="6.4" width="3" height="3.5" rx="0.5" {_F}/><rect x="8.4" y="6.4" width="3" height="3.5" rx="0.5" {_F}/>',
+    'cm': f'<rect x="2.5" y="3.8" width="10" height="7.4" rx="1.1" {_F}/><rect x="2.5" y="3.8" width="10" height="2.4" rx="1.1" fill="#fff" opacity="0.55"/>',
+    'inst': f'<rect x="3" y="3.8" width="9" height="7.4" rx="1.1" {_F}/><rect x="3" y="3.8" width="9" height="2.3" rx="1.1" fill="#fff" opacity="0.55"/>',
+    'phase': f'<path d="M7.5 1.8V3.8M7.5 11.2V13.2" {_O}/><rect x="3" y="3.8" width="9" height="7.4" rx="1" {_O}/><rect x="3" y="3.8" width="2" height="7.4" {_F}/>',
+    'recipe': f'<rect x="5" y="2" width="5" height="2.6" rx="0.6" {_F}/><rect x="5" y="6.2" width="5" height="2.6" rx="0.6" {_F}/><rect x="5" y="10.4" width="5" height="2.6" rx="0.6" {_F}/><path d="M7.5 4.6v1.6M7.5 8.8v1.6" {_O}/>',
+    'composite': f'<rect x="2.4" y="2.4" width="7" height="7" rx="1.1" {_O}/><rect x="5.6" y="5.6" width="7" height="7" rx="1.1" {_F}/>',
+    'fbtype': f'<rect x="3.6" y="3.6" width="7.8" height="7.8" rx="1.1" {_O}/><path d="M1.9 6h1.7M1.9 9h1.7M11.4 6h1.7M11.4 9h1.7" {_O}/>',
+}
+# P&ID physical theme (plant, vessels, valves, flask)
+_ICON_THEMES['pid'] = {
+    'area': f'<path d="M2 13V7.5l2.4 1.2V7.5l2.4 1.2V7.5l2.4 1.2V6l1.8 1V13Z" {_F}/>',
+    'cell': f'<rect x="2.4" y="2.4" width="4.4" height="4.4" rx="1" {_F}/><rect x="8.2" y="2.4" width="4.4" height="4.4" rx="1" {_F}/><rect x="2.4" y="8.2" width="4.4" height="4.4" rx="1" {_F}/><rect x="8.2" y="8.2" width="4.4" height="4.4" rx="1" {_F}/>',
+    'unit': f'<path d="M4 4.2a3.5 1.4 0 0 1 7 0v6.6a3.5 1.4 0 0 1-7 0Z" {_F}/>',
+    'uclass': f'<path d="M4 4.2a3.5 1.4 0 0 1 7 0v6.6a3.5 1.4 0 0 1-7 0Z" {_O}/>',
+    'em': f'<rect x="2" y="4" width="11" height="7" rx="0.8" {_O}/><path d="M4.5 4v7M8 4v7M11 4v7" {_O}/>',
+    'cm': f'<path d="M2.5 4 7.5 7.5 2.5 11Z" {_F}/><path d="M12.5 4 7.5 7.5 12.5 11Z" {_F}/>',
+    'inst': f'<path d="M2.5 4 7.5 7.5 2.5 11Z" {_F}/><path d="M12.5 4 7.5 7.5 12.5 11Z" {_F}/>',
+    'phase': f'<path d="M7.5 1.8V3.8M7.5 11.2V13.2" {_O}/><rect x="3" y="3.8" width="9" height="7.4" rx="1" {_O}/><rect x="3" y="3.8" width="2" height="7.4" {_F}/>',
+    'recipe': f'<path d="M6.2 2v3.4L3.3 11a1.1 1.1 0 0 0 1 1.7h6.4a1.1 1.1 0 0 0 1-1.7L8.8 5.4V2Z" {_O}/><path d="M5.5 2h4M5.2 8.7h4.6" {_O}/>',
+    'composite': f'<rect x="2.4" y="2.4" width="7" height="7" rx="1.1" {_O}/><rect x="5.6" y="5.6" width="7" height="7" rx="1.1" {_O}/>',
+    'fbtype': f'<rect x="3.6" y="3.6" width="7.8" height="7.8" rx="1.1" {_O}/><path d="M1.9 6h1.7M1.9 9h1.7M11.4 6h1.7M11.4 9h1.7" {_O}/>',
+}
+
+
+def _pillify(inner):
+    return ('<rect x="0.5" y="0.5" width="14" height="14" rx="4" fill="currentColor"/>'
+            + inner.replace('currentColor', '#ffffff'))
+
+
+def _duotone(inner):
+    return ('<rect x="0.5" y="0.5" width="14" height="14" rx="4" fill="currentColor" opacity="0.16"/>'
+            + inner)
+
+
+def _mono(code):
+    fs = 7 if len(code) == 1 else 5.4
+    return ('<rect x="0.5" y="0.5" width="14" height="14" rx="4" fill="currentColor" opacity="0.16"/>'
+            f'<text x="7.5" y="{7.5 + fs * 0.36:.1f}" font-size="{fs}" fill="currentColor" '
+            f'text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700">{code}</text>')
+
+
+_ICON_THEMES['pill'] = {t: _pillify(_ICON_THEMES['outline'][t]) for t in _TYPE_KEYS}
+_ICON_THEMES['pill']['inst'] = _pillify(_ICON_THEMES['outline']['inst'])
+_ICON_THEMES['duotone'] = {t: _duotone(_ICON_THEMES['geometric'][t]) for t in _TYPE_KEYS}
+_ICON_THEMES['duotone']['inst'] = _duotone(_ICON_THEMES['geometric']['inst'])
+_ICON_THEMES['mono'] = {t: _mono(_CODES[t]) for t in _TYPE_KEYS}
+_ICON_THEMES['mono']['inst'] = _mono(_CODES['inst'])
+
+for _t in ('block', 'geometric', 'pill', 'duotone', 'mono'):
+    _THEME_COLORS[_t] = _COL_OUTLINE
+_THEME_COLORS['pid'] = _COL_DELTAV
+
 
 
 def _nav_badge(key):
     cls = _NAV_BADGE_CLS.get(key, 'b-composite')
     title = _NAV_TITLE.get(key, key)
-    return (f'<span class="badge ic-badge {cls}" title="{title}">'
-            f'<svg viewBox="0 0 15 15" width="12" height="12" fill="#fff" aria-hidden="true">'
+    return (f'<span class="ic-badge {cls}" data-ic="{key}" title="{title}">'
+            f'<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'
             f'{_NAV_ICON.get(key, "")}</svg></span>')
 
 
@@ -226,7 +413,12 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
                             'em_cms': catalog.get('em_cms', {}),
                             'used_by': catalog.get('class_used_by', {}),
                             'instances': catalog.get('instances', {}),
-                            'parent_instances': catalog.get('parent_instances', {})})
+                            'parent_instances': catalog.get('parent_instances', {}),
+                            'unit_instances': catalog.get('unit_instances', {}),
+                            'deployed_modules': catalog.get('deployed_modules', {}),
+                            'unit_modules': catalog.get('unit_modules', {}),
+                            'unit_class_phases': catalog.get('unit_class_phases', {}),
+                            'area_tree': catalog.get('area_tree', {})})
     phase_views_json = json.dumps(phase_views)
     fbd_views_json = json.dumps(fbd_views)
     em_views_json = json.dumps(em_views)
@@ -391,13 +583,31 @@ function renderObj(id){
     }
   }
 
-  if(o._type==='Unit Instance' && o.class){
-    const cid='uclass:'+o.class;
-    const has=DB.objs[cid];
-    h+='<div class="card"><h3>Class</h3>';
-    h+= has ? '<span class="chip" onclick="show(\\''+cid+'\\')">'+esc(o.class)+'</span>'
-            : '<span class="empty">'+esc(o.class)+' (class not in this export)</span>';
-    h+='</div>';
+  if(o._type==='Unit Instance'){
+    var ui=DB.unit_instances[o.name]||{};
+    h+='<div class="card"><h3>Identity</h3><div class="kv">';
+    h+='<div class="k">Class</div><div>'+(DB.objs['uclass:'+o.class]?'<span class="link" onclick="show(\\'uclass:'+esc(o.class)+'\\')">'+esc(o.class)+'</span>':esc(o.class||'—'))+'</div>';
+    if(ui.area_path) h+='<div class="k">Location</div><div><code>'+esc(ui.area_path)+'</code></div>';
+    if(o.description) h+='<div class="k">Description</div><div>'+esc(o.description)+'</div>';
+    h+='</div></div>';
+    var mods=ui.modules||[];
+    if(mods.length){
+      h+='<div class="card"><h3>Modules in this unit ('+mods.length+')</h3><table class="fbd-table"><thead><tr><th>Tag</th><th>Class</th><th>Kind</th></tr></thead><tbody>';
+      mods.forEach(function(t){var d=DB.deployed_modules[t]||{};var k=DB.objs['em:'+(d.cls||'')]?'EM':'CM';h+='<tr><td><span class="link" onclick="showDeployed(\\''+esc(t)+'\\')">'+esc(t)+'</span></td><td>'+modLink(d.cls||'')+'</td><td>'+k+'</td></tr>';});
+      h+='</tbody></table></div>';
+    }
+    var phs=DB.unit_class_phases[o.class]||[];
+    if(phs.length){
+      h+='<div class="card"><h3>Phases ('+phs.length+')</h3><div class="chips">';
+      phs.forEach(function(p){h+=DB.objs['phase:'+p]?'<span class="chip" onclick="show(\\'phase:'+esc(p)+'\\')">'+esc(p)+'</span>':'<span class="chip">'+esc(p)+'</span>';});
+      h+='</div></div>';
+    }
+    var vals=ui.values||[];
+    if(vals.length){
+      h+='<div class="card"><h3>Configured values ('+vals.length+')</h3><table class="fbd-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
+      vals.forEach(function(v){var cv=v.cv;h+='<tr><td>'+esc(v.name)+'</td><td>'+((cv===''||cv==='\"\"')?'<span style="color:#94a3b8">(empty)</span>':'<code>'+esc(cv)+'</code>')+'</td></tr>';});
+      h+='</tbody></table></div>';
+    }
   }
   if(o._type==='Unit Class' && o.instances){
     h+='<div class="card"><h3>Instances ('+o.instances.length+')</h3><div class="chips">';
@@ -405,18 +615,33 @@ function renderObj(id){
     else h+='<span class="empty">No instances in this export</span>';
     h+='</div></div>';
   }
-  if(o._type==='Area' && o.units){
-    h+='<div class="card"><h3>Units ('+o.units.length+')</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
-    o.units.forEach(u=>{h+='<div class="tnode"><span class="link" onclick="show(\\'unit:'+esc(u.name)+'\\')">'+esc(u.name)+'</span> <span style="color:#94a3b8">· '+esc(u.class)+'</span></div>';});
-    h+='</div></div>';
+  if(o._type==='Area'){
+    var tree=DB.area_tree[o.name];
+    if(tree){
+      var ncells=Object.keys(tree).filter(function(c){return c;}).length;
+      var nunits=0; Object.keys(tree).forEach(function(c){nunits+=tree[c].length;});
+      h+='<div class="card"><h3>Contains</h3><div class="dtree"><div class="troot">'+esc(o.name)+' <span style="color:#94a3b8;font-weight:400">· '+(ncells?ncells+' process cell(s) · ':'')+nunits+' unit(s)</span></div>';
+      Object.keys(tree).sort().forEach(function(cell){
+        if(cell) h+='<div class="tnode" style="font-weight:600">'+esc(cell)+' <span style="color:#94a3b8;font-weight:400">· process cell</span></div>';
+        tree[cell].forEach(function(un){
+          var ui=DB.unit_instances[un]||{};var nm=(ui.modules||[]).length;
+          h+='<div class="tnode'+(cell?' navchild2':'')+'"><span class="link" onclick="show(\\'unit:'+esc(un)+'\\')">'+esc(un)+'</span> <span style="color:#94a3b8">· '+esc(ui.cls||'')+' · '+nm+' module(s)</span></div>';
+        });
+      });
+      h+='</div></div>';
+    } else if(o.units){
+      h+='<div class="card"><h3>Units ('+o.units.length+')</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
+      o.units.forEach(u=>{h+='<div class="tnode"><span class="link" onclick="show(\\'unit:'+esc(u.name)+'\\')">'+esc(u.name)+'</span> <span style="color:#94a3b8">· '+esc(u.class)+'</span></div>';});
+      h+='</div></div>';
+    }
   }
   // Unit Class -> its phases and EMs (tree)
   if(o._type==='Unit Class'){
-    const phs=DB.unit_phases[o.name]||[], ems=DB.unit_ems[o.name]||[];
+    const phs=DB.unit_class_phases[o.name]||DB.unit_phases[o.name]||[], ems=DB.unit_ems[o.name]||[];
     if(phs.length||ems.length){
       h+='<div class="card"><h3>Contains</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
       ems.forEach(e=>{h+='<div class="tnode"><span class="link" onclick="show(\\'em:'+esc(e)+'\\')">'+esc(e)+'</span> <span style="color:#94a3b8">· EM</span></div>';});
-      phs.forEach(p=>{h+='<div class="tnode"><span class="link" onclick="show(\\'phase:'+esc(p)+'\\')">'+esc(p)+'</span> <span style="color:#94a3b8">· Phase</span></div>';});
+      phs.forEach(p=>{h+='<div class="tnode">'+(DB.objs['phase:'+p]?'<span class="link" onclick="show(\\'phase:'+esc(p)+'\\')">'+esc(p)+'</span>':esc(p))+' <span style="color:#94a3b8">· Phase</span></div>';});
       h+='</div></div>';
     }
   }
@@ -495,6 +720,7 @@ function renderEntry(e){
   else if(e.k==='fbd') renderFbd(e.def,e.label);
   else if(e.k==='param') renderParam(e.name);
   else if(e.k==='inst') renderInstance(e.iid);
+  else if(e.k==='dep') renderDeployed(e.tag);
   const d=document.getElementById('detail'); if(d) d.scrollTop=0;
 }
 function navTo(e){ VIEW_STACK.push(e); renderEntry(e); }
@@ -507,6 +733,7 @@ function show(id){
 function showFbd(def,label){ if(FBD_VIEWS[def]) navTo({k:'fbd',def:def,label:label}); }
 function showParam(name){ if(PARAM_INDEX[name]) navTo({k:'param',name:name}); }
 function showInst(parent,tag){ var iid=parent+'\\u0001'+tag; if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); }
+function showDeployed(tag){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag}); }
 
 // link to a module by name, resolving to whatever navigable view exists for it
 function modLink(name){
@@ -589,6 +816,41 @@ function renderInstance(iid){
   var dd=document.getElementById('detail'); dd.innerHTML=h; dd.scrollTop=0;
 }
 
+// ── deployed module instance (a real tag in a unit) ──
+function renderDeployed(tag){
+  var d=DB.deployed_modules&&DB.deployed_modules[tag]; if(!d){return;}
+  document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
+  document.querySelectorAll('.navinst').forEach(function(n){n.classList.toggle('sel',n.dataset.tag===tag&&n.dataset.dep==='1');});
+  var isEM=!!DB.objs['em:'+d.cls];
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
+  var h='<h2 class="dt">'+esc(d.tag)+'</h2><span class="dt-type" style="background:'+(isEM?'#0f766e':'#6d28d9')+'">'+(isEM?'EM':'CM')+' instance</span>';
+  h+='<p class="dt-desc">Deployed '+(isEM?'equipment':'control')+' module · instance of '+modLink(d.cls)+'.'+back+'</p>';
+  h+='<div class="card"><h3>Identity</h3><div class="kv">';
+  h+='<div class="k">Tag</div><div><code>'+esc(d.tag)+'</code></div>';
+  h+='<div class="k">Class</div><div>'+modLink(d.cls)+'</div>';
+  h+='<div class="k">Unit</div><div>'+(DB.objs['unit:'+d.unit]?'<span class="link" onclick="show(\\'unit:'+esc(d.unit)+'\\')">'+esc(d.unit)+'</span>':esc(d.unit))+'</div>';
+  h+='<div class="k">Location</div><div><code>'+esc(d.path)+'</code></div>';
+  h+='</div>';
+  h+='<button class="bigbtn" onclick="viewClass(\\''+esc(d.cls)+'\\')">View class logic &amp; parameters →</button></div>';
+  // sibling tags of the same class in the same unit
+  var sibs=(DB.unit_modules[d.unit]||[]).map(function(t){return DB.deployed_modules[t];}).filter(function(s){return s&&s.cls===d.cls&&s.tag!==d.tag;});
+  if(sibs.length){
+    h+='<div class="card"><h3>Other '+esc(d.cls)+' tags in this unit ('+sibs.length+')</h3><div class="chips">';
+    sibs.forEach(function(s){h+='<span class="chip" onclick="showDeployed(\\''+esc(s.tag)+'\\')">'+esc(s.tag)+'</span>';});
+    h+='</div></div>';
+  }
+  var vals=[];
+  for(var pn in PARAM_INDEX){(PARAM_INDEX[pn].vals||[]).forEach(function(v){if(v.m===d.cls)vals.push({p:pn,cv:v.cv});});}
+  if(vals.length){
+    h+='<div class="card"><h3>Configured values ('+vals.length+')</h3>';
+    h+='<p class="empty" style="margin:0 0 8px">Inherited from class '+esc(d.cls)+'. No instance overrides in the export.</p>';
+    h+='<table class="fbd-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
+    vals.forEach(function(v){h+='<tr><td><span class="link" onclick="showParam(\\''+esc(v.p)+'\\')">'+esc(v.p)+'</span></td><td>'+(v.cv===''?'<span style="color:#94a3b8">(empty)</span>':'<code>'+esc(v.cv)+'</code>')+'</td></tr>';});
+    h+='</tbody></table></div>';
+  }
+  var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0;
+}
+
 // FBD composite drill-down: clicking a composite block/link shows its diagram.
 function renderFbd(defName, label){
   if(!FBD_VIEWS[defName]){return;}
@@ -645,20 +907,71 @@ function wireFbdLinks(){
                '</div>'
                '<div id="navres" class="navres" style="display:none"></div></div>')
     nav.append('<div class="navsec">Plant Areas</div>')
-    for a in catalog['areas']:
-        if not a['units']:
-            continue
-        nav.append(f'<div class="navgroup">')
-        nav.append(f'<div class="navitem" data-id="area:{html.escape(a["name"])}" '
-                   f'onclick="show(\'area:{html.escape(a["name"])}\')">'
-                   f'<span class="tog" onclick="toggle(this,event)">▾</span>'
-                   f'{_nav_badge("area")}{html.escape(a["name"])}</div>')
-        nav.append('<div class="navchildren">')
-        for u in a['units']:
-            nav.append(f'<div class="navitem navchild" data-id="unit:{html.escape(u["name"])}" '
-                       f'onclick="show(\'unit:{html.escape(u["name"])}\')">'
-                       f'{_nav_badge("unit")}{html.escape(u["name"])}</div>')
+    area_tree = catalog.get('area_tree', {})
+    unit_instances = catalog.get('unit_instances', {})
+    deployed = catalog.get('deployed_modules', {})
+    unit_modules = catalog.get('unit_modules', {})
+    ucph = catalog.get('unit_class_phases', {})
+    em_class_names = {e['name'] for e in catalog['em_classes']}
+
+    def _unit_node(un):
+        ui = unit_instances.get(un, {})
+        ucls = ui.get('cls', '')
+        mods = unit_modules.get(un, [])
+        phs = ucph.get(ucls, [])
+        nav.append('<div class="navgroup">')
+        nav.append(f'<div class="navitem navchild navinst" data-id="unit:{html.escape(un)}" '
+                   f'onclick="show(\'unit:{html.escape(un)}\')">'
+                   f'<span class="tog" onclick="toggle(this,event)">▸</span>'
+                   f'{_nav_badge("unit")}<span class="inst-tag">{html.escape(un)}</span>'
+                   f'<span class="inst-cls">({html.escape(ucls)})</span></div>')
+        nav.append('<div class="navchildren" style="display:none">')
+        for tag in mods:
+            d = deployed.get(tag, {})
+            cls = d.get('cls', '')
+            key = 'em' if cls in em_class_names else 'inst'
+            nav.append(f'<div class="navitem navchild2 navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                       f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
+                       f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
+                       f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+        for ph in phs:
+            nav.append(f'<div class="navitem navchild2" data-id="phase:{html.escape(ph)}" '
+                       f'onclick="show(\'phase:{html.escape(ph)}\')">'
+                       f'{_nav_badge("phase")}{html.escape(ph)}</div>')
         nav.append('</div></div>')
+
+    if area_tree:
+        for aname in sorted(area_tree):
+            cells = area_tree[aname]
+            nav.append('<div class="navgroup">')
+            nav.append(f'<div class="navitem" data-id="area:{html.escape(aname)}" '
+                       f'onclick="show(\'area:{html.escape(aname)}\')">'
+                       f'<span class="tog" onclick="toggle(this,event)">▾</span>'
+                       f'{_nav_badge("area")}{html.escape(aname)}</div>')
+            nav.append('<div class="navchildren">')
+            for cell in sorted(cells):
+                if cell:
+                    nav.append(f'<div class="navitem navchild" style="color:#94a3b8;cursor:default">'
+                               f'<span style="width:12px;display:inline-block"></span>'
+                               f'<span style="font-size:11px;letter-spacing:.02em">{html.escape(cell)} · cell</span></div>')
+                for un in cells[cell]:
+                    _unit_node(un)
+            nav.append('</div></div>')
+    else:
+        for a in catalog['areas']:
+            if not a['units']:
+                continue
+            nav.append('<div class="navgroup">')
+            nav.append(f'<div class="navitem" data-id="area:{html.escape(a["name"])}" '
+                       f'onclick="show(\'area:{html.escape(a["name"])}\')">'
+                       f'<span class="tog" onclick="toggle(this,event)">▾</span>'
+                       f'{_nav_badge("area")}{html.escape(a["name"])}</div>')
+            nav.append('<div class="navchildren">')
+            for u in a['units']:
+                nav.append(f'<div class="navitem navchild" data-id="unit:{html.escape(u["name"])}" '
+                           f'onclick="show(\'unit:{html.escape(u["name"])}\')">'
+                           f'{_nav_badge("unit")}{html.escape(u["name"])}</div>')
+            nav.append('</div></div>')
 
     sec_id = [0]
     def nav_list(title, items, prefix, badge_cls, badge_txt, collapsed=False):
@@ -762,16 +1075,70 @@ function wireFbdLinks(){
             f'<a class="exp-btn" href="/tool/" title="Open the FHX Converter wizard">&#9881; Converter</a>'
             f'</div>')
 
-    return f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+    theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)
+    theme_html = (f'<div class="hdr-theme"><label for="iconTheme">Icons</label>'
+                  f'<select id="iconTheme" onchange="skinTree(this.value)">{theme_opts}</select></div>')
+    themes_json = json.dumps(_ICON_THEMES)
+    tcolors_json = json.dumps(_THEME_COLORS)
+
+    return f"""<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DeltaV Database Explorer — {html.escape(fname)}</title>
+<title>DeltaV Strategy Workbench — {html.escape(fname)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>{_CSS}
 {fbd_bridge.EXPR_MODAL_CSS}</style></head><body>
-<header><h1>DeltaV Database Explorer</h1><span class="sub">{html.escape(fname)}</span>{export_html}</header>
-<div class="main">
-  <div class="nav">{''.join(nav)}</div>
-  <div class="detail" id="detail">{welcome}</div>
+<div class="app">
+<nav class="rail">
+  <div class="brand" title="DeltaV Strategy Workbench">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9L12 2Z"/><path d="M12 7v6M9 9.5h6"/></svg>
+  </div>
+  <a class="rail-btn active" href="/" title="Explorer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span class="tip">Explorer</span></a>
+  <a class="rail-btn" href="/tool/" title="FHX Converter">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>
+    <span class="tip">FHX Converter</span></a>
+  <div class="spacer"></div>
+</nav>
+<header class="topbar">
+  <h1>DeltaV Strategy Workbench</h1><span class="sub">{html.escape(fname)}</span>
+  <div class="hdr-right">{theme_html}
+    <button class="iconbtn" id="themeBtn" title="Toggle light / dark" onclick="toggleMode()">
+      <svg id="themeIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+    </button>{export_html}</div>
+</header>
+<main class="main">
+  <div class="panes">
+    <div class="nav">{''.join(nav)}</div>
+    <div class="detail" id="detail">{welcome}</div>
+  </div>
+</main>
 </div>
+<script>
+const ICON_THEMES={themes_json};
+const THEME_COLORS={tcolors_json};
+function skinTree(theme){{
+  var set=ICON_THEMES[theme], cols=THEME_COLORS[theme];
+  if(!set) return;
+  document.querySelectorAll('.ic-badge[data-ic]').forEach(function(el){{
+    var t=el.dataset.ic;
+    if(set[t]!==undefined) el.innerHTML='<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'+set[t]+'</svg>';
+    if(cols&&cols[t]) el.style.color=cols[t];
+  }});
+  try{{localStorage.setItem('dvexp_icontheme',theme);}}catch(e){{}}
+  var sel=document.getElementById('iconTheme'); if(sel) sel.value=theme;
+}}
+(function(){{ try{{ var t=localStorage.getItem('dvexp_icontheme'); if(t&&ICON_THEMES[t]) skinTree(t); }}catch(e){{}} }})();
+const _SUN='<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';
+const _MOON='<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
+function applyMode(m){{document.documentElement.dataset.theme=m;
+  var i=document.getElementById('themeIco'); if(i) i.innerHTML=(m==='dark'?_MOON:_SUN);}}
+function toggleMode(){{var m=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  applyMode(m); try{{localStorage.setItem('dvexp_mode',m);}}catch(e){{}}}}
+(function(){{ try{{ var m=localStorage.getItem('dvexp_mode'); if(m) applyMode(m); }}catch(e){{}} }})();
+</script>
 <script>{js}
 {fbd_bridge.EXPR_MODAL_JS}</script>
 </body></html>"""

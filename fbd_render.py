@@ -24,55 +24,81 @@ _TYPE_COLOR = {
 }
 _COMPOSITE_COLOR = '#475569'
 
-# ── object-type glyphs: a small monochrome mark per type group, so the diagram
-# is readable without relying on header colour (helps grayscale / OQ prints) ──
-_GRP_LOGIC = {'AND', 'OR', 'NOT', 'NAND', 'NOR', 'XOR', 'BAND', 'BOR', 'BXOR'}
-_GRP_EDGE = {'PDE', 'NDE', 'BDE', 'ODT', 'OST', 'OSP'}
-_GRP_DEVICE = {'EDC', 'DCC', 'DC', 'MTR', 'VLV', 'MOTOR'}
-_GRP_EXPR = {'ACT', 'CND', 'CALC', 'AT', 'CALCLOGIC'}
-_GRP_ANALOG = {'AO', 'AI', 'PID', 'PIDWCALARM', 'AIWCALARM', 'RTLM', 'RATIO',
-               'ALMWCALARM', 'DI', 'DO'}
+# ── object-type glyphs: marks that mirror DeltaV/ISA control-strategy
+# conventions (real gate shapes, condition diamond, instrument bubble, valve),
+# so the diagram reads like a control drawing and survives grayscale printing ──
+_GLYPH_FOR = {
+    'AND': 'and', 'BAND': 'and',
+    'OR': 'or', 'BOR': 'or',
+    'NOT': 'not',
+    'NAND': 'nand', 'NOR': 'nor', 'XOR': 'xor', 'BXOR': 'xor',
+    'PDE': 'edge_up', 'BDE': 'edge_up',
+    'NDE': 'edge_dn',
+    'ODT': 'timer', 'OST': 'timer', 'OSP': 'timer', 'DTON': 'timer', 'DTOF': 'timer',
+    'CND': 'cond',
+    'CALC': 'calc',
+    'ACT': 'action', 'AT': 'action', 'CALCLOGIC': 'calc',
+    'PID': 'pid', 'PIDWCALARM': 'pid', 'RATIO': 'pid', 'RTLM': 'pid',
+    'AI': 'analog', 'AO': 'analog', 'AIWCALARM': 'analog', 'ALMWCALARM': 'analog',
+    'DI': 'disc', 'DO': 'disc',
+    'EDC': 'device', 'DCC': 'device', 'DC': 'device', 'MTR': 'device', 'VLV': 'device',
+}
 
 
-def _type_group(deftype):
-    d = (deftype or '').upper()
-    if d in _GRP_LOGIC:
-        return 'logic'
-    if d in _GRP_EDGE:
-        return 'edge'
-    if d in _GRP_DEVICE:
-        return 'device'
-    if d in _GRP_EXPR:
-        return 'expr'
-    if d in _GRP_ANALOG:
-        return 'analog'
-    return 'std'
-
-
-def _type_glyph(group, gx, gy, color='#ffffff', s=8.0):
-    """Small SVG glyph for a type group, drawn inside [gx,gy .. gx+s,gy+s]."""
+def _type_glyph(key, gx, gy, color='#ffffff', s=8.0):
+    """SVG glyph for a control-strategy block type, in [gx,gy .. gx+s,gy+s]."""
     sw = f'stroke="{color}" stroke-width="1.1" fill="none" stroke-linejoin="round"'
-    if group == 'logic':      # AND-gate silhouette
-        return (f'<path d="M{gx},{gy} h{s*0.4:.1f} a{s*0.45:.1f},{s*0.45:.1f} 0 0 1 0,{s*0.9:.1f} '
-                f'h-{s*0.4:.1f} z" {sw}/>')
-    if group == 'edge':       # rising-edge step
+    fl = f'fill="{color}" stroke="none"'
+    bub = (lambda cx, cy: f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{s*0.13:.1f}" {sw}/>')
+    if key in ('and', 'nand'):       # AND gate (flat back, round front)
+        g = (f'<path d="M{gx},{gy} H{gx+s*0.45:.1f} A{s*0.5:.1f},{s*0.5:.1f} 0 0 1 '
+             f'{gx+s*0.45:.1f},{gy+s:.1f} H{gx} Z" {sw}/>')
+        return g + (bub(gx + s * 0.98 + 1, gy + s * 0.5) if key == 'nand' else '')
+    if key in ('or', 'nor', 'xor'):  # OR gate (curved back, pointed front)
+        g = (f'<path d="M{gx},{gy} Q{gx+s*0.55:.1f},{gy:.1f} {gx+s:.1f},{gy+s*0.5:.1f} '
+             f'Q{gx+s*0.55:.1f},{gy+s:.1f} {gx},{gy+s:.1f} '
+             f'Q{gx+s*0.28:.1f},{gy+s*0.5:.1f} {gx},{gy:.1f} Z" {sw}/>')
+        if key == 'xor':
+            g += f'<path d="M{gx-s*0.15:.1f},{gy} Q{gx+s*0.13:.1f},{gy+s*0.5:.1f} {gx-s*0.15:.1f},{gy+s:.1f}" {sw}/>'
+        return g + (bub(gx + s * 1.05, gy + s * 0.5) if key == 'nor' else '')
+    if key == 'not':                 # inverter: triangle + bubble
+        return (f'<path d="M{gx},{gy} L{gx},{gy+s:.1f} L{gx+s*0.72:.1f},{gy+s*0.5:.1f} Z" {sw}/>'
+                + bub(gx + s * 0.86, gy + s * 0.5))
+    if key == 'edge_up':             # rising-edge step
         return f'<path d="M{gx},{gy+s:.1f} H{gx+s*0.45:.1f} V{gy:.1f} H{gx+s:.1f}" {sw}/>'
-    if group == 'device':     # valve bow-tie
-        return (f'<path d="M{gx},{gy} L{gx},{gy+s:.1f} L{gx+s*0.5:.1f},{gy+s*0.5:.1f} Z" '
-                f'fill="{color}" stroke="none"/>'
-                f'<path d="M{gx+s:.1f},{gy} L{gx+s:.1f},{gy+s:.1f} L{gx+s*0.5:.1f},{gy+s*0.5:.1f} Z" '
-                f'fill="{color}" stroke="none"/>')
-    if group == 'analog':     # sine wave
+    if key == 'edge_dn':             # falling-edge step
+        return f'<path d="M{gx},{gy:.1f} H{gx+s*0.45:.1f} V{gy+s:.1f} H{gx+s:.1f}" {sw}/>'
+    if key == 'timer':               # clock face
+        return (f'<circle cx="{gx+s*0.5:.1f}" cy="{gy+s*0.5:.1f}" r="{s*0.48:.1f}" {sw}/>'
+                f'<path d="M{gx+s*0.5:.1f},{gy+s*0.5:.1f} V{gy+s*0.2:.1f} M{gx+s*0.5:.1f},{gy+s*0.5:.1f} H{gx+s*0.74:.1f}" {sw}/>')
+    if key == 'cond':                # decision diamond
+        return (f'<path d="M{gx+s*0.5:.1f},{gy} L{gx+s:.1f},{gy+s*0.5:.1f} '
+                f'L{gx+s*0.5:.1f},{gy+s:.1f} L{gx},{gy+s*0.5:.1f} Z" {sw}/>')
+    if key == 'calc':                # sigma (summation)
+        return f'<path d="M{gx+s:.1f},{gy} H{gx} L{gx+s*0.5:.1f},{gy+s*0.5:.1f} L{gx},{gy+s:.1f} H{gx+s:.1f}" {sw}/>'
+    if key == 'action':              # ƒ (function/action)
+        return (f'<path d="M{gx+s*0.7:.1f},{gy+s*0.1:.1f} Q{gx+s*0.35:.1f},{gy:.1f} {gx+s*0.38:.1f},{gy+s*0.45:.1f} '
+                f'V{gy+s:.1f} M{gx+s*0.15:.1f},{gy+s*0.45:.1f} H{gx+s*0.62:.1f}" {sw}/>')
+    if key == 'pid':                 # ISA instrument bubble
+        return (f'<circle cx="{gx+s*0.5:.1f}" cy="{gy+s*0.5:.1f}" r="{s*0.48:.1f}" {sw}/>'
+                f'<path d="M{gx+s*0.05:.1f},{gy+s*0.5:.1f} H{gx+s*0.95:.1f}" {sw}/>')
+    if key == 'analog':              # sine wave
         return (f'<path d="M{gx},{gy+s*0.55:.1f} q{s*0.25:.1f},-{s*0.55:.1f} {s*0.5:.1f},0 '
                 f't{s*0.5:.1f},0" {sw}/>')
-    if group == 'expr':       # equation lines (ƒx blocks)
-        return (f'<path d="M{gx},{gy+s*0.32:.1f} H{gx+s:.1f} M{gx},{gy+s*0.68:.1f} '
-                f'H{gx+s:.1f}" {sw}/>')
-    if group == 'composite':  # nested squares
+    if key == 'disc':                # discrete: square wave
+        return f'<path d="M{gx},{gy+s:.1f} V{gy+s*0.5:.1f} H{gx+s*0.4:.1f} V{gy:.1f} H{gx+s*0.7:.1f} V{gy+s*0.5:.1f} H{gx+s:.1f}" {sw}/>'
+    if key == 'device':              # valve bow-tie
+        return (f'<path d="M{gx},{gy} L{gx},{gy+s:.1f} L{gx+s*0.5:.1f},{gy+s*0.5:.1f} Z" {fl}/>'
+                f'<path d="M{gx+s:.1f},{gy} L{gx+s:.1f},{gy+s:.1f} L{gx+s*0.5:.1f},{gy+s*0.5:.1f} Z" {fl}/>')
+    if key == 'composite':           # nested squares
         return (f'<rect x="{gx:.1f}" y="{gy:.1f}" width="{s*0.66:.1f}" height="{s*0.66:.1f}" {sw}/>'
                 f'<rect x="{gx+s*0.34:.1f}" y="{gy+s*0.34:.1f}" width="{s*0.66:.1f}" '
                 f'height="{s*0.66:.1f}" {sw}/>')
     return ''
+
+
+def _glyph_key(deftype):
+    return _GLYPH_FOR.get((deftype or '').upper())
 
 # parameter (terminal) box geometry, in screen px
 _PBOX_W = 132
@@ -322,14 +348,15 @@ def auto_layout_coords(blocks, wires, col_gap=150, row_pitch=210, pack_width=210
 
 
 def type_legend_html():
-    """Compact key mapping each type glyph to its meaning."""
-    items = [('logic', 'Logic gate'), ('edge', 'Edge / pulse'),
-             ('device', 'Device control'), ('analog', 'Analog I/O'),
-             ('expr', 'Expression'), ('composite', 'Composite')]
+    """Compact key mapping each control-strategy glyph to its meaning."""
+    items = [('and', 'AND'), ('or', 'OR'), ('not', 'NOT'), ('edge_up', 'Edge'),
+             ('timer', 'Timer'), ('cond', 'Condition'), ('calc', 'Calc'),
+             ('pid', 'PID/loop'), ('analog', 'Analog'), ('device', 'Device'),
+             ('composite', 'Composite')]
     out = ['<div class="fbd-legend"><span class="fbd-leg-lbl">Symbols:</span>']
-    for g, lbl in items:
+    for k, lbl in items:
         out.append(f'<span class="fbd-leg-item"><svg width="15" height="13" viewBox="0 0 15 13">'
-                   f'{_type_glyph(g, 3, 2.5, "#475569", 8)}</svg>{lbl}</span>')
+                   f'{_type_glyph(k, 3, 2.5, "#475569", 8)}</svg>{lbl}</span>')
     out.append('</div>')
     return ''.join(out)
 
@@ -592,10 +619,10 @@ def render_fbd_svg(fbd, scale=0.5, pad=40, layout='deltav'):
         svg.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{w:.0f}" height="{h:.0f}" '
                    f'rx="3" fill="#ffffff" stroke="{col}" stroke-width="1.6"{dash}/>')
         svg.append(f'<rect x="{x:.0f}" y="{y:.0f}" width="{w:.0f}" height="14" rx="3" fill="{col}"/>')
-        # type glyph at header-left (groups without an existing right-marker)
-        grp = _type_group(b['definition'])
-        if grp != 'std':
-            svg.append(_type_glyph(grp, x + 3, y + 3, '#ffffff', 8))
+        # control-strategy type glyph at header-left
+        gk = _glyph_key(b['definition'])
+        if gk:
+            svg.append(_type_glyph(gk, x + 3, y + 3, '#ffffff', 8))
         # header label: block type, but for composites show a readable label
         # instead of an anonymous hash / overlong class name. Leave room on the
         # right for the [+]/fx marker so they never overlap.

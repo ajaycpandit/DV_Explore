@@ -304,7 +304,59 @@ def parse_database(text):
         em = catalog['em_classes'][0]['name']
         catalog['em_cms'][em] = [c['name'] for c in catalog['cm_classes']]
 
+    _parse_hierarchy(text, catalog)
     return catalog
+
+
+def _parse_hierarchy(text, catalog):
+    """Parse the real Area / Process Cell / Unit / Module instance hierarchy plus
+    unit-class phases, from EQUIPMENT_UNIT_MODULE, MODULE_INSTANCE and PHASE
+    records. Populates catalog with unit_instances, deployed_modules,
+    unit_modules, unit_class_phases and area_tree."""
+    deployed, unit_modules = {}, {}
+    for m in re.finditer(r'MODULE_INSTANCE\s+TAG="([^"]+)"\s+PLANT_AREA="([^"]+)"\s+MODULE_CLASS="([^"]*)"', text):
+        tag, path, cls = m.group(1), m.group(2), m.group(3)
+        parts = path.split('/')
+        unit = parts[2] if len(parts) >= 3 else (parts[-1] if parts else '')
+        deployed[tag] = {'tag': tag, 'cls': cls, 'path': path, 'unit': unit,
+                         'area': parts[0] if parts else '',
+                         'cell': parts[1] if len(parts) >= 2 else ''}
+        unit_modules.setdefault(unit, []).append(tag)
+    catalog['deployed_modules'] = deployed
+    catalog['unit_modules'] = unit_modules
+
+    unit_instances = {}
+    for m in re.finditer(r'EQUIPMENT_UNIT_MODULE\s+NAME="([^"]+)"\s+CLASS="([^"]+)"', text):
+        name, cls = m.group(1), m.group(2)
+        blk = extract_block(text, m.end())
+        pa = re.search(r'PLANT_AREA="([^"]+)"', blk)
+        path = pa.group(1) if pa else ''
+        desc = re.search(r'DESCRIPTION="([^"]*)"', blk)
+        vals = []
+        for vm in re.finditer(r'ATTRIBUTE_INSTANCE\s+NAME="([^"/]+)"\s*\{\s*VALUE\s*\{\s*CV=("[^"]*"|[^}\s]+)', blk):
+            vals.append({'name': vm.group(1), 'cv': vm.group(2).strip('"')})
+        parts = path.split('/')
+        unit_instances[name] = {
+            'name': name, 'cls': cls, 'area_path': path,
+            'area': parts[0] if parts else '',
+            'cell': parts[1] if len(parts) >= 2 else '',
+            'description': desc.group(1).strip() if desc else '',
+            'values': vals, 'modules': unit_modules.get(name, [])}
+    catalog['unit_instances'] = unit_instances
+
+    ucph = {}
+    for uc in catalog['unit_classes']:
+        mm = re.search(r'MODULE_CLASS\s+NAME="' + re.escape(uc['name']) + r'"', text)
+        if not mm:
+            continue
+        blk = extract_block(text, mm.end())
+        ucph[uc['name']] = [pm.group(1) for pm in re.finditer(r'PHASE\s+CLASS="([^"]+)"', blk)]
+    catalog['unit_class_phases'] = ucph
+
+    area_tree = {}
+    for u in unit_instances.values():
+        area_tree.setdefault(u['area'] or '(unassigned)', {}).setdefault(u['cell'] or '', []).append(u['name'])
+    catalog['area_tree'] = area_tree
 
 
 def catalog_summary(catalog):
