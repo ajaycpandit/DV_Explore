@@ -63,6 +63,13 @@ def _has_state_logic(text, name):
     return ('COMMAND_0000' in blk) or ('SFC_ALGORITHM' in blk) or ('STEP NAME=' in blk)
 
 
+def _fix_sfc(html):
+    """Relabel the core SFC reset-zoom button (fullscreen-looking glyph) to a
+    clear '1:1' without editing core/."""
+    return html.replace('title="Reset">\u2922</button>',
+                        'title="Reset zoom to 100%">1:1</button>')
+
+
 def em_modules(text):
     """Split the export's modules into EMs and embedded CMs."""
     ems, cms = [], []
@@ -104,7 +111,7 @@ def command_state_html(text, em_name):
                 'trans_to_step': c.get('trans_to_step', {}),
             }
             try:
-                view = sfc.build_sfc_html({cname: block}, f"{em_name} — {cname}")
+                view = _fix_sfc(sfc.build_sfc_html({cname: block}, f"{em_name} — {cname}"))
                 cmd_views.append((cname, view))
             except Exception:
                 continue
@@ -112,11 +119,79 @@ def command_state_html(text, em_name):
 
     if ftype == 'em_sd':
         try:
-            blocks = core['parse_sdem_fhx'](text)
-            return sfc.build_sfc_html(blocks, em_name)
+            em_list = core['parse_sdem_fhx'](text)
         except Exception:
             return ''
+        return _sdem_table_html(em_list, em_name)
     return ''
+
+
+def _sdem_table_html(em_list, em_name):
+    """Render a state-driven EM as a state table (states x devices -> targets),
+    the way DeltaV presents an SDA. Self-contained doc for an iframe srcdoc."""
+    em = next((e for e in em_list if e.get('em_name') == em_name), None)
+    if not em and em_list:
+        em = em_list[0]
+    if not em or not em.get('states'):
+        return ''
+    devices = em['devices']
+    states = em['states']
+    desc = html.escape(em.get('em_description', ''))
+
+    def _cell(v, dc):
+        if dc:
+            return '<td class="dc" title="Don\'t care">\u2014</td>'
+        vv = (v or '').strip()
+        cls = ''
+        up = vv.upper()
+        if up in ('OPEN', 'ON', 'TRUE', 'RUNNING', 'START'):
+            cls = ' v-on'
+        elif up in ('CLOSE', 'CLOSED', 'OFF', 'FALSE', 'STOP', 'STOPPED'):
+            cls = ' v-off'
+        return f'<td class="val{cls}">{html.escape(vv) if vv else "&nbsp;"}</td>'
+
+    head = ''.join(f'<th class="dev" title="{html.escape(d)}">{html.escape(d)}</th>' for d in devices)
+    rows = []
+    for s in states:
+        cells = ''.join(_cell(s['values'].get(d, ''), s['dont_care'].get(d, False)) for d in devices)
+        en = '' if s.get('enabled', True) else ' class="disabled" title="State disabled"'
+        rows.append(
+            f'<tr{en}><td class="idx">{s["index"]}</td>'
+            f'<td class="sname">{html.escape(s["state_name"])}</td>{cells}</tr>')
+    body = '\n'.join(rows)
+
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{{box-sizing:border-box}}
+body{{margin:0;font-family:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;color:#16202c;background:#fff;font-size:13px}}
+.hd{{padding:12px 16px;border-bottom:1px solid #dde4ec;position:sticky;top:0;background:#fff;z-index:6}}
+.hd .t{{font-weight:600;font-size:15px}}
+.hd .s{{color:#46566b;font-size:12px;margin-top:2px}}
+.hd .meta{{margin-top:7px;display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:#7689a0}}
+.hd .meta b{{color:#16202c;font-weight:600}}
+.scroll{{overflow:auto;max-height:calc(100vh - 0px)}}
+table{{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}}
+th,td{{border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;padding:6px 10px;text-align:center;white-space:nowrap}}
+thead th{{position:sticky;top:0;background:#f3f6fa;font-size:11px;color:#46566b;font-weight:600;z-index:3;border-bottom:1px solid #dde4ec}}
+th.idx,td.idx{{width:40px;color:#7689a0;font-family:'IBM Plex Mono',monospace;font-size:11px;position:sticky;left:0;background:#fff;z-index:2}}
+thead th.idx{{z-index:4;background:#f3f6fa}}
+th.sname,td.sname{{text-align:left;position:sticky;left:40px;background:#fff;z-index:2;font-weight:500;min-width:210px;box-shadow:1px 0 0 #dde4ec}}
+thead th.sname{{z-index:4;background:#f3f6fa}}
+.dev{{font-family:'IBM Plex Mono',monospace}}
+td.val{{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#16202c}}
+td.v-on{{color:#047857;font-weight:600;background:#ecfdf5}}
+td.v-off{{color:#64748b;background:#f8fafc}}
+td.dc{{color:#cbd5e1}}
+tr.disabled{{opacity:.5}}
+tr:hover td{{background:#eff6ff}}
+tr:hover td.idx,tr:hover td.sname{{background:#eff6ff}}
+</style></head><body>
+<div class="hd"><div class="t">{html.escape(em_name)} <span style="font-weight:400;color:#7689a0">— State Driven EM</span></div>
+<div class="s">{desc}</div>
+<div class="meta"><span><b>{len(states)}</b> states</span><span><b>{len(devices)}</b> devices</span>
+<span>States are defined by the EM's named set; each cell is the target the device is driven to in that state (&ldquo;&mdash;&rdquo; = don't care).</span></div></div>
+<div class="scroll"><table><thead><tr><th class="idx">#</th><th class="sname">State</th>{head}</tr></thead>
+<tbody>{body}</tbody></table></div>
+</body></html>"""
 
 
 def _commands_tabset(cmd_views):

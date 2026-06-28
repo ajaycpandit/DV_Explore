@@ -14,6 +14,8 @@ import html
 import json
 
 import fbd_bridge  # for the shared expression-popup modal assets
+import fonts  # embedded IBM Plex (offline-safe)
+import s88_model  # ISA-88 phase state model
 
 
 _CSS = """
@@ -27,7 +29,7 @@ _CSS = """
   --shadow:0 1px 2px rgba(16,32,47,.04),0 8px 24px -12px rgba(16,32,47,.16);
   --grid:rgba(29,78,216,.045);
   --b-area:#0284c7;--b-cell:#0891b2;--b-unit:#059669;--b-uclass:#047857;--b-em:#7c3aed;
-  --b-cm:#d97706;--b-phase:#db2777;--b-recipe:#dc2626;--b-composite:#475569;--b-fbtype:#0d9488;--b-inst:#7c3aed;
+  --b-cm:#d97706;--b-phase:#db2777;--b-recipe:#dc2626;--b-composite:#475569;--b-fbtype:#0d9488;--b-inst:#7c3aed;--b-nset:#0369a1;--b-ctrl:#3730a3;
 }
 [data-theme="dark"]{
   --canvas:#0e141b;--surface:#161e27;--surface-2:#1b2531;--border:#28333f;--border-strong:#3a4856;
@@ -109,6 +111,13 @@ button{font-family:inherit}
 .navres-item .rsub{font-size:10px;color:var(--ink-3)}
 .navres-item.col{flex-direction:column;align-items:flex-start;gap:2px}
 .navsec{padding:11px 10px 4px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.navfolder{display:flex;align-items:center;gap:6px;padding:6px 10px;font-size:12.5px;font-weight:600;
+  color:var(--ink-2);cursor:pointer;user-select:none;border-radius:7px}
+.navfolder:hover{background:var(--surface-2);color:var(--ink)}
+.navfoldbody{margin-left:13px;border-left:1px solid var(--border);padding-left:3px}
+.navph{padding:5px 10px 5px 16px;font-size:12.5px;color:var(--ink-3);font-style:italic;opacity:.65;cursor:default}
+.navcount{font-family:'IBM Plex Mono';font-size:10.5px;color:var(--ink-3);font-weight:500;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:0 7px;margin-left:2px}
 .navsec-tog{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
 .navsec-tog:hover{color:var(--ink-2)}
 .secarrow{font-size:10px;width:10px;display:inline-block}
@@ -124,6 +133,8 @@ button{font-family:inherit}
 .ic-composite{color:var(--b-composite)}.ic-fbtype{color:var(--b-fbtype)}
 .navchild{padding-left:34px}
 .navchild2{padding-left:50px}
+.navchild3{padding-left:66px}
+.navchild4{padding-left:82px}
 .navinst{align-items:center}
 .navinst .inst-tag{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .navinst .inst-cls{color:var(--ink-3);font-size:10.5px;margin-left:auto;padding-left:8px;white-space:nowrap;flex:0 0 auto}
@@ -136,10 +147,14 @@ button{font-family:inherit}
 .navchildren .navchild:not(:last-child)::after{content:"";position:absolute;left:20px;top:50%;bottom:-2px;border-left:1px dashed var(--border-strong)}
 .navchildren .navchild2::before{left:34px}
 .navchildren .navchild2:not(:last-child)::after{left:34px}
+.navchildren .navchild3::before{left:50px}
+.navchildren .navchild3:not(:last-child)::after{left:50px}
+.navchildren .navchild4::before{left:66px}
+.navchildren .navchild4:not(:last-child)::after{left:66px}
 .tog{cursor:pointer;user-select:none;color:var(--ink-3);width:12px;display:inline-block;font-size:10px}
 .b-area{background:var(--b-area)}.b-unit{background:var(--b-unit)}.b-em{background:var(--b-em)}
 .b-cm{background:var(--b-cm)}.b-phase{background:var(--b-phase)}.b-recipe{background:var(--b-recipe)}
-.b-composite{background:var(--b-composite)}.b-uclass{background:var(--b-uclass)}.b-fbtype{background:var(--b-fbtype)}
+.b-composite{background:var(--b-composite)}.b-uclass{background:var(--b-uclass)}.b-fbtype{background:var(--b-fbtype)}.b-nset{background:var(--b-nset)}.b-ctrl{background:var(--b-ctrl)}
 .badge.b-inst{background:var(--b-inst)}
 
 /* detail */
@@ -354,6 +369,17 @@ _THEME_COLORS['pid'] = _COL_DELTAV
 
 
 def _nav_badge(key):
+    if key == 'nset':
+        return ('<span class="ic-badge b-nset" title="Named Set">'
+                '<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'
+                '<rect x="2.4" y="2.4" width="10.2" height="10.2" rx="2.2" fill="none" stroke="#fff" stroke-width="1.3"/>'
+                '<path d="M5 5.4h5M5 7.5h5M5 9.6h3" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg></span>')
+    if key == 'ctrl':
+        return ('<span class="ic-badge b-ctrl" title="Controller">'
+                '<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'
+                '<rect x="3" y="2.6" width="9" height="9.8" rx="1.4" fill="none" stroke="#fff" stroke-width="1.3"/>'
+                '<rect x="5.4" y="5" width="4.2" height="4.2" rx="0.6" fill="#fff"/>'
+                '<path d="M5.4 2.6V1.4M9.6 2.6V1.4M5.4 13.6v-1.2M9.6 13.6v-1.2M3 5.6H1.6M3 9.4H1.6M13.4 5.6H12M13.4 9.4H12" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></svg></span>')
     cls = _NAV_BADGE_CLS.get(key, 'b-composite')
     title = _NAV_TITLE.get(key, key)
     return (f'<span class="ic-badge {cls}" data-ic="{key}" title="{title}">'
@@ -406,6 +432,8 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
         put('composite:' + c['name'], 'Composite', dict(c, _disp=disp))
     for t in catalog['fb_types']:
         put('fbtype:' + t['name'], 'FB Type', t)
+    for s in catalog.get('named_sets', []):
+        put('nset:' + s['name'], 'Named Set', s)
 
     data_json = json.dumps({'objs': objs, 'summary': summary,
                             'unit_phases': catalog.get('unit_phases', {}),
@@ -418,8 +446,14 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
                             'deployed_modules': catalog.get('deployed_modules', {}),
                             'unit_modules': catalog.get('unit_modules', {}),
                             'unit_class_phases': catalog.get('unit_class_phases', {}),
+                            'unit_class_detail': catalog.get('unit_class_detail', {}),
+                            'named_sets': {s['name']: s for s in catalog.get('named_sets', [])},
+                            'em_state_set': catalog.get('em_state_set', {}),
+                            'controllers': catalog.get('controllers', {}),
+                            'module_controller': catalog.get('module_controller', {}),
                             'area_tree': catalog.get('area_tree', {})})
     phase_views_json = json.dumps(phase_views)
+    s88_svg_json = json.dumps(s88_model.build_s88_svg())
     fbd_views_json = json.dumps(fbd_views)
     em_views_json = json.dumps(em_views)
     param_index_json = json.dumps(param_index or {})
@@ -433,7 +467,7 @@ const EM_VIEWS = __EM_VIEWS__;
 const PARAM_INDEX = __PARAM_INDEX__;
 const EXPR_INDEX = __EXPR_INDEX__;
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass','FB Type':'b-fbtype'};return m[t]||'b-composite';}
+function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass','FB Type':'b-fbtype','Named Set':'b-nset'};return m[t]||'b-composite';}
 function badgeColor(t){const m={'b-area':'#0ea5e9','b-unit':'#6366f1','b-em':'#0f766e','b-cm':'#7c3aed','b-phase':'#b45309','b-recipe':'#be123c','b-composite':'#475569','b-uclass':'#2563eb','b-fbtype':'#334155'};if(t==='Parameter')return '#0891b2';if(t==='Instance')return '#6d28d9';return m[badge(t)]||'#475569';}
 
 // ── global search: Names | Expressions | Values ──
@@ -637,6 +671,18 @@ function renderObj(id){
   }
   // Unit Class -> its phases and EMs (tree)
   if(o._type==='Unit Class'){
+    var ucd=(DB.unit_class_detail&&DB.unit_class_detail[o.name])||{};
+    var prm=ucd.params||[], als=ucd.aliases||[];
+    if(prm.length){
+      h+='<div class="card"><h3>Parameters ('+prm.length+')</h3><table class="fbd-table"><thead><tr><th>Name</th><th>Type</th></tr></thead><tbody>';
+      prm.forEach(function(p){h+='<tr><td>'+esc(p.name)+'</td><td><code>'+esc(p.type)+'</code></td></tr>';});
+      h+='</tbody></table></div>';
+    }
+    if(als.length){
+      h+='<div class="card"><h3>Aliases ('+als.length+')</h3><table class="fbd-table"><thead><tr><th>Alias</th><th>Description</th><th>Purpose</th></tr></thead><tbody>';
+      als.forEach(function(a){h+='<tr><td>'+esc(a.name)+'</td><td class="p">'+esc(a.desc||'')+'</td><td>'+(a.purpose?'<code>'+esc(a.purpose)+'</code>':'')+'</td></tr>';});
+      h+='</tbody></table></div>';
+    }
     const phs=DB.unit_class_phases[o.name]||DB.unit_phases[o.name]||[], ems=DB.unit_ems[o.name]||[];
     if(phs.length||ems.length){
       h+='<div class="card"><h3>Contains</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
@@ -645,20 +691,61 @@ function renderObj(id){
       h+='</div></div>';
     }
   }
-  // EM Class -> its CMs (tree)
+  // EM Class -> its CM *instances* (actual object names used inside the EM)
   if(o._type==='EM Class'){
-    const cms=DB.em_cms[o.name]||[];
-    if(cms.length){
-      h+='<div class="card"><h3>Control Modules</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
-      cms.forEach(c=>{h+='<div class="tnode"><span class="link" onclick="show(\\'cm:'+esc(c)+'\\')">'+esc(c)+'</span></div>';});
+    const iids=(DB.parent_instances&&DB.parent_instances[o.name])||[];
+    if(iids.length){
+      h+='<div class="card"><h3>Control Modules ('+iids.length+')</h3><table class="fbd-table"><thead><tr><th>Module</th><th>Class</th></tr></thead><tbody>';
+      iids.forEach(function(iid){var ins=(DB.instances&&DB.instances[iid])||{};
+        h+='<tr><td><span class="link" onclick="showInst(\\''+esc(o.name)+'\\',\\''+esc(ins.tag||'')+'\\')">'+esc(ins.tag||'')+'</span></td><td>'+modLink(ins.cls||'')+'</td></tr>';});
+      h+='</tbody></table></div>';
+    } else {
+      const cms=DB.em_cms[o.name]||[];
+      if(cms.length){
+        h+='<div class="card"><h3>Control Module classes used ('+cms.length+')</h3><div class="dtree"><div class="troot">'+esc(o.name)+'</div>';
+        cms.forEach(c=>{h+='<div class="tnode"><span class="link" onclick="show(\\'cm:'+esc(c)+'\\')">'+esc(c)+'</span></div>';});
+        h+='</div></div>';
+      }
+    }
+  }
+  // Named Set (DeltaV named set / enumeration) -> entries + where used
+  if(o._type==='Named Set'){
+    var entries=o.entries||[], used=o.used_by||[];
+    h+='<div class="card"><h3>Identity</h3><div class="kv">';
+    if(o.description) h+='<div class="k">Description</div><div>'+esc(o.description)+'</div>';
+    if(o.category) h+='<div class="k">Category</div><div><code>'+esc(o.category)+'</code></div>';
+    h+='<div class="k">Entries</div><div>'+entries.length+'</div></div></div>';
+    if(used.length){
+      h+='<div class="card"><h3>Used by ('+used.length+')</h3><div class="chips">';
+      used.forEach(function(u){h+=DB.objs['em:'+u]?'<span class="chip" onclick="show(\\'em:'+esc(u)+'\\')">'+esc(u)+'</span>':'<span class="chip">'+esc(u)+'</span>';});
       h+='</div></div>';
+    }
+    if(entries.length){
+      h+='<div class="card"><h3>Members ('+entries.length+')</h3><table class="fbd-table"><thead><tr><th>Value</th><th>Name</th></tr></thead><tbody>';
+      entries.forEach(function(e){h+='<tr><td><code>'+e.value+'</code></td><td>'+esc(e.name)+'</td></tr>';});
+      h+='</tbody></table></div>';
     }
   }
   // placeholder for future leaf views
   if(o._type==='Phase Class'){
+    if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN) h+=exportBar('phase:'+o.name, o.name);
+    if(typeof S88_SVG!=='undefined' && S88_SVG){
+      h+='<div class="card s88card" style="max-width:none"><h3>State Model (ISA-88) '
+       + '<span style="font-weight:400;color:var(--ink-3);text-transform:none;letter-spacing:0">'
+       + 'click an acting state to open its logic below</span></h3>'
+       + '<div class="s88wrap"><div class="s88diagram">'+S88_SVG+'</div>'
+       + '<div class="s88side"><h4 id="s88h">Procedural state model</h4>'
+       + '<p id="s88p">The six <b>acting</b> states (blue) always carry logic — Running, Holding, '
+       + 'Restarting, Stopping, Aborting and the fault monitor. A <code>· blank</code> tag means the '
+       + 'block holds a blank step with no actions. Outlined states are <b>resting</b> states.</p></div></div>'
+       + '<div class="s88legend"><span><i style="background:var(--st-active)"></i>Acting state (logic)</span>'
+       + '<span><i style="background:var(--st-quiet);border:1px solid var(--st-quiet-bd)"></i>Resting state</span>'
+       + '<span><i style="background:var(--st-warn)"></i>Fault monitor</span>'
+       + '<span><i style="background:var(--edge-reset)"></i>Reset path</span></div></div>';
+    }
     if(PHASE_VIEWS[o.name]){
       h+='<div class="card" style="max-width:none"><h3>Phase logic — interactive</h3>';
-      h+='<iframe class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
+      h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
       h+='</div>';
     } else {
       h+='<div class="card"><h3>Phase logic</h3><span class="empty">No parsed logic available for this phase in this export.</span></div>';
@@ -675,12 +762,18 @@ function renderObj(id){
   }
   // EM Class -> full view: Function Blocks + Command/State Logic + Control Modules
   if(o._type==='EM Class'){
+    var stateSet=(DB.em_state_set&&DB.em_state_set[o.name])||'';
+    if(stateSet){
+      h+='<div class="card"><h3>State Set</h3><div class="kv">'
+       + '<div class="k">Named set</div><div>'+(DB.objs['nset:'+stateSet]?'<span class="link" onclick="show(\\'nset:'+esc(stateSet)+'\\')">'+esc(stateSet)+'</span>':esc(stateSet))
+       + ' <span style="color:var(--ink-3);font-size:12px">— defines this EM\\'s states</span></div></div></div>';
+    }
     const ev=EM_VIEWS[o.name];
     if(ev){
       h+='<div class="card" style="max-width:none">';
       h+='<div class="emtabs">';
       h+='<button class="emtab on" data-e="fb" onclick="emTab(this,\\'fb\\')">Function Blocks</button>';
-      if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">Command / State Logic</button>';
+      if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">'+(stateSet?'State Table':'Command Logic')+'</button>';
       if(ev.cms&&ev.cms.length) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+ev.cms.length+')</button>';
       h+='</div>';
       h+='<div class="empanel on" data-e="fb" id="empanel_fb">'+(ev.fbd||'<span class="empty">No function block layer.</span>')+'</div>';
@@ -829,6 +922,8 @@ function renderDeployed(tag){
   h+='<div class="k">Tag</div><div><code>'+esc(d.tag)+'</code></div>';
   h+='<div class="k">Class</div><div>'+modLink(d.cls)+'</div>';
   h+='<div class="k">Unit</div><div>'+(DB.objs['unit:'+d.unit]?'<span class="link" onclick="show(\\'unit:'+esc(d.unit)+'\\')">'+esc(d.unit)+'</span>':esc(d.unit))+'</div>';
+  var ctl=(DB.module_controller&&DB.module_controller[tag])||'';
+  if(ctl) h+='<div class="k">Controller</div><div><code>'+esc(ctl)+'</code> <span style="color:var(--ink-3);font-size:12px">· Physical Network</span></div>';
   h+='<div class="k">Location</div><div><code>'+esc(d.path)+'</code></div>';
   h+='</div>';
   h+='<button class="bigbtn" onclick="viewClass(\\''+esc(d.cls)+'\\')">View class logic &amp; parameters →</button></div>';
@@ -906,65 +1001,252 @@ function wireFbdLinks(){
                '<button class="nm-btn" onclick="navMode(this,\'values\')">Values</button>'
                '</div>'
                '<div id="navres" class="navres" style="display:none"></div></div>')
-    nav.append('<div class="navsec">Plant Areas</div>')
+    # ── data maps for the tree ──
     area_tree = catalog.get('area_tree', {})
     unit_instances = catalog.get('unit_instances', {})
     deployed = catalog.get('deployed_modules', {})
     unit_modules = catalog.get('unit_modules', {})
     ucph = catalog.get('unit_class_phases', {})
     em_class_names = {e['name'] for e in catalog['em_classes']}
+    parent_instances = catalog.get('parent_instances', {})
+    instances = catalog.get('instances', {})
+    sec_id = [0]
 
-    def _unit_node(un):
+    def _fold(title, collapsed=True, count=None):
+        sec_id[0] += 1
+        fid = f'fold{sec_id[0]}'
+        arrow = '\u25b8' if collapsed else '\u25be'
+        disp = 'none' if collapsed else 'block'
+        cnt = f' <span class="navcount">{count}</span>' if count is not None else ''
+        nav.append(f'<div class="navfolder navsec-tog" onclick="secToggle(\'{fid}\',this)">'
+                   f'<span class="secarrow">{arrow}</span> {html.escape(title)}{cnt}</div>')
+        nav.append(f'<div class="navfoldbody" id="{fid}" style="display:{disp}">')
+
+    def _endfold():
+        nav.append('</div>')
+
+    def _ph(title):
+        nav.append(f'<div class="navph" title="No data for this section in this export">'
+                   f'{html.escape(title)}</div>')
+
+    def _items(items, prefix):
+        for it in sorted(items, key=lambda x: x['name']):
+            nav.append(f'<div class="navitem" data-id="{prefix}:{html.escape(it["name"])}" '
+                       f'onclick="show(\'{prefix}:{html.escape(it["name"])}\')" title="{html.escape(it["name"])}">'
+                       f'{_nav_badge(prefix)}{html.escape(it["name"])}</div>')
+
+    def _ncls(lvl):
+        return '' if lvl <= 0 else ('navchild' if lvl == 1 else f'navchild{lvl}')
+
+    def _unit_node(un, lvl=1):
         ui = unit_instances.get(un, {})
         ucls = ui.get('cls', '')
         mods = unit_modules.get(un, [])
         phs = ucph.get(ucls, [])
         nav.append('<div class="navgroup">')
-        nav.append(f'<div class="navitem navchild navinst" data-id="unit:{html.escape(un)}" '
+        nav.append(f'<div class="navitem {_ncls(lvl)} navinst" data-id="unit:{html.escape(un)}" '
                    f'onclick="show(\'unit:{html.escape(un)}\')">'
-                   f'<span class="tog" onclick="toggle(this,event)">▸</span>'
+                   f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
                    f'{_nav_badge("unit")}<span class="inst-tag">{html.escape(un)}</span>'
                    f'<span class="inst-cls">({html.escape(ucls)})</span></div>')
         nav.append('<div class="navchildren" style="display:none">')
         for tag in mods:
             d = deployed.get(tag, {})
             cls = d.get('cls', '')
-            key = 'em' if cls in em_class_names else 'inst'
-            nav.append(f'<div class="navitem navchild2 navinst" data-tag="{html.escape(tag)}" data-dep="1" '
-                       f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
-                       f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
-                       f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+            is_em = cls in em_class_names
+            key = 'em' if is_em else 'inst'
+            child_iids = parent_instances.get(cls, []) if is_em else []
+            if child_iids:
+                nav.append('<div class="navgroup">')
+                nav.append(f'<div class="navitem {_ncls(lvl + 1)} navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                           f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
+                           f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
+                           f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
+                           f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+                nav.append('<div class="navchildren" style="display:none">')
+                for iid in child_iids:
+                    ins = instances.get(iid, {})
+                    itag, icls = ins.get('tag', ''), ins.get('cls', '')
+                    nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
+                               f'data-parent="{html.escape(cls)}" data-tag="{html.escape(itag)}" '
+                               f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
+                               f'title="{html.escape(itag)} (instance of {html.escape(icls)})">'
+                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>'
+                               f'<span class="inst-cls">({html.escape(icls)})</span></div>')
+                nav.append('</div></div>')
+            else:
+                nav.append(f'<div class="navitem {_ncls(lvl + 1)} navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                           f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
+                           f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
+                           f'<span class="inst-cls">({html.escape(cls)})</span></div>')
         for ph in phs:
-            nav.append(f'<div class="navitem navchild2" data-id="phase:{html.escape(ph)}" '
+            nav.append(f'<div class="navitem {_ncls(lvl + 1)}" data-id="phase:{html.escape(ph)}" '
                        f'onclick="show(\'phase:{html.escape(ph)}\')">'
                        f'{_nav_badge("phase")}{html.escape(ph)}</div>')
         nav.append('</div></div>')
 
+    def _unit_class_node(uc):
+        ucn = uc['name']
+        uphs = ucph.get(ucn, [])
+        if uphs:
+            nav.append('<div class="navgroup">')
+            nav.append(f'<div class="navitem" data-id="uclass:{html.escape(ucn)}" '
+                       f'onclick="show(\'uclass:{html.escape(ucn)}\')">'
+                       f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
+                       f'{_nav_badge("uclass")}{html.escape(ucn)}</div>')
+            nav.append('<div class="navchildren" style="display:none">')
+            for ph in uphs:
+                nav.append(f'<div class="navitem navchild" data-id="phase:{html.escape(ph)}" '
+                           f'onclick="show(\'phase:{html.escape(ph)}\')">'
+                           f'{_nav_badge("phase")}{html.escape(ph)}</div>')
+            nav.append('</div></div>')
+        else:
+            nav.append(f'<div class="navitem" data-id="uclass:{html.escape(ucn)}" '
+                       f'onclick="show(\'uclass:{html.escape(ucn)}\')">'
+                       f'{_nav_badge("uclass")}{html.escape(ucn)}</div>')
+
+    def _em_node(em):
+        ename = em['name']
+        iids = parent_instances.get(ename, [])
+        if iids:
+            nav.append('<div class="navgroup">')
+            nav.append(f'<div class="navitem" data-id="em:{html.escape(ename)}" '
+                       f'onclick="show(\'em:{html.escape(ename)}\')">'
+                       f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
+                       f'{_nav_badge("em")}{html.escape(ename)}</div>')
+            nav.append('<div class="navchildren" style="display:none">')
+            for iid in iids:
+                inst = instances.get(iid, {})
+                tag, cls = inst.get('tag', ''), inst.get('cls', '')
+                nav.append(f'<div class="navitem navchild navinst" '
+                           f'data-parent="{html.escape(ename)}" data-tag="{html.escape(tag)}" '
+                           f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
+                           f'title="{html.escape(tag)} (instance of {html.escape(cls)})">'
+                           f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(tag)}</span>'
+                           f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+            nav.append('</div></div>')
+        else:
+            nav.append(f'<div class="navitem" data-id="em:{html.escape(ename)}" '
+                       f'onclick="show(\'em:{html.escape(ename)}\')">'
+                       f'{_nav_badge("em")}{html.escape(ename)}</div>')
+
+    # ===================== LIBRARY =====================
+    _fold('Library', collapsed=False)
+    _ph('Device Definitions')
+    _ph('Device Templates')
+    if catalog['fb_types']:
+        _fold('Function Block Templates', collapsed=True, count=len(catalog['fb_types']))
+        _items(catalog['fb_types'], 'fbtype'); _endfold()
+    else:
+        _ph('Function Block Templates')
+    class_comps = [c for c in catalog['composites'] if c.get('scope') == 'class']
+    if class_comps:
+        _fold('Composite Templates', collapsed=True, count=len(class_comps))
+        for c in sorted(class_comps, key=lambda x: x['name']):
+            nav.append(f'<div class="navitem" data-id="composite:{html.escape(c["name"])}" '
+                       f'onclick="show(\'composite:{html.escape(c["name"])}\')" title="{html.escape(c["name"])}">'
+                       f'{_nav_badge("composite")}{html.escape(c["name"])}</div>')
+        _endfold()
+    else:
+        _ph('Composite Templates')
+    _ph('Module Templates')
+    _ph('I/O Studio Library')
+    _fold('Advanced Definitions', collapsed=False)
+    _ph('Process Cell Classes')
+    _ph('Equipment Train Classes')
+    if catalog['unit_classes']:
+        _fold('Unit Classes', collapsed=False, count=len(catalog['unit_classes']))
+        for uc in sorted(catalog['unit_classes'], key=lambda x: x['name']):
+            _unit_class_node(uc)
+        _endfold()
+    else:
+        _ph('Unit Classes')
+    if catalog['em_classes']:
+        _fold('Equipment Module Classes', collapsed=False, count=len(catalog['em_classes']))
+        for em in sorted(catalog['em_classes'], key=lambda x: x['name']):
+            _em_node(em)
+        _endfold()
+    else:
+        _ph('Equipment Module Classes')
+    if catalog['cm_classes']:
+        _fold('Control Module Classes', collapsed=True, count=len(catalog['cm_classes']))
+        _items(catalog['cm_classes'], 'cm'); _endfold()
+    else:
+        _ph('Control Module Classes')
+    if catalog['phase_classes']:
+        _fold('Phase Classes', collapsed=True, count=len(catalog['phase_classes']))
+        groups = {}
+        for ph in catalog['phase_classes']:
+            seg = (ph.get('category', '') or '').rstrip('/').split('/')[-1] or 'General'
+            groups.setdefault(seg, []).append(ph)
+        if len(groups) > 1 or (len(groups) == 1 and next(iter(groups)) != 'General'):
+            for g in sorted(groups):
+                _fold(g, collapsed=True, count=len(groups[g]))
+                _items(groups[g], 'phase'); _endfold()
+        else:
+            _items(catalog['phase_classes'], 'phase')
+        _endfold()
+    else:
+        _ph('Phase Classes')
+    _endfold()  # Advanced Definitions
+    _endfold()  # Library
+
+    # ================ SYSTEM CONFIGURATION ================
+    _fold('System Configuration', collapsed=False)
+    if catalog['recipes']:
+        _fold('Recipes', collapsed=True, count=len(catalog['recipes']))
+        _items(catalog['recipes'], 'recipe'); _endfold()
+    else:
+        _ph('Recipes')
+    nsets = catalog.get('named_sets', [])
+    if nsets:
+        _fold('Setup', collapsed=False)
+        _fold('Named Sets', collapsed=True, count=len(nsets))
+        _items(nsets, 'nset')
+        _endfold()
+        _endfold()
+    else:
+        _ph('Setup')
+    _fold('Control Strategies', collapsed=False)
+    _ph('Unassigned I/O References')
+    _ph('Unallocated Devices')
+    _ph('External Phases')
+    _ph('Equipment Trains')
     if area_tree:
         for aname in sorted(area_tree):
             cells = area_tree[aname]
             nav.append('<div class="navgroup">')
             nav.append(f'<div class="navitem" data-id="area:{html.escape(aname)}" '
                        f'onclick="show(\'area:{html.escape(aname)}\')">'
-                       f'<span class="tog" onclick="toggle(this,event)">▾</span>'
+                       f'<span class="tog" onclick="toggle(this,event)">\u25be</span>'
                        f'{_nav_badge("area")}{html.escape(aname)}</div>')
             nav.append('<div class="navchildren">')
             for cell in sorted(cells):
                 if cell:
-                    nav.append(f'<div class="navitem navchild" style="color:#94a3b8;cursor:default">'
-                               f'<span style="width:12px;display:inline-block"></span>'
-                               f'<span style="font-size:11px;letter-spacing:.02em">{html.escape(cell)} · cell</span></div>')
-                for un in cells[cell]:
-                    _unit_node(un)
+                    # process cell -> collapsible parent; its units nest underneath
+                    nav.append('<div class="navgroup">')
+                    nav.append(f'<div class="navitem navchild" style="cursor:pointer" '
+                               f'onclick="toggle(this.firstElementChild,event)" '
+                               f'title="{html.escape(cell)} (process cell)">'
+                               f'<span class="tog">\u25be</span>'
+                               f'{_nav_badge("cell")}<span class="inst-tag">{html.escape(cell)}</span>'
+                               f'<span class="inst-cls">· process cell</span></div>')
+                    nav.append('<div class="navchildren">')
+                    for un in cells[cell]:
+                        _unit_node(un, lvl=2)
+                    nav.append('</div></div>')
+                else:
+                    for un in cells[cell]:
+                        _unit_node(un, lvl=1)
             nav.append('</div></div>')
-    else:
+    elif catalog['areas']:
         for a in catalog['areas']:
             if not a['units']:
                 continue
             nav.append('<div class="navgroup">')
             nav.append(f'<div class="navitem" data-id="area:{html.escape(a["name"])}" '
                        f'onclick="show(\'area:{html.escape(a["name"])}\')">'
-                       f'<span class="tog" onclick="toggle(this,event)">▾</span>'
+                       f'<span class="tog" onclick="toggle(this,event)">\u25be</span>'
                        f'{_nav_badge("area")}{html.escape(a["name"])}</div>')
             nav.append('<div class="navchildren">')
             for u in a['units']:
@@ -972,89 +1254,36 @@ function wireFbdLinks(){
                            f'onclick="show(\'unit:{html.escape(u["name"])}\')">'
                            f'{_nav_badge("unit")}{html.escape(u["name"])}</div>')
             nav.append('</div></div>')
-
-    sec_id = [0]
-    def nav_list(title, items, prefix, badge_cls, badge_txt, collapsed=False):
-        if not items:
-            return
-        sec_id[0] += 1
-        sid = f'sec{sec_id[0]}'
-        arrow = '▸' if collapsed else '▾'
-        disp = 'none' if collapsed else 'block'
-        nav.append(f'<div class="navsec navsec-tog" onclick="secToggle(\'{sid}\',this)">'
-                   f'<span class="secarrow">{arrow}</span> {title} ({len(items)})</div>')
-        nav.append(f'<div class="navsecbody" id="{sid}" style="display:{disp}">')
-        for it in sorted(items, key=lambda x: x['name']):
-            nav.append(f'<div class="navitem" data-id="{prefix}:{html.escape(it["name"])}" '
-                       f'onclick="show(\'{prefix}:{html.escape(it["name"])}\')">'
-                       f'{_nav_badge(prefix)}'
-                       f'{html.escape(it["name"])}</div>')
-        nav.append('</div>')
-
-    nav_list('Unit Classes', catalog['unit_classes'], 'uclass', 'b-uclass', 'UCLS')
-
-    # EM Classes — each EM nests its child CM *instances* (the actual deployed
-    # tags), labeled "TAG (CLASS)". The class itself stays in the CM Classes
-    # section below; these nodes are the usage/instance view.
-    parent_instances = catalog.get('parent_instances', {})
-    instances = catalog.get('instances', {})
-    if catalog['em_classes']:
-        sec_id[0] += 1
-        sid = f'sec{sec_id[0]}'
-        nav.append(f'<div class="navsec navsec-tog" onclick="secToggle(\'{sid}\',this)">'
-                   f'<span class="secarrow">▾</span> EM Classes ({len(catalog["em_classes"])})</div>')
-        nav.append(f'<div class="navsecbody" id="{sid}" style="display:block">')
-        for em in sorted(catalog['em_classes'], key=lambda x: x['name']):
-            ename = em['name']
-            iids = parent_instances.get(ename, [])
-            if iids:
-                nav.append('<div class="navgroup">')
-                nav.append(f'<div class="navitem" data-id="em:{html.escape(ename)}" '
-                           f'onclick="show(\'em:{html.escape(ename)}\')">'
-                           f'<span class="tog" onclick="toggle(this,event)">▾</span>'
-                           f'{_nav_badge("em")}{html.escape(ename)}</div>')
-                nav.append('<div class="navchildren">')
-                for iid in iids:
-                    inst = instances.get(iid, {})
-                    tag, cls = inst.get('tag', ''), inst.get('cls', '')
-                    nav.append(f'<div class="navitem navchild navinst" '
-                               f'data-parent="{html.escape(ename)}" data-tag="{html.escape(tag)}" '
-                               f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
-                               f'title="{html.escape(tag)} (instance of {html.escape(cls)})">'
-                               f'{_nav_badge("inst")}'
-                               f'<span class="inst-tag">{html.escape(tag)}</span>'
-                               f'<span class="inst-cls">({html.escape(cls)})</span></div>')
-                nav.append('</div></div>')
-            else:
-                nav.append(f'<div class="navitem" data-id="em:{html.escape(ename)}" '
-                           f'onclick="show(\'em:{html.escape(ename)}\')">'
-                           f'{_nav_badge("em")}{html.escape(ename)}</div>')
-        nav.append('</div>')
-
-    # CM Classes — all CM classes in the database (also nested under their EM
-    # above; here as a flat index so the full set is browsable).
-    nav_list('CM Classes', catalog['cm_classes'], 'cm', 'b-cm', 'CM', collapsed=True)
-    nav_list('Phase Classes', catalog['phase_classes'], 'phase', 'b-phase', 'PH', collapsed=True)
-    nav_list('Recipes', catalog['recipes'], 'recipe', 'b-recipe', 'RCP')
-
-    # Composites — show only reusable *class* (library) composites in the
-    # big-picture view. Object-local (__HEX__, no category) composites are
-    # excluded here; they remain reachable by drilling into their parent diagram.
-    class_comps = [c for c in catalog['composites'] if c.get('scope') == 'class']
-    if class_comps:
-        sec_id[0] += 1
-        sid = f'sec{sec_id[0]}'
-        nav.append(f'<div class="navsec navsec-tog" onclick="secToggle(\'{sid}\',this)">'
-                   f'<span class="secarrow">▸</span> Composite Classes ({len(class_comps)})</div>')
-        nav.append(f'<div class="navsecbody" id="{sid}" style="display:none">')
-        for c in sorted(class_comps, key=lambda x: x['name']):
-            nav.append(f'<div class="navitem" data-id="composite:{html.escape(c["name"])}" '
-                       f'onclick="show(\'composite:{html.escape(c["name"])}\')" title="{html.escape(c["name"])}">'
-                       f'{_nav_badge("composite")}{html.escape(c["name"])}</div>')
-        nav.append('</div>')
-
-    # Function Block Types (standard DeltaV primitives referenced by the modules)
-    nav_list('Function Block Types', catalog['fb_types'], 'fbtype', 'b-fbtype', 'FB', collapsed=True)
+    else:
+        _ph('(no areas in this export)')
+    _endfold()  # Control Strategies
+    ctrls = catalog.get('controllers', {})
+    if ctrls:
+        _fold('Physical Network', collapsed=False)
+        _ph('Decommissioned Nodes')
+        _fold('Control Network', collapsed=False)
+        for cn in sorted(ctrls):
+            sec_id[0] += 1
+            cid = f'fold{sec_id[0]}'
+            nav.append(f'<div class="navfolder navsec-tog" onclick="secToggle(\'{cid}\',this)">'
+                       f'<span class="secarrow">\u25be</span> {_nav_badge("ctrl")}'
+                       f'<span style="margin-left:2px">{html.escape(cn)}</span>'
+                       f' <span class="navcount">{len(ctrls[cn])}</span></div>')
+            nav.append(f'<div class="navfoldbody" id="{cid}" style="display:block">')
+            for tag in sorted(ctrls[cn]):
+                d = deployed.get(tag, {})
+                cls = d.get('cls', '')
+                key = 'em' if cls in em_class_names else 'inst'
+                nav.append(f'<div class="navitem navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                           f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
+                           f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
+                           f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+            nav.append('</div>')
+        _endfold()  # Control Network
+        _endfold()  # Physical Network
+    else:
+        _ph('Physical Network')
+    _endfold()  # System Configuration
 
     welcome = '<div class="welcome"><h2>' + html.escape(fname) + '</h2>'
     welcome += '<p>DeltaV database explorer. Select an object from the navigation tree to view its details and references.</p>'
@@ -1084,10 +1313,9 @@ function wireFbdLinks(){
     return f"""<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DeltaV Strategy Workbench — {html.escape(fname)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>{_CSS}
+<style>{fonts.FONT_CSS}
+{_CSS}
+{s88_model.S88_CSS}
 {fbd_bridge.EXPR_MODAL_CSS}</style></head><body>
 <div class="app">
 <nav class="rail">
@@ -1119,6 +1347,16 @@ function wireFbdLinks(){
 <script>
 const ICON_THEMES={themes_json};
 const THEME_COLORS={tcolors_json};
+const EXPORT_TOKEN={json.dumps(export_token or "")};
+function exportBar(obj,name){{
+  if(!EXPORT_TOKEN) return '';
+  var base='/export?token='+encodeURIComponent(EXPORT_TOKEN)+'&obj='+encodeURIComponent(obj)+'&name='+encodeURIComponent(name);
+  return '<div class="card"><h3>Export this object</h3>'
+    +'<div style="display:flex;gap:8px">'
+    +'<a class="exp-btn" href="'+base+'&fmt=excel">&#8681; Excel</a>'
+    +'<a class="exp-btn" href="'+base+'&fmt=word">&#8681; Word DDS</a></div>'
+    +'<div style="margin-top:9px;color:var(--ink-3);font-size:12px">Generates a validation-ready document for this object only.</div></div>';
+}}
 function skinTree(theme){{
   var set=ICON_THEMES[theme], cols=THEME_COLORS[theme];
   if(!set) return;
@@ -1139,6 +1377,8 @@ function toggleMode(){{var m=document.documentElement.dataset.theme==='dark'?'li
   applyMode(m); try{{localStorage.setItem('dvexp_mode',m);}}catch(e){{}}}}
 (function(){{ try{{ var m=localStorage.getItem('dvexp_mode'); if(m) applyMode(m); }}catch(e){{}} }})();
 </script>
+<script>const S88_SVG={s88_svg_json};
+{s88_model.S88_JS}</script>
 <script>{js}
 {fbd_bridge.EXPR_MODAL_JS}</script>
 </body></html>"""

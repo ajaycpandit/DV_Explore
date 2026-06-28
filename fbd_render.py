@@ -547,8 +547,9 @@ def render_fbd_svg(fbd, scale=0.5, pad=40, layout='deltav'):
 
     svg = []
     svg.append(f'<svg class="fbd" viewBox="{vx0:.0f} {vy0:.0f} {W:.0f} {H:.0f}" '
+               f'width="{W:.0f}" '
                f'xmlns="http://www.w3.org/2000/svg" '
-               f'style="width:100%;height:auto;background:#fcfcfd">')
+               f'style="width:{W:.0f}px;max-width:100%;height:auto;background:#fcfcfd">')
     svg.append('<defs><marker id="arr" markerWidth="8" markerHeight="8" '
                'refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" '
                'fill="#94a3b8"/></marker></defs>')

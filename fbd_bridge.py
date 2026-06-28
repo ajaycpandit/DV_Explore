@@ -413,7 +413,7 @@ def _expressions_card(fbd):
                 kinds.append(e['kind'])
         tags = ''.join(f'<span class="etype {k.lower()}">{html.escape(k)}</span>'
                        for k in kinds)
-        open_attr = ' open' if i == 0 else ''  # first one expanded for discoverability
+        open_attr = ''  # all collapsed by default
         p.append(f'<details{open_attr}><summary>'
                  f'<span class="ename">{html.escape(b["name"])}</span>'
                  f'<span style="color:#94a3b8;font-size:12px">{html.escape(b["definition"])}</span>'

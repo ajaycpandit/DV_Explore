@@ -65,10 +65,35 @@ def parse_phases_from_export(text):
     return {name: core['parse_phase_fhx'](text)}
 
 
+def _fix_sfc_chrome(html):
+    """Post-process the core SFC page chrome (without editing core/): the reset-zoom
+    button shipped a fullscreen-looking glyph that read as confusing — relabel it to
+    an unambiguous '1:1'. Also inject a tiny listener so the parent's ISA-88 state
+    model can switch this viewer to a given logic block."""
+    html = html.replace('title="Reset">\u2922</button>',
+                        'title="Reset zoom to 100%">1:1</button>')
+    listener = (
+        "<script>window.addEventListener('message',function(e){"
+        "var d=e.data||{};if(!d.s88block)return;"
+        "var want=String(d.s88block).toUpperCase();"
+        "var tabs=document.querySelectorAll('.tab');"
+        "for(var i=0;i<tabs.length;i++){"
+        "var txt=(tabs[i].textContent||'').trim().toUpperCase();"
+        "var k=(tabs[i].dataset.k||'').toUpperCase();"
+        "if(txt===want||k===want||(want==='FAIL_MONITOR'&&(txt.indexOf('MONITOR')>=0||k.indexOf('MONITOR')>=0))){"
+        "tabs[i].click();tabs[i].scrollIntoView({block:'nearest'});break;}}"
+        "});</script>")
+    if '</body>' in html:
+        html = html.replace('</body>', listener + '</body>', 1)
+    else:
+        html += listener
+    return html
+
+
 def build_phase_view_html(phase_name, blocks):
     """Generate the self-contained interactive phase viewer HTML for one phase."""
     _, sfc_html = _core()
-    return sfc_html.build_sfc_html(blocks, phase_name)
+    return _fix_sfc_chrome(sfc_html.build_sfc_html(blocks, phase_name))
 
 
 def phase_view_map(text):

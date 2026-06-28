@@ -345,18 +345,75 @@ def _parse_hierarchy(text, catalog):
     catalog['unit_instances'] = unit_instances
 
     ucph = {}
+    uc_detail = {}
     for uc in catalog['unit_classes']:
         mm = re.search(r'MODULE_CLASS\s+NAME="' + re.escape(uc['name']) + r'"', text)
         if not mm:
             continue
         blk = extract_block(text, mm.end())
         ucph[uc['name']] = [pm.group(1) for pm in re.finditer(r'PHASE\s+CLASS="([^"]+)"', blk)]
+        params = [{'name': a.group(1), 'type': a.group(2)}
+                  for a in re.finditer(r'ATTRIBUTE\s+NAME="([^"]+)"\s+TYPE=([A-Z_]+)', blk)]
+        aliases = []
+        for al in re.finditer(r'ALIAS_DEFINITION\s+NAME="([^"]+)"\s*\{([^}]*)\}', blk):
+            body = al.group(2)
+            desc = re.search(r'DESCRIPTION="([^"]*)"', body)
+            purp = re.search(r'PURPOSE=([A-Z_]+)', body)
+            aliases.append({'name': al.group(1),
+                            'desc': desc.group(1) if desc else '',
+                            'purpose': purp.group(1) if purp else ''})
+        modmm = re.findall(r'UNIT_MODULE_DEFINITION\s+NAME="([^"]+)"', blk)
+        uc_detail[uc['name']] = {'params': params, 'aliases': aliases,
+                                 'unit_modules': modmm}
     catalog['unit_class_phases'] = ucph
+    catalog['unit_class_detail'] = uc_detail
 
     area_tree = {}
     for u in unit_instances.values():
         area_tree.setdefault(u['area'] or '(unassigned)', {}).setdefault(u['cell'] or '', []).append(u['name'])
     catalog['area_tree'] = area_tree
+
+    # ── Named Sets (DeltaV "Named Sets", stored as ENUMERATION_SET) ──────────
+    named_sets = []
+    for nm in re.finditer(r'ENUMERATION_SET\s+NAME="([^"]+)"[^{]*\{', text):
+        blk = extract_block(text, nm.end() - 1)
+        desc = re.search(r'DESCRIPTION="([^"]*)"', blk)
+        cat = re.search(r'CATEGORY="([^"]*)"', blk)
+        entries = [{'value': int(e.group(1)), 'name': e.group(2)}
+                   for e in re.finditer(r'ENTRY\s+VALUE=(\d+)\s+NAME="([^"]+)"', blk)]
+        sname = nm.group(1)
+        users = []
+        for mc in re.finditer(r'MODULE_CLASS\s+NAME="([^"]+)"', text):
+            mcblk = extract_block(text, mc.end())
+            if (f'STATE_SET="{sname}"' in mcblk) or (f'SET="{sname}"' in mcblk):
+                if mc.group(1) not in users:
+                    users.append(mc.group(1))
+        named_sets.append({'name': sname,
+                           'description': desc.group(1) if desc else '',
+                           'category': cat.group(1) if cat else '',
+                           'entries': entries,
+                           'used_by': users})
+    catalog['named_sets'] = named_sets
+
+    em_state_set = {}
+    for mc in re.finditer(r'MODULE_CLASS\s+NAME="([^"]+)"', text):
+        mcblk = extract_block(text, mc.end())
+        ss = re.search(r'STATE_SET="([^"]+)"', mcblk)
+        if ss:
+            em_state_set[mc.group(1)] = ss.group(1)
+    catalog['em_state_set'] = em_state_set
+
+    # ── Physical Network: controller assignment (CONTROLLER="...") ───────────
+    controllers = {}
+    module_controller = {}
+    for m in re.finditer(r'MODULE_INSTANCE\s+TAG="([^"]+)"', text):
+        blk = extract_block(text, m.end())
+        cm = re.search(r'CONTROLLER="([^"]+)"', blk[:2000])
+        if cm:
+            controllers.setdefault(cm.group(1), []).append(m.group(1))
+            module_controller[m.group(1)] = cm.group(1)
+    catalog['controllers'] = controllers
+    catalog['module_controller'] = module_controller
 
 
 def catalog_summary(catalog):
