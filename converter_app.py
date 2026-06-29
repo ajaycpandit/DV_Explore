@@ -71,9 +71,13 @@ _RAIL_HTML = f"""<nav class="dvx-rail">
 </nav>"""
 
 
-def _rewrite(html):
+def _rewrite(html, embed=False):
     """Prefix the converter's absolute endpoint/link paths with MOUNT, then graft on
-    the shared rail + embedded fonts so it matches the Explorer."""
+    the shared rail + embedded fonts so it matches the Explorer.
+
+    embed=True serves a rail-less variant for hosting inside the Explorer shell
+    (the Explorer already provides the rail); internal links keep the embed flag so
+    navigating to the SFC Diagram stays rail-less too."""
     repl = [
         ("'/detect'", f"'{MOUNT}/detect'"),
         ("'/convert'", f"'{MOUNT}/convert'"),
@@ -84,23 +88,40 @@ def _rewrite(html):
     ]
     for a, b in repl:
         html = html.replace(a, b)
-    # embedded IBM Plex (so the rail brand/tooltips match and the page is offline-safe)
+    if embed:
+        html = html.replace(f'href="{MOUNT}/diagram"', f'href="{MOUNT}/diagram?embed=1"')
+        html = html.replace(f'href="{MOUNT}/"', f'href="{MOUNT}/?embed=1"')
+        inject_head = (f'<style>{fonts.FONT_CSS}</style>'
+                       '<style>body{padding-left:0!important}</style>')
+        return html.replace('</head>', inject_head + '</head>', 1)
     inject_head = f'<style>{fonts.FONT_CSS}</style>{_RAIL_CSS}'
     html = html.replace('</head>', inject_head + '</head>', 1)
-    # the shared rail, immediately after <body>
     html = html.replace('<body>', '<body>' + _RAIL_HTML, 1)
     return html
 
 
-def _load(name):
+def _load(name, embed=False):
     with open(os.path.join(_CORE, name), encoding='utf-8') as fh:
-        return _rewrite(fh.read())
+        return _rewrite(fh.read(), embed=embed)
 
+
+from flask import request  # noqa: E402
 
 _INDEX_HTML = _load('index.html')
 _DIAGRAM_HTML = _load('diagram.html')
+_INDEX_EMBED = _load('index.html', embed=True)
+_DIAGRAM_EMBED = _load('diagram.html', embed=True)
 
-# Override the two HTML-serving views so they (a) are path-independent (no reliance
-# on CWD for send_file) and (b) return the MOUNT-prefixed markup.
-capp.view_functions['index'] = lambda: Response(_INDEX_HTML, mimetype='text/html')
-capp.view_functions['diagram_page'] = lambda: Response(_DIAGRAM_HTML, mimetype='text/html')
+
+def _serve_index():
+    return Response(_INDEX_EMBED if request.args.get('embed') else _INDEX_HTML,
+                    mimetype='text/html')
+
+
+def _serve_diagram():
+    return Response(_DIAGRAM_EMBED if request.args.get('embed') else _DIAGRAM_HTML,
+                    mimetype='text/html')
+
+
+capp.view_functions['index'] = _serve_index
+capp.view_functions['diagram_page'] = _serve_diagram

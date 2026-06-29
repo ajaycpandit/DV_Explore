@@ -15,6 +15,8 @@ import os
 import sys
 import re
 
+import sfc_expr_fix  # bridge: quote-aware repair of truncated transition expressions
+
 # The parsing core lives inside this repo under ./core (copied from the converter).
 # Falls back to an env-var path for local dev against the original converter.
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -90,19 +92,52 @@ def _fix_sfc_chrome(html):
     return html
 
 
-def build_phase_view_html(phase_name, blocks):
-    """Generate the self-contained interactive phase viewer HTML for one phase."""
+def build_phase_view_html(phase_name, blocks, text=None):
+    """Generate the self-contained interactive phase viewer HTML for one phase.
+
+    If the raw export `text` is supplied, transition expressions truncated by the
+    core parser are repaired first (quote-aware re-extraction) so the displayed
+    SFC shows full conditions like  '...U_CIP_SYNC_UNIT.CV' != "".
+    """
     _, sfc_html = _core()
+    if text is not None:
+        try:
+            sfc_expr_fix.repair_phase_blocks(text, blocks)
+        except Exception:
+            pass  # never let the repair break rendering; fall back to core output
     return _fix_sfc_chrome(sfc_html.build_sfc_html(blocks, phase_name))
 
 
-def phase_view_map(text):
-    """Return {phase_name: interactive_html} for all phases in the export."""
+def phase_view_map(text, with_sim=True):
+    """Return {phase_name: interactive_html} for all phases in the export.
+
+    When with_sim is True, each phase view gets the interactive simulator overlay
+    (Simulate button -> live walk over the real SFC, operator-prompt handling).
+    The overlay is injected post-render and falls back silently if the phase has
+    no steppable RUN sequence, so the explorer is unaffected on failure.
+    """
     phases = parse_phases_from_export(text)
     out = {}
     for pname, blocks in phases.items():
         try:
-            out[pname] = build_phase_view_html(pname, blocks)
+            html_doc = build_phase_view_html(pname, blocks, text)
+            if with_sim:
+                html_doc = _maybe_add_sim(text, pname, html_doc)
+            out[pname] = html_doc
         except Exception as e:
             out[pname] = f"<html><body><p>Could not render {pname}: {e}</p></body></html>"
     return out
+
+
+def _maybe_add_sim(text, phase_name, phase_html):
+    """Inject the simulator overlay for phase_name, or return phase_html unchanged
+    if the phase has no steppable sequence / the sim modules aren't available."""
+    try:
+        import sim_export
+        import sim_overlay
+        payload = sim_export.build_payload(text, phase_name)
+        if not payload.get('order'):
+            return phase_html
+        return sim_overlay.inject(phase_html, payload)
+    except Exception:
+        return phase_html  # explorer phase view still works without the sim

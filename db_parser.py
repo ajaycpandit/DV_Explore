@@ -415,6 +415,33 @@ def _parse_hierarchy(text, catalog):
     catalog['controllers'] = controllers
     catalog['module_controller'] = module_controller
 
+    # ── module-class parameters (depth-1 ATTRIBUTE defs on CM & EM classes) ──
+    def _module_param_list(blk):
+        out, depth = [], 0
+        for mm in re.finditer(r'\{|\}|ATTRIBUTE\s+NAME="([A-Z0-9_]+)"\s+TYPE=(\w+)', blk):
+            tok = mm.group(0)
+            if tok == '{':
+                depth += 1
+            elif tok == '}':
+                depth -= 1
+            elif depth == 1:
+                ab = extract_block(blk, mm.end())
+                grp = re.search(r'GROUP="([^"]*)"', ab)
+                cat = re.search(r'CATEGORY=(\w+)', ab)
+                desc = re.search(r'DESCRIPTION="([^"]*)"', ab)
+                out.append({'name': mm.group(1), 'type': mm.group(2),
+                            'group': grp.group(1) if grp else '',
+                            'category': cat.group(1) if cat else '',
+                            'description': desc.group(1) if desc else ''})
+        return out
+
+    module_params = {}
+    for c in (catalog.get('cm_classes', []) + catalog.get('em_classes', [])):
+        mc = re.search(r'MODULE_CLASS\s+NAME="' + re.escape(c['name']) + r'"', text)
+        if mc:
+            module_params[c['name']] = _module_param_list(extract_block(text, mc.end()))
+    catalog['module_params'] = module_params
+
 
 def catalog_summary(catalog):
     """Counts for a quick overview."""

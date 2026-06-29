@@ -54,7 +54,7 @@ button{font-family:inherit}
 #view-converter{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
 #view-converter.on{display:block}
 #convFrame{width:100%;height:100%;border:0;display:block}
-.rail{grid-row:1/3;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
+.rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
 .rail a.rail-btn{width:42px;height:42px;border-radius:11px;color:var(--rail-ink);display:grid;place-items:center;
