@@ -51,6 +51,9 @@ button{font-family:inherit}
 
 /* shell */
 .app{display:grid;grid-template-columns:60px 1fr;grid-template-rows:56px 1fr;height:100vh}
+#view-converter{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
+#view-converter.on{display:block}
+#convFrame{width:100%;height:100%;border:0;display:block}
 .rail{grid-row:1/3;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -182,6 +185,8 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .tnode .link{font-size:13px}
 .phaseframe{width:100%;height:75vh;border:1px solid var(--border);border-radius:10px;background:#fff}
 .emtabs{display:flex;gap:6px;margin-bottom:12px}
+.pgrp{margin:6px 0 14px}.pgrp-h{font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px;display:flex;align-items:center;gap:8px}
+.ptype{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-3);white-space:nowrap}.pdesc{color:var(--ink-2);font-size:12.5px}
 .emtab{padding:7px 15px;border:1px solid var(--border);border-radius:9px;background:var(--surface);cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-2)}
 .emtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .empanel{display:none}.empanel.on{display:block}
@@ -451,6 +456,7 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
                             'em_state_set': catalog.get('em_state_set', {}),
                             'controllers': catalog.get('controllers', {}),
                             'module_controller': catalog.get('module_controller', {}),
+                            'module_params': catalog.get('module_params', {}),
                             'area_tree': catalog.get('area_tree', {})})
     phase_views_json = json.dumps(phase_views)
     s88_svg_json = json.dumps(s88_model.build_s88_svg())
@@ -583,6 +589,38 @@ document.addEventListener('click',function(e){
   if(s&&!s.contains(e.target)){var b=document.getElementById('navres');if(b)b.style.display='none';}
 });
 
+function paramsCard(name){
+  var ps=(DB.module_params&&DB.module_params[name])||[];
+  if(!ps.length) return '';
+  var order=['Operating','Configuration','Configure','Tuning','Calculated','Batch','Alarm'];
+  var groups={};
+  ps.forEach(function(p){(groups[p.group||'Other']=groups[p.group||'Other']||[]).push(p);});
+  var keys=Object.keys(groups).sort(function(a,b){var ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+  var h='<div class="card" style="max-width:none"><h3>Parameters ('+ps.length+')</h3>';
+  keys.forEach(function(g){
+    var rows=groups[g];
+    h+='<div class="pgrp"><div class="pgrp-h">'+esc(g)+'<span class="navcount">'+rows.length+'</span></div>';
+    h+='<table class="fbd-table"><thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead><tbody>';
+    rows.forEach(function(p){
+      h+='<tr><td><code>'+esc(p.name)+'</code></td><td class="ptype">'+esc(p.type)+'</td><td class="pdesc">'+esc(p.description||'')+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+  });
+  return h+'</div>';
+}
+function switchView(v){
+  var conv=document.getElementById('view-converter');
+  var re=document.getElementById('rb-explorer'), rc=document.getElementById('rb-converter');
+  if(v==='converter'){
+    var fr=document.getElementById('convFrame');
+    if(!fr.getAttribute('src')) fr.setAttribute('src','/tool/?embed=1');
+    conv.classList.add('on');
+    re.classList.remove('active'); rc.classList.add('active');
+  } else {
+    conv.classList.remove('on');
+    rc.classList.remove('active'); re.classList.add('active');
+  }
+}
 function renderObj(id){
   const o=DB.objs[id]; if(!o)return;
   document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('sel',n.dataset.id===id));
@@ -759,6 +797,7 @@ function renderObj(id){
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No function block diagram in this export (this object may be an expression/action block or referenced type).</span></div>';
     }
+    h+=paramsCard(o.name);
   }
   // EM Class -> full view: Function Blocks + Command/State Logic + Control Modules
   if(o._type==='EM Class'){
@@ -788,6 +827,7 @@ function renderObj(id){
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No parsed EM view available in this export.</span></div>';
     }
+    h+=paramsCard(o.name);
   }
   if(o._type==='Recipe'){
     h+='<div class="card"><h3>Detail</h3><span class="empty">Detailed Recipe view (procedure tree, parameters) plugs in here.</span></div>';
@@ -1301,7 +1341,7 @@ function wireFbdLinks(){
             f'title="Download an Excel workbook generated from this database">&#8681; Excel</a>'
             f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=word&amp;name={ft}" '
             f'title="Download a Word DDS document generated from this database">&#8681; Word DDS</a>'
-            f'<a class="exp-btn" href="/tool/" title="Open the FHX Converter wizard">&#9881; Converter</a>'
+            f'<a class="exp-btn" href="javascript:void 0" title="Open the FHX Converter wizard" onclick="switchView(\'converter\')">&#9881; Converter</a>'
             f'</div>')
 
     theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)
@@ -1322,10 +1362,10 @@ function wireFbdLinks(){
   <div class="brand" title="DeltaV Strategy Workbench">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2 4 6.5v9L12 20l8-4.5v-9L12 2Z"/><path d="M12 7v6M9 9.5h6"/></svg>
   </div>
-  <a class="rail-btn active" href="/" title="Explorer">
+  <a class="rail-btn active" id="rb-explorer" href="javascript:void 0" title="Explorer" onclick="switchView('explorer')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     <span class="tip">Explorer</span></a>
-  <a class="rail-btn" href="/tool/" title="FHX Converter">
+  <a class="rail-btn" id="rb-converter" href="javascript:void 0" title="FHX Converter" onclick="switchView('converter')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>
     <span class="tip">FHX Converter</span></a>
   <div class="spacer"></div>
@@ -1343,6 +1383,7 @@ function wireFbdLinks(){
     <div class="detail" id="detail">{welcome}</div>
   </div>
 </main>
+<div id="view-converter"><iframe id="convFrame" title="FHX Converter"></iframe></div>
 </div>
 <script>
 const ICON_THEMES={themes_json};
