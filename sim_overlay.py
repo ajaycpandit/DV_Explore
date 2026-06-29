@@ -82,15 +82,17 @@ body.sim-on .trans.sim-hot line{stroke:#2563eb!important;stroke-width:3.4!import
 </style>
 """
 
-# Watch + editable config (same intent as the standalone build).
+# Watch shows internal/computed state. P_ variables (phase scratch the logic
+# writes) and key EM/unit feedback — never editable, just observed.
 _WATCH_PREFIXES = ['^/P_MSG', '^/P_FIRST_PASS', '^/P_TASK_PTR', '^/P_COND_SNAPSHOT',
-                   '//#CIP_MASTER_EM#/A_COMMAND', '//#THISUNIT#/U_CIP_SYNC_UNIT',
+                   '^/P_', '//#CIP_MASTER_EM#/A_COMMAND', '//#THISUNIT#/U_CIP_SYNC_UNIT',
                    '^/FAIL_MONITOR/OAR/INPUT']
-_EDITABLE = [
-    ['Sync unit', '//#THISUNIT#/U_CIP_SYNC_UNIT.CV', 'text'],
-    ['First pass', '^/P_FIRST_PASS.CV', 'bool'],
-    ['Cond. snapshot', '^/P_COND_SNAPSHOT.CV', 'num'],
+# A few non-R_ device/timer levers that aren't recipe parameters but the operator
+# may want to force while exploring (until T2 models them). Kept separate from R_.
+_DEVICE_LEVERS = [
     ['Settle timer done', '//#UNIT_SUPPORT#/TMR1/TM_COMPLETE.CV', 'bool'],
+    ['Sync unit', '//#THISUNIT#/U_CIP_SYNC_UNIT.CV', 'text'],
+    ['Cond. snapshot (P_, forced)', '^/P_COND_SNAPSHOT.CV', 'real'],
 ]
 
 
@@ -99,7 +101,8 @@ def inject(phase_html, payload):
     engine_js = _read('sim_engine.js')
     payload_json = json.dumps(payload).replace('</', '<\\/')
     watch_json = json.dumps(_WATCH_PREFIXES)
-    edit_json = json.dumps(_EDITABLE)
+    levers_json = json.dumps(_DEVICE_LEVERS)
+    rparams_json = json.dumps(payload.get('r_params', [])).replace('</', '<\\/')
 
     overlay = _OVERLAY_CSS + f"""
 <button id="sim-fab" onclick="SIM.toggle()">\u25b6 Simulate</button>
@@ -114,8 +117,12 @@ def inject(phase_html, payload):
     <span class="sim-status run" id="sim-status">ready</span>
     <h3>Operator message</h3><div class="sim-msg" id="sim-msg">\u2014</div>
     <div id="sim-prompt-host"></div>
-    <h3>Operator inputs</h3><div class="sim-edit" id="sim-edit"></div>
-    <p class="sim-hint">Editing an input reseeds and re-walks. The walk halts at operator prompts (purple) until you answer.</p>
+    <h3>Recipe parameters (R_)</h3>
+    <input id="sim-rfilter" placeholder="filter R_ parameters\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:5px 8px;margin-bottom:7px">
+    <div class="sim-edit" id="sim-rparams"></div>
+    <p class="sim-hint">Recipe/config inputs the operator or recipe sets. Editing one reseeds and re-walks. P_ values are computed by the logic and shown read-only below.</p>
+    <h3>Device / timer levers</h3><div class="sim-edit" id="sim-levers"></div>
+    <p class="sim-hint">Not recipe parameters \u2014 manual stand-ins for device confirms and timers until the discrete engine models them.</p>
     <h3>Variable watch</h3><div class="sim-watch" id="sim-watch"></div>
     <h3>Walk tape</h3><div class="sim-tape" id="sim-tape"></div>
   </div>
@@ -124,7 +131,7 @@ def inject(phase_html, payload):
 <script>{engine_js}</script>
 <script>
 (function(){{
-const PAYLOAD={payload_json}, WATCH={watch_json}, EDITABLE={edit_json};
+const PAYLOAD={payload_json}, WATCH={watch_json}, LEVERS={levers_json}, RPARAMS={rparams_json};
 const RUNKEY=PAYLOAD.seq_key;     // the RUN-sequence block this sim drives
 const overrides={{}}, heldConfirms={{}}, answers={{}};
 let sim=null, idx=-1, timer=null, prevWatch={{}};
@@ -209,36 +216,71 @@ function renderPrompt(pp){{
   host.innerHTML='<div class="sim-prompt-box">'+inner+'</div>';
 }}
 
-function buildEdit(){{ const el=document.getElementById('sim-edit'); el.innerHTML='';
-  EDITABLE.forEach(([label,key,kind])=>{{
-    const id='e_'+key.replace(/[^A-Za-z0-9]/g,'_');
-    let cur=(key in overrides)?overrides[key]:PAYLOAD.seed[key];
-    if(cur===undefined||cur===null)cur=(kind==='bool'?false:(kind==='num'?0:''));
-    let inp;
-    if(kind==='bool')inp='<input type="checkbox" id="'+id+'" '+(truthy(cur)?'checked':'')+'>';
-    else if(kind==='num')inp='<input type="number" id="'+id+'" value="'+esc(String(cur))+'">';
-    else inp='<input type="text" id="'+id+'" value="'+esc(String(cur))+'">';
-    el.insertAdjacentHTML('beforeend','<label title="'+esc(key)+'">'+esc(label)+'</label>'+inp);
-    document.getElementById(id).addEventListener('change',function(){{
-      let v; if(kind==='bool')v=this.checked; else if(kind==='num')v=parseFloat(this.value)||0; else v=this.value;
-      overrides[key]=v; stop(); rewalk();
-    }});
+function widgetFor(key,kind,cur,enumMembers,id){{
+  if(kind==='bool') return '<input type="checkbox" id="'+id+'" '+(truthy(cur)?'checked':'')+'>';
+  if(kind==='enum' && enumMembers){{
+    const opts=enumMembers.map(m=>'<option value="'+esc(String(m.value))+'"'+(String(m.value)===String(cur)?' selected':'')+'>'+esc(m.label)+'</option>').join('');
+    return '<select id="'+id+'" style="font:12px \\'IBM Plex Mono\\';border:1px solid #c7d2de;border-radius:6px;padding:4px;max-width:130px">'+opts+'</select>';
+  }}
+  if(kind==='int'||kind==='real'||kind==='num') return '<input type="number" step="'+(kind==='real'?'any':'1')+'" id="'+id+'" value="'+esc(String(cur))+'">';
+  return '<input type="text" id="'+id+'" value="'+esc(String(cur))+'">';
+}}
+function readWidget(node,kind){{
+  if(kind==='bool') return node.checked;
+  if(kind==='int') return parseInt(node.value,10)||0;
+  if(kind==='real'||kind==='num') return parseFloat(node.value)||0;
+  if(kind==='enum') {{ const n=Number(node.value); return isNaN(n)?node.value:n; }}
+  return node.value;
+}}
+
+function buildRParams(filter){{
+  const el=document.getElementById('sim-rparams'); el.innerHTML='';
+  const f=(filter||'').toLowerCase();
+  RPARAMS.forEach(p=>{{
+    if(f && p.name.toLowerCase().indexOf(f)<0 && (p.desc||'').toLowerCase().indexOf(f)<0) return;
+    const id='r_'+p.name.replace(/[^A-Za-z0-9]/g,'_');
+    let cur=(p.key in overrides)?overrides[p.key]:(PAYLOAD.seed[p.key]!==undefined?PAYLOAD.seed[p.key]:p.default);
+    const unit=p.units?(' <span style="color:#94a3b8">'+esc(p.units)+'</span>'):'';
+    const title=esc(p.key)+(p.desc?(' \u2014 '+esc(p.desc)):'')+(p.low!==''||p.high!==''?(' ['+esc(String(p.low))+'..'+esc(String(p.high))+']'):'');
+    el.insertAdjacentHTML('beforeend','<label title="'+title+'">'+esc(p.name)+unit+'</label>'+widgetFor(p.key,p.kind,cur,p.enum,id));
+    document.getElementById(id).addEventListener('change',function(){{ overrides[p.key]=readWidget(this,p.kind); stop(); rewalk(); }});
   }});
+}}
+function buildLevers(){{
+  const el=document.getElementById('sim-levers'); el.innerHTML='';
+  LEVERS.forEach(([label,key,kind])=>{{
+    const id='l_'+key.replace(/[^A-Za-z0-9]/g,'_');
+    let cur=(key in overrides)?overrides[key]:PAYLOAD.seed[key];
+    if(cur===undefined||cur===null)cur=(kind==='bool'?false:((kind==='int'||kind==='real'||kind==='num')?0:''));
+    el.insertAdjacentHTML('beforeend','<label title="'+esc(key)+'">'+esc(label)+'</label>'+widgetFor(key,kind,cur,null,id));
+    document.getElementById(id).addEventListener('change',function(){{ overrides[key]=readWidget(this,kind); stop(); rewalk(); }});
+  }});
+}}
+function buildEdit(){{ buildRParams(''); buildLevers();
+  const ff=document.getElementById('sim-rfilter'); if(ff&&!ff._wired){{ ff._wired=1; ff.addEventListener('input',function(){{buildRParams(this.value);}}); }}
 }}
 function truthy(v){{ return v===true||v==='True'||(typeof v==='number'&&v!==0)||(typeof v==='string'&&v!==''&&v!=='0'&&v!=='False'); }}
 
 function stepFwd(){{ if(idx<sim.trace.length-1){{idx++;render();}} if(idx>=sim.trace.length-1)stop(); }}
 function stop(){{ if(timer){{clearInterval(timer);timer=null;document.getElementById('sim-play').textContent='\u25b6 Play';}} }}
 
+// record an operator answer for the SPECIFIC entry the walk is currently paused at,
+// so prior loops' answers persist and a re-entered prompt asks again.
+function recordAnswer(step,val){{
+  const entry=(sim.pausedPrompt&&sim.pausedPrompt.step===step)?sim.pausedPrompt.entry:0;
+  if(!answers[step]||!answers[step].byEntry) answers[step]={{byEntry:{{}}}};
+  answers[step].byEntry[entry]={{input:val}};
+}}
+
 window.SIM={{
   toggle:function(){{ const p=document.getElementById('sim-panel'); const on=p.classList.toggle('open');
     document.body.classList.toggle('sim-on',on); if(on){{showRunBlock(); if(!sim){{buildEdit();rewalk();idx=-1;prevWatch={{}};render();}}}} }},
-  reset:function(){{ stop(); answers&&Object.keys(answers).forEach(k=>delete answers[k]); idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
+  reset:function(){{ stop(); Object.keys(answers).forEach(k=>delete answers[k]); idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
   step:function(){{ stop(); stepFwd(); }},
   play:function(){{ if(timer){{stop();return;}} if(idx>=sim.trace.length-1)idx=-1;
     document.getElementById('sim-play').textContent='\u23f8 Pause'; timer=setInterval(stepFwd,650); }},
-  answer:function(step,val){{ answers[step]={{input:val}}; stop(); rewalk(); }},
-  answerInput:function(step){{ const v=parseFloat(document.getElementById('sim-vin').value)||0; answers[step]={{input:v}}; stop(); rewalk(); }},
+  answer:function(step,val){{ recordAnswer(step,val); stop(); rewalk(); }},
+  answerInput:function(step){{ const v=parseFloat(document.getElementById('sim-vin').value)||0; recordAnswer(step,v); stop(); rewalk(); }},
 }};
 }})();
 </script>

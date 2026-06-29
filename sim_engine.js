@@ -48,6 +48,7 @@
     this.log = [];
     this.trace = [];
     this.pausedPrompt = null;
+    this._promptEntries = {};   // step -> times entered (for single-use answers)
   };
 
   PhaseSim.prototype.reset = function (opts) {
@@ -76,20 +77,43 @@
   // walk can proceed) or return the descriptor to signal a HALT. Returns:
   //   null            -> not a prompt, or already-answered ack; just continue
   //   {halt:descr}    -> unanswered prompt: stop and wait for the operator
+  //
+  // Answers are SINGLE-USE per entry: a phase can loop back to the same prompt
+  // (e.g. add-acid -> recirculate -> re-check conductivity -> prompt again), and
+  // a real operator faces the prompt fresh each time. So we record how many times
+  // each prompt step has been entered and only apply an answer that was given for
+  // the CURRENT entry. A stale answer from a previous loop does not carry forward.
   PhaseSim.prototype._handlePrompt = function (step) {
     const descr = this.prompts[step];
     if (!descr) return null;
-    const ans = this.answers[step];
-    if (!ans) return { halt: descr };               // operator hasn't answered yet
+    // _notePromptEntry already incremented the counter for THIS entry, so the
+    // current entry index is (count - 1).
+    const entry = (this._promptEntries[step] || 1) - 1;
+    // answers[step] is a map { entryIndex: {input:...} } so that each loop's
+    // answer persists and only the matching entry is applied. (Back-compat: a
+    // bare {input,_entry} object is also accepted.)
+    const rec = this.answers[step];
+    let ans = null;
+    if (rec) {
+      if (rec.byEntry) ans = rec.byEntry[entry];
+      else if (rec._entry === entry) ans = rec;        // legacy single-answer form
+    }
+    if (!ans) return { halt: descr };
     if (descr.release === 'value') {
-      // write the operator's choice where the transitions read it
       const key = descr.input_key || (step + '/FAIL_MONITOR/OAR/INPUT.CV');
       this.store[key] = ans.input;
     } else { // 'ack'
-      // acknowledge clears the request -> the PENDING_CONFIRMS gate passes
       this.store[descr.confirm_key] = 0;
     }
     return null;
+  };
+
+  // Record entry into a prompt step; returns the entry index for that step.
+  PhaseSim.prototype._notePromptEntry = function (step) {
+    if (!this.prompts[step]) return -1;
+    const n = (this._promptEntries[step] || 0);
+    this._promptEntries[step] = n + 1;
+    return n;
   };
 
   // Return [transition, nextStep] for the first satisfied outgoing transition.
@@ -111,10 +135,11 @@
   };
 
   PhaseSim.prototype.run = function (maxSteps) {
-    maxSteps = maxSteps || 60;
+    maxSteps = maxSteps || 80;
     this.pausedPrompt = null;
     this.enter(this.active);
     // a prompt can be raised by the very first step's entry actions
+    this._notePromptEntry(this.active);
     let pr = this._handlePrompt(this.active);
     if (pr) { this._haltOnPrompt(this.active, pr.halt); return this.log; }
     for (let k = 0; k < maxSteps; k++) {
@@ -130,6 +155,7 @@
         break;
       }
       this.enter(nxt);
+      this._notePromptEntry(this.active);
       pr = this._handlePrompt(this.active);
       if (pr) { this._haltOnPrompt(this.active, pr.halt); break; }
     }
@@ -137,10 +163,12 @@
   };
 
   PhaseSim.prototype._haltOnPrompt = function (step, descr) {
-    this.pausedPrompt = { step: step, descr: descr };
+    // entry index this halt corresponds to (we just incremented in _notePromptEntry)
+    const entry = (this._promptEntries[step] || 1) - 1;
+    this.pausedPrompt = { step: step, descr: descr, entry: entry };
     this.log.push('      ?? operator prompt at ' + step + ' [' + (descr.oar_type || '') +
-                  '] - waiting for operator (' + descr.release + ')');
-    this.trace.push({ kind: 'prompt', step: step, descr: descr });
+                  '] entry#' + entry + ' - waiting for operator (' + descr.release + ')');
+    this.trace.push({ kind: 'prompt', step: step, descr: descr, entry: entry });
   };
 
   // Single-step advance for interactive UI: enters next satisfied step, or

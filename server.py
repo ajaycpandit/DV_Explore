@@ -164,7 +164,13 @@ function tgl(){var d=document.documentElement,m=d.dataset.theme==='dark'?'light'
 
 @app.route('/')
 def index():
-    return UPLOAD_PAGE.replace('<style>', '<style>' + fonts.FONT_CSS, 1)
+    page = UPLOAD_PAGE.replace('<style>', '<style>' + fonts.FONT_CSS, 1)
+    try:
+        import rail
+        page = rail.inject(page, active='explorer', fixed=True)
+    except Exception:
+        pass  # landing page still works without the rail
+    return page
 
 
 @app.route('/explore', methods=['POST'])
