@@ -123,7 +123,19 @@ def extract_prompts(order, actions, s2t, t2s, trans):
             'msg1': info.get('msg1', ''),
             'msg2': info.get('msg2', ''),
             'input_key': input_key,
+            'status_key': _oar_status_key(input_key),
             'choices': choices,
             'confirm_key': sn + '/PENDING_CONFIRMS.CV',
         }
     return prompts
+
+
+def _oar_status_key(input_key):
+    """Derive the OAR_STATUS key from the INPUT key (same OAR path, different leaf),
+    e.g. '^/FAIL_MONITOR/OAR/INPUT.CV' -> '^/FAIL_MONITOR/OAR/OAR_STATUS.CV'.
+    Returns None if the input key isn't an OAR/INPUT reference."""
+    if not input_key:
+        return None
+    if '/OAR/INPUT.CV' in input_key:
+        return input_key.replace('/OAR/INPUT.CV', '/OAR/OAR_STATUS.CV')
+    return None

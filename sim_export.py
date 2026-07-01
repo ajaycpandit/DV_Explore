@@ -26,6 +26,7 @@ sys.path.insert(0, 'core')
 import db_parser          # noqa: E402
 import sim_run            # noqa: E402
 import sim_prompts        # noqa: E402
+import sim_aliases        # noqa: E402
 
 
 def build_payload(text, phase_name):
@@ -97,7 +98,20 @@ def build_payload(text, phase_name):
         'seed': seed,
         'prompts': prompts,
         'r_params': r_params,
+        'aliases': _aliases_for(text, sim),
     }
+
+
+def _aliases_for(text, sim):
+    """Resolved alias metadata for aliases used in this phase's logic (item 10)."""
+    try:
+        all_aliases = sim_aliases.resolve_aliases(text)
+        used = sim_aliases.aliases_used(
+            sim.order, sim.actions,
+            {tn: sim.trans.get(tn, '') for tn in sim.trans})
+        return {a: all_aliases[a] for a in used if a in all_aliases}
+    except Exception:
+        return {}
 
 
 def _jsonable(v):
