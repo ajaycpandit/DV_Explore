@@ -37,39 +37,78 @@ body.sim-on .step.sim-visited rect{stroke:#10b981!important}
 body.sim-on .step.sim-done rect{fill:#ecfdf5!important;stroke:#10b981!important}
 body.sim-on .step.sim-wait rect{fill:#fef3c7!important;stroke:#f59e0b!important}
 body.sim-on .step.sim-prompt rect{fill:#ede9fe!important;stroke:#7c3aed!important;stroke-width:2.4!important}
+body.sim-on .step.sim-timer rect{fill:#e0f2fe!important;stroke:#0284c7!important;stroke-width:2.4!important}
 body.sim-on .trans.sim-taken line{stroke:#10b981!important;stroke-width:3!important}
 body.sim-on .trans.sim-hot line{stroke:#2563eb!important;stroke-width:3.4!important}
+
+/* item 5: keep the SFC +/- zoom controls visible while scrolling the diagram.
+   core positions .controls absolute (scrolls away); pin to viewport, same corner. */
+.controls{position:fixed!important;top:64px!important;z-index:50!important}
 
 #sim-fab{position:fixed;right:18px;bottom:18px;z-index:60;background:#2563eb;color:#fff;
   border:none;border-radius:24px;padding:11px 18px;font:600 13px 'IBM Plex Sans',system-ui,sans-serif;
   box-shadow:0 4px 14px rgba(37,99,235,.35);cursor:pointer}
-#sim-panel{position:fixed;right:0;top:0;height:100vh;width:340px;z-index:55;background:#fff;
-  border-left:1px solid #d7dee7;box-shadow:-6px 0 24px rgba(15,32,48,.10);transform:translateX(100%);
-  transition:transform .22s ease;display:flex;flex-direction:column;font-family:'IBM Plex Sans',system-ui,sans-serif}
-#sim-panel.open{transform:translateX(0)}
-#sim-panel header{background:#0f2030;color:#eaf1f8;padding:12px 16px;display:flex;align-items:center;gap:10px}
-#sim-panel header h2{font-size:14px;margin:0;font-weight:600;flex:1}
-#sim-panel header button{background:#16293a;color:#eaf1f8;border:1px solid #2c4358;border-radius:7px;
-  padding:5px 9px;cursor:pointer;font-size:12px}
-#sim-body{overflow:auto;padding:14px 16px;flex:1}
-#sim-body h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7689a0;margin:16px 0 7px;font-weight:700}
-#sim-body h3:first-child{margin-top:0}
+
+/* ── floating, draggable, resizable window ── */
+#sim-win{position:fixed;right:22px;top:70px;width:370px;height:560px;min-width:300px;min-height:320px;
+  z-index:9998;background:#fff;border:1px solid #cdd7e2;border-radius:12px;
+  box-shadow:0 18px 50px -12px rgba(15,32,48,.34);display:none;flex-direction:column;overflow:hidden;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;resize:both}
+#sim-win.open{display:flex}
+#sim-win.min{height:auto!important;resize:none}
+#sim-win.min .sim-scroll,#sim-win.min .sim-pin{display:none}
+
+/* pinned header: title bar + transport + status + prompt — never scrolls away */
+.sim-titlebar{background:#0f2030;color:#eaf1f8;padding:9px 12px;display:flex;align-items:center;gap:8px;cursor:move;user-select:none}
+.sim-titlebar h2{font-size:13px;margin:0;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sim-titlebar button{background:#16293a;color:#eaf1f8;border:1px solid #2c4358;border-radius:6px;
+  padding:3px 8px;cursor:pointer;font-size:12px;line-height:1}
+.sim-pin{background:#f8fafc;border-bottom:1px solid #e5ebf2;padding:9px 12px;flex-shrink:0}
+.sim-scroll{overflow:auto;padding:12px;flex:1}
+.sim-scroll h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7689a0;margin:15px 0 7px;font-weight:700}
+.sim-scroll h3:first-child{margin-top:0}
+
 .sim-transport{display:flex;gap:7px}
 .sim-transport button{flex:1;font:600 12px 'IBM Plex Sans';border:1px solid #c7d2de;background:#fff;
   border-radius:8px;padding:7px;cursor:pointer}
 .sim-transport button.primary{background:#2563eb;color:#fff;border-color:#2563eb}
-.sim-status{font:12px 'IBM Plex Mono';margin-top:8px;padding:5px 9px;border-radius:6px;display:inline-block}
+.sim-transport button:disabled{opacity:.4;cursor:default}
+.sim-topline{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.sim-status{font:12px 'IBM Plex Mono';padding:4px 9px;border-radius:6px;display:inline-block}
 .sim-status.run{background:#eff6ff;color:#1d4ed8}.sim-status.wait{background:#fef3c7;color:#92400e}
 .sim-status.done{background:#ecfdf5;color:#047857}.sim-status.prompt{background:#ede9fe;color:#6d28d9}
-.sim-msg{font-size:14px;font-weight:600;color:#1d4ed8;min-height:20px;line-height:1.35}
+.sim-status.timer{background:#e0f2fe;color:#0369a1}
+.sim-pos{font:11px 'IBM Plex Mono';color:#7689a0}
+.sim-nowstep{font:12px 'IBM Plex Mono';color:#16202c;margin-top:5px}
+.sim-msg{font-size:13px;font-weight:600;color:#1d4ed8;min-height:18px;line-height:1.35;margin-top:6px}
 .sim-msg .m2{display:block;font-weight:400;font-size:12px;color:#46566b;margin-top:2px}
-.sim-prompt-box{border:1.5px solid #7c3aed;border-radius:10px;padding:11px;background:#faf8ff;margin-top:4px}
+
+.sim-prompt-box{border:1.5px solid #7c3aed;border-radius:10px;padding:10px;background:#faf8ff;margin-top:8px}
 .sim-prompt-box .q{font-size:13px;font-weight:600;color:#5b21b6;margin-bottom:9px;line-height:1.35}
 .sim-prompt-box .btns{display:flex;gap:8px;flex-wrap:wrap}
 .sim-prompt-box button{font:600 13px 'IBM Plex Sans';border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#7c3aed;color:#fff}
 .sim-prompt-box button.no{background:#fff;color:#5b21b6;border:1px solid #c4b5fd}
 .sim-prompt-box .vrow{display:flex;gap:8px;align-items:center;margin-top:4px}
 .sim-prompt-box input{font:13px 'IBM Plex Mono';border:1px solid #c4b5fd;border-radius:7px;padding:6px 9px;width:90px}
+
+/* timer countdown card */
+.sim-timer-box{border:1.5px solid #0284c7;border-radius:10px;padding:10px;background:#f0f9ff;margin-top:8px}
+.sim-timer-box .tt{font-size:12px;font-weight:600;color:#0369a1;display:flex;justify-content:space-between;align-items:center}
+.sim-timer-box .clock{font:700 20px 'IBM Plex Mono';color:#0c4a6e;margin:5px 0}
+.sim-timer-box .bar{height:6px;border-radius:4px;background:#bae6fd;overflow:hidden}
+.sim-timer-box .bar > i{display:block;height:100%;background:#0284c7;width:0;transition:width .25s linear}
+.sim-timer-box .btns{display:flex;gap:7px;margin-top:8px}
+.sim-timer-box button{font:600 12px 'IBM Plex Sans';border:1px solid #7dd3fc;background:#fff;color:#0369a1;border-radius:7px;padding:5px 11px;cursor:pointer}
+.sim-timer-box button.primary{background:#0284c7;color:#fff;border-color:#0284c7}
+
+.sim-sect{border:1px solid #e8edf3;border-radius:9px;margin-top:10px;overflow:hidden}
+.sim-sect > summary{cursor:pointer;list-style:none;padding:8px 11px;background:#f6f8fb;font-size:11px;
+  font-weight:700;color:#46566b;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
+.sim-sect > summary::-webkit-details-marker{display:none}
+.sim-sect > summary::before{content:"\\25b8";font-size:9px;transition:.15s;color:#94a3b8}
+.sim-sect[open] > summary::before{transform:rotate(90deg)}
+.sim-sect .body{padding:10px 11px}
+
 .sim-edit{display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:center;font-size:12px}
 .sim-edit label{color:#46566b;font:11px 'IBM Plex Mono'}
 .sim-edit input[type=text],.sim-edit input[type=number]{font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;width:120px}
@@ -77,8 +116,17 @@ body.sim-on .trans.sim-hot line{stroke:#2563eb!important;stroke-width:3.4!import
 .sim-watch{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font:12px 'IBM Plex Mono'}
 .sim-watch .k{color:#46566b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sim-watch .v{font-weight:600;text-align:right}.sim-watch .v.chg{color:#1d4ed8}
-.sim-tape{font:12px 'IBM Plex Mono';line-height:1.7;max-height:200px;overflow:auto}
-.sim-tape .cur{color:#1d4ed8;font-weight:700}.sim-tape .pr{color:#6d28d9;font-weight:700}.sim-tape .w{color:#b45309}
+
+/* bottom steps/actions list — current step highlighted, transitions shown (item 3) */
+.sim-tape{font:12px 'IBM Plex Mono';line-height:1.6;max-height:260px;overflow:auto}
+.sim-tape .row{padding:2px 6px;border-radius:5px}
+.sim-tape .row.step{color:#334155}
+.sim-tape .row.cur{background:#dbeafe;color:#1d4ed8;font-weight:700}
+.sim-tape .row.tr{color:#94a3b8;padding-left:18px}
+.sim-tape .row.tr.cur{background:#eef2ff;color:#4f46e5}
+.sim-tape .row.pr{color:#6d28d9;font-weight:700;padding-left:12px}
+.sim-tape .row.act{color:#64748b;padding-left:18px;font-size:11px}
+.sim-tape .row.act.setr{color:#0369a1}.sim-tape .row.act.err{color:#dc2626}
 </style>
 """
 
@@ -103,28 +151,52 @@ def inject(phase_html, payload):
     watch_json = json.dumps(_WATCH_PREFIXES)
     levers_json = json.dumps(_DEVICE_LEVERS)
     rparams_json = json.dumps(payload.get('r_params', [])).replace('</', '<\\/')
+    timers_json = json.dumps(payload.get('timers', {})).replace('</', '<\\/')
+    aliases_json = json.dumps(payload.get('aliases', {})).replace('</', '<\\/')
 
     overlay = _OVERLAY_CSS + f"""
 <button id="sim-fab" onclick="SIM.toggle()">\u25b6 Simulate</button>
-<div id="sim-panel"><header><h2>Phase Simulator</h2>
-  <button onclick="SIM.toggle()">\u2715</button></header>
-  <div id="sim-body">
+<div id="sim-win">
+  <div class="sim-titlebar" id="sim-drag">
+    <h2>Phase Simulator</h2>
+    <button onclick="SIM.minimize()" id="sim-min" title="Minimize">\u2013</button>
+    <button onclick="SIM.toggle()" title="Close">\u2715</button>
+  </div>
+  <!-- PINNED: transport + status + operator message + prompt + timer always visible -->
+  <div class="sim-pin">
     <div class="sim-transport">
       <button onclick="SIM.reset()">\u27f2 Reset</button>
       <button onclick="SIM.step()">Step \u2192</button>
       <button class="primary" id="sim-play" onclick="SIM.play()">\u25b6 Play</button>
     </div>
-    <span class="sim-status run" id="sim-status">ready</span>
-    <h3>Operator message</h3><div class="sim-msg" id="sim-msg">\u2014</div>
+    <div class="sim-topline">
+      <span class="sim-status run" id="sim-status">ready</span>
+      <span class="sim-pos" id="sim-pos"></span>
+    </div>
+    <div class="sim-nowstep" id="sim-now">idle</div>
+    <div class="sim-msg" id="sim-msg">\u2014</div>
     <div id="sim-prompt-host"></div>
-    <h3>Recipe parameters (R_)</h3>
-    <input id="sim-rfilter" placeholder="filter R_ parameters\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:5px 8px;margin-bottom:7px">
-    <div class="sim-edit" id="sim-rparams"></div>
-    <p class="sim-hint">Recipe/config inputs the operator or recipe sets. Editing one reseeds and re-walks. P_ values are computed by the logic and shown read-only below.</p>
-    <h3>Device / timer levers</h3><div class="sim-edit" id="sim-levers"></div>
-    <p class="sim-hint">Not recipe parameters \u2014 manual stand-ins for device confirms and timers until the discrete engine models them.</p>
-    <h3>Variable watch</h3><div class="sim-watch" id="sim-watch"></div>
-    <h3>Walk tape</h3><div class="sim-tape" id="sim-tape"></div>
+    <div id="sim-timer-host"></div>
+  </div>
+  <!-- SCROLLABLE body -->
+  <div class="sim-scroll">
+    <details class="sim-sect" id="sim-rsect">
+      <summary>Recipe parameters (R_)</summary>
+      <div class="body">
+        <input id="sim-rfilter" placeholder="filter R_ parameters\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:5px 8px;margin-bottom:7px">
+        <div class="sim-edit" id="sim-rparams"></div>
+      </div>
+    </details>
+    <details class="sim-sect">
+      <summary>Device / timer levers</summary>
+      <div class="body"><div class="sim-edit" id="sim-levers"></div>
+      <p class="sim-hint">Manual stand-ins for device confirms and timers until the discrete engine models them.</p></div>
+    </details>
+    <details class="sim-sect" open>
+      <summary>Variable watch</summary>
+      <div class="body"><div class="sim-watch" id="sim-watch"></div></div>
+    </details>
+    <h3>Steps &amp; actions</h3><div class="sim-tape" id="sim-tape"></div>
   </div>
 </div>
 <script>{eval_js}</script>
@@ -132,6 +204,7 @@ def inject(phase_html, payload):
 <script>
 (function(){{
 const PAYLOAD={payload_json}, WATCH={watch_json}, LEVERS={levers_json}, RPARAMS={rparams_json};
+const TIMERS={timers_json}, ALIASES={aliases_json};
 const RUNKEY=PAYLOAD.seq_key;     // the RUN-sequence block this sim drives
 const overrides={{}}, heldConfirms={{}}, answers={{}};
 let sim=null, idx=-1, timer=null, prevWatch={{}};
@@ -156,38 +229,61 @@ function clearViz(){{
 
 function render(){{
   clearViz();
-  let lastEnter=null,msg='\u2014',msg2='',watch={{}},tape='',pausedAt=null;
+  let lastEnter=null,msg='\u2014',msg2='',watch={{}},tape='',pausedAt=null,activeActs=[];
   const T=sim.trace;
   for(let k=0;k<=idx&&k<T.length;k++){{
     const ev=T[k];
+    const isCur=(k===idx);
     if(ev.kind==='enter'){{
       lastEnter=ev.step; const st=ev.store; msg=st['^/P_MSG1.CV']||msg; msg2=st['^/P_MSG2.CV']||'';
-      watch=watchOf(st);
+      watch=watchOf(st); activeActs=ev.active_actions||[];
       const nd=gStep(ev.step); if(nd) nd.classList.add('sim-visited','sim-done');
-      tape+='<div class="'+(k===idx?'cur':'')+'">\u25b8 '+esc(ev.step)+'  '+esc(ev.desc||'')+'</div>';
+      tape+='<div class="row step'+(isCur?' cur':'')+'">\u25b8 '+esc(ev.step)+'  '+esc(ev.desc||'')+'</div>';
+      // item 3: show this step's action outcomes indented under it
+      (ev.actions||[]).forEach(a=>{{
+        let cls='act', tag='';
+        if(a.kind==='activated'){{cls+=' setr'; tag='SET ';}}
+        else if(a.kind==='deactivated'){{cls+=' setr'; tag='RESET ';}}
+        else if(a.kind==='error'){{cls+=' err'; tag='ERR ';}}
+        else if(a.kind==='unmodeled'){{tag=(a.qual||'?')+' ';}}
+        tape+='<div class="row '+cls+'">\u21b3 '+esc(tag)+esc(a.body||'')+'</div>';
+      }});
     }} else if(ev.kind==='fire'){{
-      tape+='<div class="'+(k===idx?'cur':'')+'">  \u2514 '+esc(ev.t)+' \u2192 '+esc(ev.to)+'</div>';
-      const p=gTrans(ev.t); if(p){{ p.classList.add('sim-taken'); if(k===idx)p.classList.add('sim-hot'); }}
+      // item 3: transitions shown in the bottom panel
+      const exprAbbr=transAbbr(ev.t);
+      tape+='<div class="row tr'+(isCur?' cur':'')+'">\u2514 '+esc(ev.t)+' \u2192 '+esc(ev.to)+(exprAbbr?'  <span style="opacity:.7">['+esc(exprAbbr)+']</span>':'')+'</div>';
+      const p=gTrans(ev.t); if(p){{ p.classList.add('sim-taken'); if(isCur)p.classList.add('sim-hot'); }}
     }} else if(ev.kind==='prompt'){{
-      pausedAt=ev; tape+='<div class="pr'+(k===idx?' cur':'')+'">  \u2691 operator prompt \u2014 '+esc(ev.descr.oar_type)+'</div>';
+      pausedAt=ev; tape+='<div class="row pr'+(isCur?' cur':'')+'">\u2691 operator prompt \u2014 '+esc(ev.descr.oar_type)+'</div>';
     }}
   }}
   const tail=sim.log[sim.log.length-1]||'';
   let cls='run',txt='running';
-  if(sim.pausedPrompt&&idx>=T.length-1){{ cls='prompt'; txt='waiting for operator'; }}
-  else if(tail.indexOf('waiting')>=0){{ cls='wait'; txt='waiting \u2014 condition not met'; }}
+  const atEnd=idx>=T.length-1;
+  const timerHere=atEnd&&lastEnter&&TIMERS[lastEnter]&&waitingHere(tail);
+  if(sim.pausedPrompt&&atEnd){{ cls='prompt'; txt='waiting for operator'; }}
+  else if(timerHere){{ cls='timer'; txt='timer running'; }}
+  else if(waitingHere(tail)){{ cls='wait'; txt='waiting \u2014 condition not met'; }}
   else if(tail.indexOf('terminal')>=0){{ cls='done'; txt='sequence complete'; }}
 
   if(lastEnter){{ const nd=gStep(lastEnter); if(nd){{ nd.classList.remove('sim-done');
-    nd.classList.add(cls==='prompt'?'sim-prompt':(cls==='wait'?'sim-wait':'sim-active'));
+    nd.classList.add(cls==='prompt'?'sim-prompt':(cls==='timer'?'sim-timer':(cls==='wait'?'sim-wait':'sim-active')));
     nd.scrollIntoView&&nd.scrollIntoView({{block:'center',behavior:'smooth'}}); }} }}
 
+  document.getElementById('sim-now').textContent = lastEnter?('at '+lastEnter+(activeActs.length?'  \u00b7 active: '+activeActs.join(', '):'')):'idle';
   document.getElementById('sim-msg').innerHTML=esc(msg)+(msg2?'<span class="m2">'+esc(msg2)+'</span>':'');
   const s=document.getElementById('sim-status'); s.className='sim-status '+cls; s.textContent=txt;
-  renderWatch(watch); renderPrompt(cls==='prompt'?sim.pausedPrompt:null);
-  document.getElementById('sim-tape').innerHTML=tape||'\u2014';
+  document.getElementById('sim-pos').textContent=(idx+1)+' / '+T.length;
+  renderWatch(watch);
+  renderPrompt(cls==='prompt'?sim.pausedPrompt:null);
+  renderTimer(cls==='timer'?lastEnter:null);
+  const tp=document.getElementById('sim-tape'); tp.innerHTML=tape||'\u2014';
+  const curRow=tp.querySelector('.row.cur'); if(curRow&&curRow.scrollIntoView) curRow.scrollIntoView({{block:'nearest'}});
   prevWatch=watch;
 }}
+
+function waitingHere(tail){{ return tail.indexOf('waiting')>=0 || tail.indexOf('no outgoing')>=0; }}
+function transAbbr(tn){{ const e=(PAYLOAD.trans[tn]||'').replace(/\\s+/g,' ').trim(); return e.length>46?e.slice(0,46)+'\u2026':e; }}
 
 function watchOf(store){{ const w={{}}; for(const k in store){{ for(const p of WATCH){{ if(k.indexOf(p)===0){{w[k]=store[k];break;}} }} }} return w; }}
 function renderWatch(w){{ const el=document.getElementById('sim-watch'); el.innerHTML='';
@@ -200,7 +296,15 @@ function renderPrompt(pp){{
   const host=document.getElementById('sim-prompt-host'); host.innerHTML='';
   if(!pp) return;
   const d=pp.descr, step=pp.step;
-  let inner='<div class="q">'+esc(d.msg1||'Operator response required')+(d.msg2?'<br><span style="font-weight:400">'+esc(d.msg2)+'</span>':'')+'</div>';
+  // Use the LIVE computed messages from the store at the moment the prompt was
+  // raised (P_MSG1/P_MSG2 are built by the step's actions, e.g. "Conductivity
+  // value 999 is not in range..."). Fall back to the static descriptor text.
+  let lm1=null, lm2=null;
+  for(let k=0;k<sim.trace.length;k++){{ const ev=sim.trace[k];
+    if(ev.kind==='enter'&&ev.step===step&&ev.store){{ lm1=ev.store['^/P_MSG1.CV']; lm2=ev.store['^/P_MSG2.CV']; }} }}
+  const m1=(lm1!==undefined&&lm1!==null&&lm1!=='')?lm1:(d.msg1||'Operator response required');
+  const m2=(lm2!==undefined&&lm2!==null&&lm2!=='')?lm2:(d.msg2||'');
+  let inner='<div class="q">'+esc(m1)+(m2?'<br><span style="font-weight:400">'+esc(m2)+'</span>':'')+'</div>';
   if(d.release==='value'){{
     if((d.oar_type||'').toLowerCase().replace(/\\s/g,'')==='yesno'){{
       inner+='<div class="btns"><button onclick="SIM.answer(\\''+esc(step)+'\\',1)">Yes</button>'+
@@ -264,6 +368,49 @@ function truthy(v){{ return v===true||v==='True'||(typeof v==='number'&&v!==0)||
 function stepFwd(){{ if(idx<sim.trace.length-1){{idx++;render();}} if(idx>=sim.trace.length-1)stop(); }}
 function stop(){{ if(timer){{clearInterval(timer);timer=null;document.getElementById('sim-play').textContent='\u25b6 Play';}} }}
 
+// ── item 9: visual timer countdown (auto-completes) ─────────────────────────
+let countdown=null;
+function resolveDuration(ref){{
+  // ref is an R_ param key like '^/R_CHEM_ADD_TM.CV'; read its current value
+  const v=(ref in overrides)?overrides[ref]:PAYLOAD.seed[ref];
+  const n=parseFloat(v); return (isFinite(n)&&n>0)?n:10;   // default 10s if unset/0
+}}
+function renderTimer(step){{
+  const host=document.getElementById('sim-timer-host');
+  if(!step||!TIMERS[step]){{ host.innerHTML=''; if(countdown){{clearInterval(countdown);countdown=null;}} return; }}
+  if(host._step===step && host.innerHTML) return;   // already showing this timer
+  host._step=step;
+  const t=TIMERS[step]; const dur=resolveDuration(t.sp_ref);
+  const durLabel=t.sp_ref.replace('^/','').replace('.CV','');
+  host.innerHTML='<div class="sim-timer-box"><div class="tt"><span>\u23f1 Timer \u2014 '+esc(durLabel)+'</span>'+
+    '<span id="sim-tclock" class="clock" style="font-size:14px">'+fmt(dur)+'</span></div>'+
+    '<div class="bar"><i id="sim-tbar"></i></div>'+
+    '<div class="btns"><button class="primary" id="sim-trun" onclick="SIM.runTimer(\\''+esc(step)+'\\')">\u25b6 Run timer</button>'+
+    '<button onclick="SIM.skipTimer(\\''+esc(step)+'\\')">Skip \u2192 complete</button></div>'+
+    '<p class="sim-hint">Visual countdown from '+esc(durLabel)+' ('+dur+'s). Auto-sets '+esc(t.complete_key.replace('//#','#').replace('#/','#/'))+' when done.</p></div>';
+}}
+function fmt(s){{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60),ss=s%60; return (m>0?(m+':'+String(ss).padStart(2,'0')):(s+'s')); }}
+
+// ── item 8: draggable + resizable floating window ───────────────────────────
+function initDrag(){{
+  const win=document.getElementById('sim-win'), bar=document.getElementById('sim-drag');
+  if(!win||!bar||bar._wired) return; bar._wired=1;
+  let dx=0,dy=0,dragging=false;
+  bar.addEventListener('mousedown',function(e){{
+    if(e.target.tagName==='BUTTON') return;
+    dragging=true; const r=win.getBoundingClientRect();
+    dx=e.clientX-r.left; dy=e.clientY-r.top; win.style.right='auto'; win.style.left=r.left+'px'; win.style.top=r.top+'px';
+    e.preventDefault();
+  }});
+  window.addEventListener('mousemove',function(e){{
+    if(!dragging) return;
+    let nx=e.clientX-dx, ny=e.clientY-dy;
+    nx=Math.max(4,Math.min(nx,window.innerWidth-60)); ny=Math.max(4,Math.min(ny,window.innerHeight-40));
+    win.style.left=nx+'px'; win.style.top=ny+'px';
+  }});
+  window.addEventListener('mouseup',function(){{ dragging=false; }});
+}}
+
 // record an operator answer for the SPECIFIC entry the walk is currently paused at,
 // so prior loops' answers persist and a re-entered prompt asks again.
 function recordAnswer(step,val){{
@@ -273,14 +420,38 @@ function recordAnswer(step,val){{
 }}
 
 window.SIM={{
-  toggle:function(){{ const p=document.getElementById('sim-panel'); const on=p.classList.toggle('open');
-    document.body.classList.toggle('sim-on',on); if(on){{showRunBlock(); if(!sim){{buildEdit();rewalk();idx=-1;prevWatch={{}};render();}}}} }},
-  reset:function(){{ stop(); Object.keys(answers).forEach(k=>delete answers[k]); idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
+  toggle:function(){{ const w=document.getElementById('sim-win'); const on=w.classList.toggle('open');
+    document.body.classList.toggle('sim-on',on);
+    if(on){{ showRunBlock(); initDrag(); if(!sim){{buildEdit();rewalk();idx=-1;prevWatch={{}};render();}} }} }},
+  minimize:function(){{ const w=document.getElementById('sim-win'); w.classList.toggle('min');
+    document.getElementById('sim-min').textContent=w.classList.contains('min')?'\u25a1':'\u2013'; }},
+  reset:function(){{ stop(); if(countdown){{clearInterval(countdown);countdown=null;}}
+    Object.keys(answers).forEach(k=>delete answers[k]);
+    Object.keys(overrides).forEach(k=>{{ if(k.indexOf('TM_COMPLETE')>=0) delete overrides[k]; }});
+    idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
   step:function(){{ stop(); stepFwd(); }},
   play:function(){{ if(timer){{stop();return;}} if(idx>=sim.trace.length-1)idx=-1;
     document.getElementById('sim-play').textContent='\u23f8 Pause'; timer=setInterval(stepFwd,650); }},
   answer:function(step,val){{ recordAnswer(step,val); stop(); rewalk(); }},
   answerInput:function(step){{ const v=parseFloat(document.getElementById('sim-vin').value)||0; recordAnswer(step,v); stop(); rewalk(); }},
+  runTimer:function(step){{
+    const t=TIMERS[step]; if(!t) return; if(countdown){{clearInterval(countdown);}}
+    let dur=resolveDuration(t.sp_ref), left=dur;
+    const clock=document.getElementById('sim-tclock'), bar=document.getElementById('sim-tbar'), btn=document.getElementById('sim-trun');
+    if(btn){{btn.disabled=true;btn.textContent='running\u2026';}}
+    countdown=setInterval(function(){{
+      left-=0.5;
+      if(clock) clock.textContent=fmt(left);
+      if(bar) bar.style.width=Math.min(100,((dur-left)/dur*100))+'%';
+      if(left<=0){{ clearInterval(countdown); countdown=null;
+        overrides[t.complete_key]=true;     // auto-complete -> release the wait
+        stop(); rewalk();
+      }}
+    }},500);
+  }},
+  skipTimer:function(step){{ const t=TIMERS[step]; if(!t) return;
+    if(countdown){{clearInterval(countdown);countdown=null;}}
+    overrides[t.complete_key]=true; stop(); rewalk(); }},
 }};
 }})();
 </script>

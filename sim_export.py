@@ -27,6 +27,7 @@ import db_parser          # noqa: E402
 import sim_run            # noqa: E402
 import sim_prompts        # noqa: E402
 import sim_aliases        # noqa: E402
+import sim_timers         # noqa: E402
 
 
 def build_payload(text, phase_name):
@@ -99,6 +100,10 @@ def build_payload(text, phase_name):
         'prompts': prompts,
         'r_params': r_params,
         'aliases': _aliases_for(text, sim),
+        'timers': sim_timers.detect_timers(
+            sim.order, sim.actions,
+            {n: list(sim.s2t.get(n, [])) for n in sim.order},
+            {tn: sim.trans.get(tn, '') for tn in sim.trans}),
     }
 
 
