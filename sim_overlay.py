@@ -45,88 +45,138 @@ body.sim-on .trans.sim-hot line{stroke:#2563eb!important;stroke-width:3.4!import
    core positions .controls absolute (scrolls away); pin to viewport, same corner. */
 .controls{position:fixed!important;top:64px!important;z-index:50!important}
 
-#sim-fab{position:fixed;right:18px;bottom:18px;z-index:60;background:#2563eb;color:#fff;
+#sim-fab{position:fixed;right:18px;bottom:18px;z-index:9997;background:#2563eb;color:#fff;
   border:none;border-radius:24px;padding:11px 18px;font:600 13px 'IBM Plex Sans',system-ui,sans-serif;
   box-shadow:0 4px 14px rgba(37,99,235,.35);cursor:pointer}
+#sim-fab.hidden{display:none}
 
-/* ── floating, draggable, resizable window ── */
-#sim-win{position:fixed;right:22px;top:70px;width:370px;height:560px;min-width:300px;min-height:320px;
-  z-index:9998;background:#fff;border:1px solid #cdd7e2;border-radius:12px;
-  box-shadow:0 18px 50px -12px rgba(15,32,48,.34);display:none;flex-direction:column;overflow:hidden;
-  font-family:'IBM Plex Sans',system-ui,sans-serif;resize:both}
-#sim-win.open{display:flex}
-#sim-win.min{height:auto!important;resize:none}
-#sim-win.min .sim-scroll,#sim-win.min .sim-pin{display:none}
+/* ── dockable simulator: bottom strip / left / right / floating ── */
+#sim-dock{position:fixed;z-index:9998;background:#fff;display:none;flex-direction:column;
+  font-family:'IBM Plex Sans',system-ui,sans-serif;box-shadow:0 -8px 28px -14px rgba(15,32,48,.30)}
+#sim-dock.open{display:flex}
 
-/* pinned header: title bar + transport + status + prompt — never scrolls away */
-.sim-titlebar{background:#0f2030;color:#eaf1f8;padding:9px 12px;display:flex;align-items:center;gap:8px;cursor:move;user-select:none}
-.sim-titlebar h2{font-size:13px;margin:0;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sim-titlebar button{background:#16293a;color:#eaf1f8;border:1px solid #2c4358;border-radius:6px;
-  padding:3px 8px;cursor:pointer;font-size:12px;line-height:1}
-.sim-pin{background:#f8fafc;border-bottom:1px solid #e5ebf2;padding:9px 12px;flex-shrink:0}
-.sim-scroll{overflow:auto;padding:12px;flex:1}
-.sim-scroll h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7689a0;margin:15px 0 7px;font-weight:700}
-.sim-scroll h3:first-child{margin-top:0}
+/* BOTTOM (default): full-width strip, diagram gets bottom padding */
+#sim-dock.dock-bottom{left:0;right:0;bottom:0;height:var(--sim-h,320px);border-top:1px solid #cbd5e2}
+body.sim-on.mode-bottom{padding-bottom:var(--sim-h,320px)!important}
+body.sim-on.mode-bottom.sim-min{padding-bottom:44px!important}
 
-.sim-transport{display:flex;gap:7px}
-.sim-transport button{flex:1;font:600 12px 'IBM Plex Sans';border:1px solid #c7d2de;background:#fff;
-  border-radius:8px;padding:7px;cursor:pointer}
-.sim-transport button.primary{background:#2563eb;color:#fff;border-color:#2563eb}
-.sim-transport button:disabled{opacity:.4;cursor:default}
-.sim-topline{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
-.sim-status{font:12px 'IBM Plex Mono';padding:4px 9px;border-radius:6px;display:inline-block}
-.sim-status.run{background:#eff6ff;color:#1d4ed8}.sim-status.wait{background:#fef3c7;color:#92400e}
-.sim-status.done{background:#ecfdf5;color:#047857}.sim-status.prompt{background:#ede9fe;color:#6d28d9}
-.sim-status.timer{background:#e0f2fe;color:#0369a1}
-.sim-pos{font:11px 'IBM Plex Mono';color:#7689a0}
-.sim-nowstep{font:12px 'IBM Plex Mono';color:#16202c;margin-top:5px}
-.sim-msg{font-size:13px;font-weight:600;color:#1d4ed8;min-height:18px;line-height:1.35;margin-top:6px}
+/* LEFT: full-height column on the left, diagram gets left padding */
+#sim-dock.dock-left{left:0;top:0;bottom:0;width:var(--sim-w,380px);border-right:1px solid #cbd5e2;
+  box-shadow:8px 0 28px -14px rgba(15,32,48,.30)}
+body.sim-on.mode-left{padding-left:var(--sim-w,380px)!important}
+body.sim-on.mode-left.sim-min{padding-left:0!important}
+
+/* RIGHT: full-height column on the right */
+#sim-dock.dock-right{right:0;top:0;bottom:0;width:var(--sim-w,380px);border-left:1px solid #cbd5e2;
+  box-shadow:-8px 0 28px -14px rgba(15,32,48,.30)}
+body.sim-on.mode-right{padding-right:var(--sim-w,380px)!important}
+body.sim-on.mode-right.sim-min{padding-right:0!important}
+
+/* FLOAT: free-floating draggable panel, no body padding */
+#sim-dock.dock-float{left:var(--sim-x,80px);top:var(--sim-y,90px);width:var(--sim-fw,440px);
+  height:var(--sim-fh,480px);border:1px solid #cbd5e2;border-radius:12px;overflow:hidden;
+  box-shadow:0 20px 55px -14px rgba(15,32,48,.40)}
+
+#sim-dock.min{height:44px!important}
+#sim-dock.dock-left.min,#sim-dock.dock-right.min{height:44px!important;bottom:auto}
+#sim-dock.min .sim-dockbody{display:none}
+
+/* resize grips per mode */
+#sim-grip{background:#eef2f7;flex-shrink:0}
+#sim-dock.dock-bottom #sim-grip{height:6px;cursor:ns-resize;border-bottom:1px solid #e5ebf2;order:-1}
+#sim-dock.dock-left #sim-grip,#sim-dock.dock-right #sim-grip{display:none}
+#sim-dock.dock-float #sim-grip{display:none}
+/* side/float resize edges */
+#sim-edge{position:absolute;background:transparent;z-index:5}
+#sim-dock.dock-left #sim-edge{right:0;top:0;bottom:0;width:6px;cursor:ew-resize;display:block}
+#sim-dock.dock-right #sim-edge{left:0;top:0;bottom:0;width:6px;cursor:ew-resize;display:block}
+#sim-dock.dock-float #sim-edge{right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;display:block}
+#sim-dock.dock-bottom #sim-edge{display:none}
+#sim-edge:hover{background:#cbd5e2}
+
+.sim-dockbar{background:#0f2030;color:#eaf1f8;padding:6px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+#sim-dock.dock-float .sim-dockbar,#sim-dock.dock-left .sim-dockbar,#sim-dock.dock-right .sim-dockbar{cursor:move}
+.sim-dockbar h2{font-size:13px;margin:0;font-weight:600;white-space:nowrap}
+.sim-dockbar .sim-transport{display:flex;gap:6px}
+.sim-dockbar .sim-transport button{font:600 12px 'IBM Plex Sans';border:1px solid #2c4358;background:#16293a;color:#eaf1f8;
+  border-radius:7px;padding:5px 12px;cursor:pointer}
+.sim-dockbar .sim-transport button.primary{background:#2563eb;border-color:#2563eb}
+.sim-dockbar .sim-transport button:disabled{opacity:.4;cursor:default}
+.sim-dockbar .sim-status{font:12px 'IBM Plex Mono';padding:3px 9px;border-radius:6px}
+.sim-dockbar .spacer{flex:1}
+.sim-dockbar .sim-pos{font:11px 'IBM Plex Mono';color:#9db4ca}
+.sim-dockbar .iconbtn{background:#16293a;color:#eaf1f8;border:1px solid #2c4358;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px;line-height:1}
+.sim-dockbar .iconbtn.on{background:#2563eb;border-color:#2563eb}
+.sim-dockbar .dockmenu{display:flex;gap:3px;margin-right:2px}
+
+.sim-status.run{background:#1e3a5f;color:#93c5fd}.sim-status.wait{background:#5c4813;color:#fcd34d}
+.sim-status.done{background:#14432a;color:#6ee7b7}.sim-status.prompt{background:#3b2a5c;color:#c4b5fd}
+.sim-status.timer{background:#0c3a52;color:#7dd3fc}
+
+/* dock body: 3 columns in bottom mode; stacks vertically in left/right/float */
+.sim-dockbody{flex:1;display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(240px,1fr) minmax(300px,1.4fr);
+  gap:0;overflow:hidden;min-height:0;position:relative}
+#sim-dock.dock-left .sim-dockbody,#sim-dock.dock-right .sim-dockbody,#sim-dock.dock-float .sim-dockbody{
+  grid-template-columns:1fr;grid-auto-rows:min-content;overflow:auto}
+#sim-dock.dock-left .sim-col,#sim-dock.dock-right .sim-col,#sim-dock.dock-float .sim-col{
+  border-right:none;border-bottom:1px solid #eef2f7}
+.sim-col{overflow:auto;padding:11px 13px;border-right:1px solid #eef2f7;min-height:0}
+.sim-col:last-child{border-right:none}
+.sim-col h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7689a0;margin:0 0 8px;font-weight:700}
+.sim-col h3.mt{margin-top:14px}
+
+.sim-nowstep{font:12px 'IBM Plex Mono';color:#16202c;margin-bottom:6px}
+.sim-msg{font-size:13px;font-weight:600;color:#1d4ed8;min-height:18px;line-height:1.35;margin-bottom:6px}
 .sim-msg .m2{display:block;font-weight:400;font-size:12px;color:#46566b;margin-top:2px}
 
-.sim-prompt-box{border:1.5px solid #7c3aed;border-radius:10px;padding:10px;background:#faf8ff;margin-top:8px}
+.sim-prompt-box{border:1.5px solid #7c3aed;border-radius:10px;padding:11px;background:#faf8ff}
 .sim-prompt-box .q{font-size:13px;font-weight:600;color:#5b21b6;margin-bottom:9px;line-height:1.35}
 .sim-prompt-box .btns{display:flex;gap:8px;flex-wrap:wrap}
-.sim-prompt-box button{font:600 13px 'IBM Plex Sans';border:none;border-radius:8px;padding:8px 16px;cursor:pointer;background:#7c3aed;color:#fff}
+.sim-prompt-box button{font:600 14px 'IBM Plex Sans';border:none;border-radius:8px;padding:9px 20px;cursor:pointer;background:#7c3aed;color:#fff}
 .sim-prompt-box button.no{background:#fff;color:#5b21b6;border:1px solid #c4b5fd}
-.sim-prompt-box .vrow{display:flex;gap:8px;align-items:center;margin-top:4px}
+.sim-prompt-box .vrow{display:flex;gap:8px;align-items:center;margin-top:6px}
 .sim-prompt-box input{font:13px 'IBM Plex Mono';border:1px solid #c4b5fd;border-radius:7px;padding:6px 9px;width:90px}
 
-/* timer countdown card */
-.sim-timer-box{border:1.5px solid #0284c7;border-radius:10px;padding:10px;background:#f0f9ff;margin-top:8px}
+.sim-timer-box{border:1.5px solid #0284c7;border-radius:10px;padding:11px;background:#f0f9ff;margin-top:8px}
 .sim-timer-box .tt{font-size:12px;font-weight:600;color:#0369a1;display:flex;justify-content:space-between;align-items:center}
-.sim-timer-box .clock{font:700 20px 'IBM Plex Mono';color:#0c4a6e;margin:5px 0}
-.sim-timer-box .bar{height:6px;border-radius:4px;background:#bae6fd;overflow:hidden}
+.sim-timer-box .clock{font:700 16px 'IBM Plex Mono';color:#0c4a6e}
+.sim-timer-box .bar{height:6px;border-radius:4px;background:#bae6fd;overflow:hidden;margin:6px 0}
 .sim-timer-box .bar > i{display:block;height:100%;background:#0284c7;width:0;transition:width .25s linear}
-.sim-timer-box .btns{display:flex;gap:7px;margin-top:8px}
+.sim-timer-box .btns{display:flex;gap:7px}
 .sim-timer-box button{font:600 12px 'IBM Plex Sans';border:1px solid #7dd3fc;background:#fff;color:#0369a1;border-radius:7px;padding:5px 11px;cursor:pointer}
 .sim-timer-box button.primary{background:#0284c7;color:#fff;border-color:#0284c7}
 
-.sim-sect{border:1px solid #e8edf3;border-radius:9px;margin-top:10px;overflow:hidden}
-.sim-sect > summary{cursor:pointer;list-style:none;padding:8px 11px;background:#f6f8fb;font-size:11px;
+.sim-sect{border:1px solid #e8edf3;border-radius:9px;margin-bottom:9px;overflow:hidden}
+.sim-sect > summary{cursor:pointer;list-style:none;padding:7px 10px;background:#f6f8fb;font-size:11px;
   font-weight:700;color:#46566b;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px}
 .sim-sect > summary::-webkit-details-marker{display:none}
 .sim-sect > summary::before{content:"\\25b8";font-size:9px;transition:.15s;color:#94a3b8}
 .sim-sect[open] > summary::before{transform:rotate(90deg)}
-.sim-sect .body{padding:10px 11px}
+.sim-sect .body{padding:9px 10px}
 
-.sim-edit{display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:center;font-size:12px}
+.sim-edit{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:12px}
 .sim-edit label{color:#46566b;font:11px 'IBM Plex Mono'}
-.sim-edit input[type=text],.sim-edit input[type=number]{font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;width:120px}
+.sim-edit input[type=text],.sim-edit input[type=number]{font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;width:110px}
 .sim-hint{font-size:11px;color:#7689a0;margin:6px 0 0;line-height:1.4}
 .sim-watch{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font:12px 'IBM Plex Mono'}
 .sim-watch .k{color:#46566b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sim-watch .v{font-weight:600;text-align:right}.sim-watch .v.chg{color:#1d4ed8}
 
-/* bottom steps/actions list — current step highlighted, transitions shown (item 3) */
-.sim-tape{font:12px 'IBM Plex Mono';line-height:1.6;max-height:260px;overflow:auto}
+/* steps/actions list with per-action status glyphs (item 3) */
+.sim-tape{font:12px 'IBM Plex Mono';line-height:1.55}
 .sim-tape .row{padding:2px 6px;border-radius:5px}
-.sim-tape .row.step{color:#334155}
-.sim-tape .row.cur{background:#dbeafe;color:#1d4ed8;font-weight:700}
-.sim-tape .row.tr{color:#94a3b8;padding-left:18px}
+.sim-tape .row.step{color:#334155;font-weight:600}
+.sim-tape .row.cur{background:#dbeafe;color:#1d4ed8}
+.sim-tape .row.tr{color:#94a3b8;padding-left:18px;font-weight:400}
 .sim-tape .row.tr.cur{background:#eef2ff;color:#4f46e5}
-.sim-tape .row.pr{color:#6d28d9;font-weight:700;padding-left:12px}
-.sim-tape .row.act{color:#64748b;padding-left:18px;font-size:11px}
-.sim-tape .row.act.setr{color:#0369a1}.sim-tape .row.act.err{color:#dc2626}
+.sim-tape .row.pr{color:#6d28d9;font-weight:700;padding-left:14px}
+.sim-tape .row.act{color:#64748b;padding-left:20px;font-size:11px;font-weight:400;display:flex;gap:6px;align-items:baseline}
+.sim-tape .row.act .g{flex-shrink:0;width:12px;display:inline-block;text-align:center}
+.sim-tape .row.act.done .g{color:#10b981}
+.sim-tape .row.act.active .g{color:#0284c7}
+.sim-tape .row.act.pending{color:#b0bac6}.sim-tape .row.act.pending .g{color:#cbd5e1}
+.sim-tape .row.act.err{color:#dc2626}.sim-tape .row.act.err .g{color:#dc2626}
+.sim-tape .row.act.setr .g{color:#0369a1}
 </style>
 """
 
@@ -140,7 +190,9 @@ _WATCH_PREFIXES = ['^/P_MSG', '^/P_FIRST_PASS', '^/P_TASK_PTR', '^/P_COND_SNAPSH
 _DEVICE_LEVERS = [
     ['Settle timer done', '//#UNIT_SUPPORT#/TMR1/TM_COMPLETE.CV', 'bool'],
     ['Sync unit', '//#THISUNIT#/U_CIP_SYNC_UNIT.CV', 'text'],
-    ['Cond. snapshot (P_, forced)', '^/P_COND_SNAPSHOT.CV', 'real'],
+    ['Acid conductivity (sensor)', '//#COND_ACID#/PV.CV', 'real'],
+    ['Conductivity snapshot (checked)', '^/P_COND_SNAPSHOT.CV', 'real'],
+    ['Recipient ready (T0200)', '^/D_RECV_SYNC_MSG.CV', 'text'],
 ]
 
 
@@ -156,47 +208,61 @@ def inject(phase_html, payload):
 
     overlay = _OVERLAY_CSS + f"""
 <button id="sim-fab" onclick="SIM.toggle()">\u25b6 Simulate</button>
-<div id="sim-win">
-  <div class="sim-titlebar" id="sim-drag">
+<div id="sim-dock" class="dock-bottom">
+  <div id="sim-grip" title="Drag to resize"></div>
+  <div id="sim-edge" title="Drag to resize"></div>
+  <div class="sim-dockbar" id="sim-dockbar">
     <h2>Phase Simulator</h2>
-    <button onclick="SIM.minimize()" id="sim-min" title="Minimize">\u2013</button>
-    <button onclick="SIM.toggle()" title="Close">\u2715</button>
-  </div>
-  <!-- PINNED: transport + status + operator message + prompt + timer always visible -->
-  <div class="sim-pin">
     <div class="sim-transport">
       <button onclick="SIM.reset()">\u27f2 Reset</button>
-      <button onclick="SIM.step()">Step \u2192</button>
+      <button onclick="SIM.back()" id="sim-back">\u2190 Back</button>
+      <button onclick="SIM.step()" id="sim-fwd">Step \u2192</button>
       <button class="primary" id="sim-play" onclick="SIM.play()">\u25b6 Play</button>
     </div>
-    <div class="sim-topline">
-      <span class="sim-status run" id="sim-status">ready</span>
-      <span class="sim-pos" id="sim-pos"></span>
+    <span class="sim-status run" id="sim-status">ready</span>
+    <span class="sim-pos" id="sim-pos"></span>
+    <div class="spacer"></div>
+    <div class="dockmenu" title="Dock position">
+      <button class="iconbtn" id="dock-left" onclick="SIM.dock('left')" title="Dock left">\u25e7</button>
+      <button class="iconbtn" id="dock-bottom" onclick="SIM.dock('bottom')" title="Dock bottom">\u2b13</button>
+      <button class="iconbtn" id="dock-right" onclick="SIM.dock('right')" title="Dock right">\u25e8</button>
+      <button class="iconbtn" id="dock-float" onclick="SIM.dock('float')" title="Float">\u29c9</button>
     </div>
-    <div class="sim-nowstep" id="sim-now">idle</div>
-    <div class="sim-msg" id="sim-msg">\u2014</div>
-    <div id="sim-prompt-host"></div>
-    <div id="sim-timer-host"></div>
+    <button class="iconbtn" onclick="SIM.minimize()" id="sim-min" title="Minimize">\u2013</button>
+    <button class="iconbtn" onclick="SIM.toggle()" title="Close">\u2715</button>
   </div>
-  <!-- SCROLLABLE body -->
-  <div class="sim-scroll">
-    <details class="sim-sect" id="sim-rsect">
-      <summary>Recipe parameters (R_)</summary>
-      <div class="body">
-        <input id="sim-rfilter" placeholder="filter R_ parameters\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:5px 8px;margin-bottom:7px">
-        <div class="sim-edit" id="sim-rparams"></div>
-      </div>
-    </details>
-    <details class="sim-sect">
-      <summary>Device / timer levers</summary>
-      <div class="body"><div class="sim-edit" id="sim-levers"></div>
-      <p class="sim-hint">Manual stand-ins for device confirms and timers until the discrete engine models them.</p></div>
-    </details>
-    <details class="sim-sect" open>
-      <summary>Variable watch</summary>
-      <div class="body"><div class="sim-watch" id="sim-watch"></div></div>
-    </details>
-    <h3>Steps &amp; actions</h3><div class="sim-tape" id="sim-tape"></div>
+  <div class="sim-dockbody">
+    <!-- col 1: operator (always visible) -->
+    <div class="sim-col">
+      <h3>Operator</h3>
+      <div class="sim-nowstep" id="sim-now">idle</div>
+      <div class="sim-msg" id="sim-msg">\u2014</div>
+      <div id="sim-prompt-host"></div>
+      <div id="sim-timer-host"></div>
+    </div>
+    <!-- col 2: inputs -->
+    <div class="sim-col">
+      <details class="sim-sect" id="sim-rsect" open>
+        <summary>Recipe parameters (R_)</summary>
+        <div class="body">
+          <input id="sim-rfilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin-bottom:7px">
+          <div class="sim-edit" id="sim-rparams"></div>
+        </div>
+      </details>
+      <details class="sim-sect">
+        <summary>Device / timer levers</summary>
+        <div class="body"><div class="sim-edit" id="sim-levers"></div></div>
+      </details>
+      <details class="sim-sect">
+        <summary>Variable watch</summary>
+        <div class="body"><div class="sim-watch" id="sim-watch"></div></div>
+      </details>
+    </div>
+    <!-- col 3: steps & actions -->
+    <div class="sim-col">
+      <h3>Steps &amp; actions <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0">\u2014 \u2713 done \u00b7 \u25cf active \u00b7 \u25cb pending</span></h3>
+      <div class="sim-tape" id="sim-tape"></div>
+    </div>
   </div>
 </div>
 <script>{eval_js}</script>
@@ -220,7 +286,28 @@ function cssq(s){{ return String(s).replace(/"/g,'\\\\"'); }}
 function esc(s){{ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }}
 
 function buildOverrides(){{ const o=Object.assign({{}},overrides); for(const k in heldConfirms)o[k]=heldConfirms[k]; return o; }}
-function rewalk(){{ sim=new SimEngine.PhaseSim(PAYLOAD,{{overrides:buildOverrides(),answers:answers}}); sim.run(); idx=sim.trace.length-1; render(); }}
+function rewalk(anchor){{
+  // remember if we were paused at a prompt (step+entry) so a parameter edit
+  // doesn't retroactively erase the decision point we're looking at (Issue A):
+  // the recheck should take effect AFTER the answer / on the next loop, not by
+  // making the current pending prompt vanish.
+  let want=anchor;
+  if(!want && sim){{
+    const cur=(idx>=0&&idx<sim.trace.length)?sim.trace[idx]:null;
+    if(cur&&cur.kind==='prompt') want={{step:cur.step, entry:cur.entry}};
+    else if(sim.pausedPrompt&&idx>=sim.trace.length-1) want={{step:sim.pausedPrompt.step, entry:sim.pausedPrompt.entry}};
+  }}
+  sim=new SimEngine.PhaseSim(PAYLOAD,{{overrides:buildOverrides(),answers:answers}}); sim.run();
+  idx=sim.trace.length-1;
+  if(want){{
+    // re-anchor to the same prompt (same step & entry) if it still exists in the new walk
+    for(let k=0;k<sim.trace.length;k++){{
+      const ev=sim.trace[k];
+      if(ev.kind==='prompt'&&ev.step===want.step&&ev.entry===want.entry){{ idx=k; break; }}
+    }}
+  }}
+  render();
+}}
 
 function clearViz(){{
   runBlockEl().querySelectorAll('.step').forEach(n=>n.classList.remove('sim-active','sim-visited','sim-done','sim-wait','sim-prompt'));
@@ -231,40 +318,95 @@ function render(){{
   clearViz();
   let lastEnter=null,msg='\u2014',msg2='',watch={{}},tape='',pausedAt=null,activeActs=[];
   const T=sim.trace;
+  // active SFC actions (S set, not yet R reset) at the current position
+  let curActive=[];
+  for(let k=0;k<=idx&&k<T.length;k++){{ if(T[k].kind==='enter'&&T[k].active_actions) curActive=T[k].active_actions; }}
+
+  // ── Issue B: on a loop-back, steps that will re-execute must reset to gray.
+  // Find the start of the CURRENT pass: the last time the walk looped backward
+  // (re-entered a step it had already entered) at or before idx. Only steps
+  // entered within [passStart .. idx] are shown green ("done this pass"); anything
+  // before the loop-back is treated as not-yet-re-executed (gray). This makes the
+  // loop visible: the green trail rewinds to gray and re-lights on each iteration.
+  let passStart=0;
+  {{
+    let seen={{}};
+    for(let k=0;k<=idx&&k<T.length;k++){{
+      const ev=T[k];
+      if(ev.kind==='enter'){{
+        if(seen[ev.step]!==undefined){{ passStart=k; seen={{}}; }}  // re-entry -> new pass begins here
+        seen[ev.step]=k;
+      }}
+    }}
+  }}
+
   for(let k=0;k<=idx&&k<T.length;k++){{
     const ev=T[k];
     const isCur=(k===idx);
     if(ev.kind==='enter'){{
       lastEnter=ev.step; const st=ev.store; msg=st['^/P_MSG1.CV']||msg; msg2=st['^/P_MSG2.CV']||'';
       watch=watchOf(st); activeActs=ev.active_actions||[];
-      const nd=gStep(ev.step); if(nd) nd.classList.add('sim-visited','sim-done');
+      // only paint the step green if it belongs to the CURRENT pass (post last loop-back)
+      if(k>=passStart){{ const nd=gStep(ev.step); if(nd) nd.classList.add('sim-visited','sim-done'); }}
       tape+='<div class="row step'+(isCur?' cur':'')+'">\u25b8 '+esc(ev.step)+'  '+esc(ev.desc||'')+'</div>';
-      // item 3: show this step's action outcomes indented under it
+      // item 3: action outcomes with status glyphs (\u2713 done \u00b7 \u25cf active \u00b7 \u25cb pending)
       (ev.actions||[]).forEach(a=>{{
-        let cls='act', tag='';
-        if(a.kind==='activated'){{cls+=' setr'; tag='SET ';}}
-        else if(a.kind==='deactivated'){{cls+=' setr'; tag='RESET ';}}
-        else if(a.kind==='error'){{cls+=' err'; tag='ERR ';}}
-        else if(a.kind==='unmodeled'){{tag=(a.qual||'?')+' ';}}
-        tape+='<div class="row '+cls+'">\u21b3 '+esc(tag)+esc(a.body||'')+'</div>';
+        let cls='act', glyph='\u2713', tag='';
+        if(a.kind==='activated'){{cls+=' setr active'; glyph='\u25cf'; tag='SET ';}}
+        else if(a.kind==='deactivated'){{cls+=' setr done'; glyph='\u2713'; tag='RESET ';}}
+        else if(a.kind==='error'){{cls+=' err'; glyph='\u26a0'; tag='ERR ';}}
+        else if(a.kind==='unmodeled'){{cls+=' pending'; glyph='\u25cb'; tag=(a.qual||'?')+' ';}}
+        else {{cls+=' done'; glyph='\u2713';}}
+        // if a SET action is still active at the CURRENT position, mark it active not done
+        if((a.kind==='activated') && curActive.indexOf(a.body)<0){{ cls=cls.replace('active','done'); glyph='\u2713'; }}
+        tape+='<div class="row '+cls+'"><span class="g">'+glyph+'</span><span>'+esc(tag)+esc(a.body||'')+'</span></div>';
       }});
     }} else if(ev.kind==='fire'){{
       // item 3: transitions shown in the bottom panel
       const exprAbbr=transAbbr(ev.t);
-      tape+='<div class="row tr'+(isCur?' cur':'')+'">\u2514 '+esc(ev.t)+' \u2192 '+esc(ev.to)+(exprAbbr?'  <span style="opacity:.7">['+esc(exprAbbr)+']</span>':'')+'</div>';
-      const p=gTrans(ev.t); if(p){{ p.classList.add('sim-taken'); if(isCur)p.classList.add('sim-hot'); }}
+      const looped=(ev.to&&isLoopBack(T,k));
+      tape+='<div class="row tr'+(isCur?' cur':'')+'">\u2514 '+esc(ev.t)+' \u2192 '+esc(ev.to)+(looped?' \u21ba':'')+(exprAbbr?'  <span style="opacity:.7">['+esc(exprAbbr)+']</span>':'')+'</div>';
+      // only light the transition if it's part of the current pass
+      if(k>=passStart){{ const p=gTrans(ev.t); if(p){{ p.classList.add('sim-taken'); if(isCur)p.classList.add('sim-hot'); }} }}
     }} else if(ev.kind==='prompt'){{
       pausedAt=ev; tape+='<div class="row pr'+(isCur?' cur':'')+'">\u2691 operator prompt \u2014 '+esc(ev.descr.oar_type)+'</div>';
+    }}
+  }}
+  // item 3: show upcoming (pending) events after the current position, dimmed
+  for(let k=idx+1;k<T.length;k++){{
+    const ev=T[k];
+    if(ev.kind==='enter'){{
+      tape+='<div class="row step pending" style="opacity:.5">\u25cb '+esc(ev.step)+'  '+esc(ev.desc||'')+'</div>';
+    }} else if(ev.kind==='fire'){{
+      tape+='<div class="row tr pending" style="opacity:.45">\u2514 '+esc(ev.t)+' \u2192 '+esc(ev.to)+'</div>';
+    }} else if(ev.kind==='prompt'){{
+      tape+='<div class="row pr pending" style="opacity:.5">\u2691 prompt \u2014 '+esc(ev.descr.oar_type)+'</div>';
     }}
   }}
   const tail=sim.log[sim.log.length-1]||'';
   let cls='run',txt='running';
   const atEnd=idx>=T.length-1;
+  // is the CURRENT position a prompt event? (covers mid-trace prompts from loops)
+  const curEv=(idx>=0&&idx<T.length)?T[idx]:null;
+  const curPrompt=(curEv&&curEv.kind==='prompt')?curEv:null;
   const timerHere=atEnd&&lastEnter&&TIMERS[lastEnter]&&waitingHere(tail);
-  if(sim.pausedPrompt&&atEnd){{ cls='prompt'; txt='waiting for operator'; }}
+  if(curPrompt||(sim.pausedPrompt&&atEnd)){{ cls='prompt'; txt='waiting for operator'; }}
   else if(timerHere){{ cls='timer'; txt='timer running'; }}
-  else if(waitingHere(tail)){{ cls='wait'; txt='waiting \u2014 condition not met'; }}
-  else if(tail.indexOf('terminal')>=0){{ cls='done'; txt='sequence complete'; }}
+  else if(waitingHere(tail)&&atEnd){{ cls='wait'; txt='waiting \u2014 condition not met';
+    // surface WHICH transition is blocking and its expression, so a stall on an
+    // external/unsimulated signal (e.g. T0200 recipient handshake) is self-explaining.
+    if(lastEnter){{
+      const outs=PAYLOAD.s2t[lastEnter]||[];
+      if(outs.length){{ const bt=outs[0];
+        msg='Waiting on '+bt+' \u2192 '+(PAYLOAD.t2s[bt]||'?');
+        msg2=(PAYLOAD.trans[bt]||'').replace(/\\s+/g,' ').trim();
+      }}
+    }}
+  }}
+  else if(tail.indexOf('terminal')>=0&&atEnd){{ cls='done'; txt='sequence complete'; }}
+  // the prompt descriptor to present: current-position prompt, else the final pause
+  const promptToShow = curPrompt ? {{step:curPrompt.step, descr:curPrompt.descr, entry:curPrompt.entry}}
+                                 : (atEnd?sim.pausedPrompt:null);
 
   if(lastEnter){{ const nd=gStep(lastEnter); if(nd){{ nd.classList.remove('sim-done');
     nd.classList.add(cls==='prompt'?'sim-prompt':(cls==='timer'?'sim-timer':(cls==='wait'?'sim-wait':'sim-active')));
@@ -273,9 +415,23 @@ function render(){{
   document.getElementById('sim-now').textContent = lastEnter?('at '+lastEnter+(activeActs.length?'  \u00b7 active: '+activeActs.join(', '):'')):'idle';
   document.getElementById('sim-msg').innerHTML=esc(msg)+(msg2?'<span class="m2">'+esc(msg2)+'</span>':'');
   const s=document.getElementById('sim-status'); s.className='sim-status '+cls; s.textContent=txt;
-  document.getElementById('sim-pos').textContent=(idx+1)+' / '+T.length;
+  // meaningful position: which step we're on out of steps walked (not raw events)
+  let stepNum=0, stepTotal=0;
+  for(let k=0;k<T.length;k++){{ if(T[k].kind==='enter'){{ stepTotal++; if(k<=idx) stepNum++; }} }}
+  document.getElementById('sim-pos').textContent = stepNum>0?('step '+stepNum+'/'+stepTotal):'\u2014';
+  const bb=document.getElementById('sim-back'); if(bb) bb.disabled=(idx<=-1);
+  const fb=document.getElementById('sim-fwd'); if(fb) fb.disabled=(idx>=T.length-1);
   renderWatch(watch);
-  renderPrompt(cls==='prompt'?sim.pausedPrompt:null);
+  shownPromptEntry = (cls==='prompt'&&promptToShow) ? promptToShow.entry : null;
+  renderPrompt(cls==='prompt'?promptToShow:null);
+  // item 1 safety: if a prompt is active, make sure it's actually visible —
+  // un-minimize the dock and scroll the operator column to the prompt box.
+  if(cls==='prompt'){{
+    const dock=document.getElementById('sim-dock');
+    if(dock.classList.contains('min')) SIM.minimize();
+    const pb=document.querySelector('#sim-prompt-host .sim-prompt-box');
+    if(pb&&pb.scrollIntoView) pb.scrollIntoView({{block:'nearest'}});
+  }}
   renderTimer(cls==='timer'?lastEnter:null);
   const tp=document.getElementById('sim-tape'); tp.innerHTML=tape||'\u2014';
   const curRow=tp.querySelector('.row.cur'); if(curRow&&curRow.scrollIntoView) curRow.scrollIntoView({{block:'nearest'}});
@@ -284,6 +440,12 @@ function render(){{
 
 function waitingHere(tail){{ return tail.indexOf('waiting')>=0 || tail.indexOf('no outgoing')>=0; }}
 function transAbbr(tn){{ const e=(PAYLOAD.trans[tn]||'').replace(/\\s+/g,' ').trim(); return e.length>46?e.slice(0,46)+'\u2026':e; }}
+// a fire is a loop-back if its target step was already entered earlier in the trace
+function isLoopBack(T,k){{
+  const to=T[k].to; if(!to) return false;
+  for(let j=0;j<k;j++){{ if(T[j].kind==='enter'&&T[j].step===to) return true; }}
+  return false;
+}}
 
 function watchOf(store){{ const w={{}}; for(const k in store){{ for(const p of WATCH){{ if(k.indexOf(p)===0){{w[k]=store[k];break;}} }} }} return w; }}
 function renderWatch(w){{ const el=document.getElementById('sim-watch'); el.innerHTML='';
@@ -300,7 +462,7 @@ function renderPrompt(pp){{
   // raised (P_MSG1/P_MSG2 are built by the step's actions, e.g. "Conductivity
   // value 999 is not in range..."). Fall back to the static descriptor text.
   let lm1=null, lm2=null;
-  for(let k=0;k<sim.trace.length;k++){{ const ev=sim.trace[k];
+  for(let k=0;k<=idx&&k<sim.trace.length;k++){{ const ev=sim.trace[k];
     if(ev.kind==='enter'&&ev.step===step&&ev.store){{ lm1=ev.store['^/P_MSG1.CV']; lm2=ev.store['^/P_MSG2.CV']; }} }}
   const m1=(lm1!==undefined&&lm1!==null&&lm1!=='')?lm1:(d.msg1||'Operator response required');
   const m2=(lm2!==undefined&&lm2!==null&&lm2!=='')?lm2:(d.msg2||'');
@@ -365,7 +527,14 @@ function buildEdit(){{ buildRParams(''); buildLevers();
 }}
 function truthy(v){{ return v===true||v==='True'||(typeof v==='number'&&v!==0)||(typeof v==='string'&&v!==''&&v!=='0'&&v!=='False'); }}
 
-function stepFwd(){{ if(idx<sim.trace.length-1){{idx++;render();}} if(idx>=sim.trace.length-1)stop(); }}
+function stepFwd(){{
+  if(idx<sim.trace.length-1){{ idx++; render(); }}
+  // stop auto-play at ANY prompt event (each loop's prompt), not just the trace end,
+  // so the operator is asked at every iteration rather than Play batching through them.
+  const ev=sim.trace[idx];
+  if(idx>=sim.trace.length-1 || (ev&&ev.kind==='prompt')) stop();
+}}
+function stepBack(){{ if(idx>-1){{idx--;render();}} }}
 function stop(){{ if(timer){{clearInterval(timer);timer=null;document.getElementById('sim-play').textContent='\u25b6 Play';}} }}
 
 // ── item 9: visual timer countdown (auto-completes) ─────────────────────────
@@ -391,45 +560,167 @@ function renderTimer(step){{
 }}
 function fmt(s){{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60),ss=s%60; return (m>0?(m+':'+String(ss).padStart(2,'0')):(s+'s')); }}
 
-// ── item 8: draggable + resizable floating window ───────────────────────────
-function initDrag(){{
-  const win=document.getElementById('sim-win'), bar=document.getElementById('sim-drag');
-  if(!win||!bar||bar._wired) return; bar._wired=1;
-  let dx=0,dy=0,dragging=false;
-  bar.addEventListener('mousedown',function(e){{
+// ── resize (grip for bottom, edge for side/float) + drag (side/float) ───────
+let curMode='bottom';
+function setMode(mode){{
+  const dock=document.getElementById('sim-dock');
+  ['bottom','left','right','float'].forEach(m=>{{
+    dock.classList.toggle('dock-'+m, m===mode);
+    document.body.classList.toggle('mode-'+m, m===mode);
+    const b=document.getElementById('dock-'+m); if(b) b.classList.toggle('on', m===mode);
+  }});
+  curMode=mode;
+}}
+function initResize(){{
+  const dock=document.getElementById('sim-dock');
+  const grip=document.getElementById('sim-grip'), edge=document.getElementById('sim-edge'), bar=document.getElementById('sim-dockbar');
+  if(dock._wired) return; dock._wired=1;
+  let mode=null, sx=0, sy=0, sw=0, sh=0, ox=0, oy=0;
+  function down(kind){{ return function(e){{
     if(e.target.tagName==='BUTTON') return;
-    dragging=true; const r=win.getBoundingClientRect();
-    dx=e.clientX-r.left; dy=e.clientY-r.top; win.style.right='auto'; win.style.left=r.left+'px'; win.style.top=r.top+'px';
-    e.preventDefault();
+    mode=kind; sx=e.clientX; sy=e.clientY;
+    const r=dock.getBoundingClientRect(); sw=r.width; sh=r.height; ox=r.left; oy=r.top;
+    e.preventDefault(); document.body.style.userSelect='none';
+  }}; }}
+  if(grip) grip.addEventListener('mousedown',down('h'));       // bottom height
+  if(edge) edge.addEventListener('mousedown',function(e){{ down(curMode==='float'?'fxy':'w')(e); }});  // side width / float corner
+  if(bar) bar.addEventListener('mousedown',function(e){{ if(curMode==='float'||curMode==='left'||curMode==='right') down('move')(e); }});
+  window.addEventListener('mousemove',function(e){{
+    if(!mode) return;
+    if(mode==='h'){{ let h=window.innerHeight-e.clientY; h=Math.max(120,Math.min(h,window.innerHeight-100));
+      document.documentElement.style.setProperty('--sim-h',h+'px'); }}
+    else if(mode==='w'){{ let w = curMode==='left' ? e.clientX : (window.innerWidth-e.clientX);
+      w=Math.max(260,Math.min(w,window.innerWidth-120)); document.documentElement.style.setProperty('--sim-w',w+'px'); }}
+    else if(mode==='fxy'){{ let w=sw+(e.clientX-sx), h=sh+(e.clientY-sy);
+      w=Math.max(300,Math.min(w,window.innerWidth-20)); h=Math.max(240,Math.min(h,window.innerHeight-20));
+      document.documentElement.style.setProperty('--sim-fw',w+'px'); document.documentElement.style.setProperty('--sim-fh',h+'px'); }}
+    else if(mode==='move' && curMode==='float'){{
+      let x=ox+(e.clientX-sx), y=oy+(e.clientY-sy);
+      x=Math.max(4,Math.min(x,window.innerWidth-80)); y=Math.max(4,Math.min(y,window.innerHeight-40));
+      document.documentElement.style.setProperty('--sim-x',x+'px'); document.documentElement.style.setProperty('--sim-y',y+'px'); }}
+    else if(mode==='move' && (curMode==='left'||curMode==='right')){{
+      // dragging the bar on a side dock: if pulled toward center, pop to float at cursor
+      if(Math.abs(e.clientX-sx)>60 || Math.abs(e.clientY-sy)>40){{
+        document.documentElement.style.setProperty('--sim-x',(e.clientX-60)+'px');
+        document.documentElement.style.setProperty('--sim-y',Math.max(4,e.clientY-16)+'px');
+        SIM.dock('float'); mode='move';
+      }}
+    }}
+  }});
+  window.addEventListener('mouseup',function(){{ mode=null; document.body.style.userSelect=''; }});
+}}
+
+// ── item 3: click a transition to show its expression in the side panel ─────
+// (core only shows transition expressions on hover; steps get a persistent panel
+// on click. This adds the same persistent view for transitions. core is frozen,
+// so we wire it from the overlay.)
+function initTransClick(){{
+  const blkEl=runBlockEl(); if(!blkEl||blkEl===document) return;
+  blkEl.querySelectorAll('.trans').forEach(function(g){{
+    if(g._transClick) return; g._transClick=1;
+    g.style.cursor='pointer';
+    g.addEventListener('click',function(e){{
+      e.stopPropagation();
+      showTransitionPanel(g.dataset.trans, g);
+    }});
+  }});
+}}
+function showTransitionPanel(tn, g){{
+  runBlockEl().querySelectorAll('.step.sel,.trans.sel').forEach(n=>n.classList.remove('sel'));
+  if(g) g.classList.add('sel');
+  const expr=(PAYLOAD.trans&&PAYLOAD.trans[tn])||'';
+  const to=(PAYLOAD.t2s&&PAYLOAD.t2s[tn])||'';
+  const from=(PAYLOAD.order||[]).find(s=>(PAYLOAD.s2t[s]||[]).indexOf(tn)>=0)||'';
+  let aliasNote='';
+  const used=[...new Set((expr.match(/\\/\\/#([A-Za-z0-9_]+)#\\//g)||[]).map(x=>x.replace(/\\/\\/#|#\\//g,'')))];
+  used.forEach(a=>{{ if(ALIASES[a]) aliasNote+='<div class="meta">#'+esc(a)+'# \u2192 '+esc(ALIASES[a].module||'')+(ALIASES[a].desc?' ('+esc(ALIASES[a].desc)+')':'')+'</div>'; }});
+  const panel=document.getElementById('panel');
+  if(panel){{
+    panel.innerHTML='<h3>'+esc(tn)+' \u2014 transition</h3>'+
+      '<div class="act"><div class="h">'+esc(from)+' \u2192 '+esc(to)+'</div>'+
+      '<div class="expr">'+esc(expr||'(no expression)')+'</div>'+aliasNote+'</div>';
+  }}
+}}
+
+// ── item 2: hand-drag panning of the SFC (grab to scroll the .diagram box) ──
+function syncSvgWidth(){{
+  // core sizes the SVG with min-width:100% + CSS transform:scale() for zoom.
+  // A CSS transform does NOT grow the container's scrollWidth, so there's no
+  // horizontal scroll range to pan through. We give the SVG an explicit width
+  // equal to viewBoxWidth * currentZoom, so the container can actually scroll
+  // horizontally (and the existing scale transform lines up on top of it).
+  document.querySelectorAll('.block:not(.hidden) svg.sfc').forEach(function(svg){{
+    const vb=(svg.getAttribute('viewBox')||'').split(/\\s+/);
+    const vbw=parseFloat(vb[2])||0, vbh=parseFloat(vb[3])||0; if(!vbw) return;
+    // read the zoom scale core applied via transform:scale(z), then NEUTRALIZE it
+    // (otherwise explicit width + transform would double-scale) and drive both
+    // dimensions by explicit size so the container scrolls on both axes.
+    let z=1; const tr=svg.style.transform||''; const m=tr.match(/scale\\(([-0-9.]+)\\)/); if(m) z=parseFloat(m[1])||1;
+    const dia=svg.closest('.diagram'); const avail=dia?dia.clientWidth:0;
+    if(!avail||avail<50) return;   // not laid out yet — leave core's sizing intact
+    const baseW=avail;   // at zoom 1 the SVG fits the container width (min-width:100%)
+    svg.style.transform='none';
+    svg.style.transformOrigin='0 0';
+    svg.style.minWidth='0';
+    svg.style.width=(baseW*z)+'px';
+    if(vbh) svg.style.height=((baseW*z)*(vbh/vbw))+'px';
+  }});
+}}
+function initPan(){{
+  const dia=document.querySelector('.diagram');
+  if(!dia||dia._panWired) return; dia._panWired=1;
+  syncSvgWidth();
+  // re-sync when zoom buttons are used (core's applyZoom changes the transform)
+  ['zoomIn','zoomOut','zoomReset'].forEach(function(fn){{
+    if(typeof window[fn]==='function' && !window[fn]._wrapped){{
+      const orig=window[fn]; const w=function(){{ orig.apply(this,arguments); setTimeout(syncSvgWidth,0); }};
+      w._wrapped=1; window[fn]=w;
+    }}
+  }});
+  let panning=false, sx=0, sy=0, sl=0, st=0;
+  dia.style.cursor='grab';
+  dia.addEventListener('mousedown',function(e){{
+    if(e.target.closest('.step, .trans, .controls, button, a')) return;  // keep step/trans clicks
+    panning=true; sx=e.clientX; sy=e.clientY; sl=dia.scrollLeft; st=dia.scrollTop;
+    dia.style.cursor='grabbing'; e.preventDefault();
   }});
   window.addEventListener('mousemove',function(e){{
-    if(!dragging) return;
-    let nx=e.clientX-dx, ny=e.clientY-dy;
-    nx=Math.max(4,Math.min(nx,window.innerWidth-60)); ny=Math.max(4,Math.min(ny,window.innerHeight-40));
-    win.style.left=nx+'px'; win.style.top=ny+'px';
+    if(!panning) return;
+    dia.scrollLeft=sl-(e.clientX-sx); dia.scrollTop=st-(e.clientY-sy);
   }});
-  window.addEventListener('mouseup',function(){{ dragging=false; }});
+  window.addEventListener('mouseup',function(){{ if(panning){{ panning=false; dia.style.cursor='grab'; }} }});
+  window.addEventListener('resize',syncSvgWidth);
 }}
 
 // record an operator answer for the SPECIFIC entry the walk is currently paused at,
 // so prior loops' answers persist and a re-entered prompt asks again.
+let shownPromptEntry=null;   // entry index of the prompt currently displayed
 function recordAnswer(step,val){{
-  const entry=(sim.pausedPrompt&&sim.pausedPrompt.step===step)?sim.pausedPrompt.entry:0;
+  // use the entry of the prompt actually on screen (could be a mid-trace loop
+  // prompt reached via Play/Step), falling back to the final pause.
+  let entry=shownPromptEntry;
+  if(entry===null||entry===undefined) entry=(sim.pausedPrompt&&sim.pausedPrompt.step===step)?sim.pausedPrompt.entry:0;
   if(!answers[step]||!answers[step].byEntry) answers[step]={{byEntry:{{}}}};
   answers[step].byEntry[entry]={{input:val}};
 }}
 
 window.SIM={{
-  toggle:function(){{ const w=document.getElementById('sim-win'); const on=w.classList.toggle('open');
+  toggle:function(){{ const d=document.getElementById('sim-dock'); const on=d.classList.toggle('open');
     document.body.classList.toggle('sim-on',on);
-    if(on){{ showRunBlock(); initDrag(); if(!sim){{buildEdit();rewalk();idx=-1;prevWatch={{}};render();}} }} }},
-  minimize:function(){{ const w=document.getElementById('sim-win'); w.classList.toggle('min');
-    document.getElementById('sim-min').textContent=w.classList.contains('min')?'\u25a1':'\u2013'; }},
+    document.getElementById('sim-fab').classList.toggle('hidden',on);
+    if(on){{ showRunBlock(); setMode(curMode); initResize(); initPan(); initTransClick(); if(!sim){{buildEdit();rewalk();idx=-1;prevWatch={{}};render();}} }}
+    else {{ document.body.classList.remove('sim-min','mode-bottom','mode-left','mode-right','mode-float'); }} }},
+  dock:function(mode){{ const wasMin=document.getElementById('sim-dock').classList.contains('min');
+    if(wasMin) SIM.minimize(); setMode(mode); }},
+  minimize:function(){{ const d=document.getElementById('sim-dock'); const m=d.classList.toggle('min');
+    document.body.classList.toggle('sim-min',m);
+    document.getElementById('sim-min').textContent=m?'\u25a1':'\u2013'; }},
   reset:function(){{ stop(); if(countdown){{clearInterval(countdown);countdown=null;}}
     Object.keys(answers).forEach(k=>delete answers[k]);
     Object.keys(overrides).forEach(k=>{{ if(k.indexOf('TM_COMPLETE')>=0) delete overrides[k]; }});
     idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
-  step:function(){{ stop(); stepFwd(); }},
+  step:function(){{ stop(); if(idx>=sim.trace.length-1) idx=-1; stepFwd(); }},
+  back:function(){{ stop(); stepBack(); }},
   play:function(){{ if(timer){{stop();return;}} if(idx>=sim.trace.length-1)idx=-1;
     document.getElementById('sim-play').textContent='\u23f8 Pause'; timer=setInterval(stepFwd,650); }},
   answer:function(step,val){{ recordAnswer(step,val); stop(); rewalk(); }},
