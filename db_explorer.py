@@ -411,6 +411,9 @@ def _nav_badge(key):
             f'{_NAV_ICON.get(key, "")}</svg></span>')
 
 
+_BUILD_ID = "20260702-1956"
+
+
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
                         fbd_names=None, em_views=None, em_names=None,
                         param_index=None, expr_index=None, export_token=None):
@@ -1570,7 +1573,7 @@ function wireFbdLinks(){
   <div class="spacer"></div>
 </nav>
 <header class="topbar">
-  <h1>DeltaV Strategy Workbench</h1><span class="sub">{html.escape(fname)}</span>
+  <h1>DeltaV Strategy Workbench</h1><span class="sub">{html.escape(fname)}</span><span class="sub" style="opacity:.6;margin-left:8px" title="Build identifier — confirms which deployment is live">build {_BUILD_ID}</span>
   <div class="hdr-right">{theme_html}
     <button class="iconbtn" id="themeBtn" title="Toggle light / dark" onclick="toggleMode()">
       <svg id="themeIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
