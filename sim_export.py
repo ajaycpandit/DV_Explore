@@ -86,6 +86,13 @@ def build_payload(text, phase_name):
     # re-snapshot seed AFTER injecting R_ defaults
     seed = {k: _jsonable(v) for k, v in sim.store.items()}
 
+    # Phase (P_) parameters: internal CVs the logic computes/stores during execution.
+    # Some are computed by actions (P_TESTS_PASSED, P_MIN_BUFF_VOL, ...); some are read
+    # by transitions but never computed (a real process/device value the operator must
+    # supply). We surface all of them so the user can SEE computed values and OVERRIDE
+    # the ones the sim can't derive. Classify each as 'computed' or 'input'.
+    p_params = _phase_params(text, phase_name, sim, raw_params)
+
     return {
         'phase': phase_name,
         'seq_key': sim.key,
@@ -99,12 +106,67 @@ def build_payload(text, phase_name):
         'seed': seed,
         'prompts': prompts,
         'r_params': r_params,
+        'p_params': p_params,
         'aliases': _aliases_for(text, sim),
         'timers': sim_timers.detect_timers(
             sim.order, sim.actions,
             {n: list(sim.s2t.get(n, [])) for n in sim.order},
             {tn: sim.trans.get(tn, '') for tn in sim.trans}),
     }
+
+
+def _phase_params(text, phase_name, sim, raw_params):
+    """Collect phase (P_/D_) parameters relevant to this phase's logic, each with:
+      name, key, value (current store value after the initial walk), kind,
+      role ('computed' = written by some action; 'input' = read by a transition but
+      never written, so the operator must supply it), desc/units from the declaration.
+    This lets the UI show computed values AND let the user override inputs the sim
+    can't derive (real process/device readings)."""
+    import re as _re
+    written, read = set(), set()
+    for sn in sim.order:
+        for _q, e in sim.actions.get(sn, []):
+            for m in _re.findall(r"'(\^?/[^']*(?:P_|D_)[A-Z0-9_]+\.CV)'\s*:=", e):
+                written.add(m)
+    for tn, ex in sim.trans.items():
+        for m in _re.findall(r"'(\^?/[^']*(?:P_|D_)[A-Z0-9_]+\.CV)'", ex):
+            read.add(m)
+
+    # declaration metadata (desc/units) keyed by name, from the phase's parameter list
+    meta = {}
+    for p in raw_params:
+        nm = (p.get('name') or '')
+        if nm:
+            meta[nm] = p
+
+    def _name_of(key):
+        m = _re.search(r'/([A-Za-z0-9_]+)\.CV$', key)
+        return m.group(1) if m else key
+
+    out = []
+    seen = set()
+    # union of read+written, but only P_/D_ (skip PENDING/FAILED_CONFIRMS bookkeeping)
+    for key in sorted(read | written):
+        nm = _name_of(key)
+        if nm in seen:
+            continue
+        if nm.endswith('PENDING_CONFIRMS') or nm.endswith('FAILED_CONFIRMS'):
+            continue
+        seen.add(nm)
+        role = 'computed' if key in written else 'input'
+        val = sim.store.get(key)
+        md = meta.get(nm, {})
+        out.append({
+            'name': nm, 'key': key,
+            'value': _jsonable(val) if val is not None else '',
+            'role': role,
+            'kind': _param_kind(md.get('type', '')) if md else 'text',
+            'units': (md.get('units') or '') if md else '',
+            'desc': (md.get('desc') or md.get('description') or '') if md else '',
+        })
+    # inputs first (they need attention), then computed
+    out.sort(key=lambda d: (d['role'] != 'input', d['name']))
+    return out
 
 
 def _aliases_for(text, sim):

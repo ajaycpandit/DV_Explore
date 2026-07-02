@@ -21,6 +21,7 @@
     s = (s || '').replace(/\s+/g, ' ').trim();
     return s.length > 70 ? s.slice(0, 70) + '\u2026' : s;
   }
+  function _full(s) { return (s || '').replace(/\s+/g, ' ').trim(); }
 
   function PhaseSim(payload, opts) {
     this.P = payload;
@@ -87,30 +88,30 @@
           try {
             SE.runActions(body, this.store, this.sets);
             executed++;
-            outcomes.push({ qual: qual || 'N', kind: 'executed', body: _short(body) });
+            outcomes.push({ qual: qual || 'N', kind: 'executed', body: _short(body), full: _full(body) });
           } catch (ex) {
-            outcomes.push({ qual: qual || 'N', kind: 'error', body: _short(body), err: ex.message });
+            outcomes.push({ qual: qual || 'N', kind: 'error', body: _short(body), full: _full(body), err: ex.message });
             this.log.push('      ! action error in ' + step + ': ' + ex.message);
           }
         } else {
           // a bare name under P/N (rare) — treat as a named action activation
           this._activeActions[body] = { since: step };
-          outcomes.push({ qual: qual || 'N', kind: 'named-run', body: _short(body) });
+          outcomes.push({ qual: qual || 'N', kind: 'named-run', body: _short(body), full: _full(body) });
         }
       } else if (qual === 'S') {
         this._activeActions[body] = { since: step };
-        outcomes.push({ qual: 'S', kind: 'activated', body: _short(body) });
+        outcomes.push({ qual: 'S', kind: 'activated', body: _short(body), full: _full(body) });
         this.log.push('      + action SET: ' + body + ' (active from ' + step + ')');
       } else if (qual === 'R') {
         const was = this._activeActions[body];
         delete this._activeActions[body];
-        outcomes.push({ qual: 'R', kind: 'deactivated', body: _short(body),
+        outcomes.push({ qual: 'R', kind: 'deactivated', body: _short(body), full: _full(body),
                         since: was ? was.since : null });
         this.log.push('      - action RESET: ' + body +
                       (was ? ' (was active from ' + was.since + ')' : ''));
       } else {
         // time-qualified or unknown qualifier: record honestly as not-yet-modeled
-        outcomes.push({ qual: qual, kind: 'unmodeled', body: _short(body) });
+        outcomes.push({ qual: qual, kind: 'unmodeled', body: _short(body), full: _full(body) });
         this.log.push('      ~ action qualifier ' + qual + ' not modeled: ' + _short(body));
       }
     }

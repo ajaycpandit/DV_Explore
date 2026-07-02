@@ -137,6 +137,16 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .sim-tabpanel{display:none}
 .sim-tabpanel.on{display:block}
 .sim-tape-legend{font:11px 'IBM Plex Mono';color:#94a3b8;margin-bottom:8px}
+.sim-phint{font-size:11px;color:#7689a0;margin:0 0 8px;line-height:1.4}
+.pp-in{display:inline-block;font:600 9px 'IBM Plex Sans';background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;vertical-align:middle}
+.pp-cmp{display:inline-block;font:600 9px 'IBM Plex Sans';background:#e0f2fe;color:#0369a1;padding:1px 5px;border-radius:4px;vertical-align:middle}
+.sim-aliaslist{font:12px 'IBM Plex Mono';display:flex;flex-direction:column;gap:3px}
+.alias-row{display:flex;align-items:center;gap:7px;padding:2px 0}
+.alias-row .al-a{color:#7c3aed;font-weight:600}
+.alias-row .al-arrow{color:#94a3b8}
+.alias-row .al-t{color:#0369a1;font-weight:600}
+.sim-atoggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#46566b;cursor:pointer;margin-bottom:2px}
+.sim-atoggle input{margin:0}
 /* narrow docks (left/right/float): stack everything, tabs become section headers */
 #sim-dock.dock-left .sim-tabs,#sim-dock.dock-right .sim-tabs,#sim-dock.dock-float .sim-tabs{display:none}
 #sim-dock.dock-left .sim-tabpanel,#sim-dock.dock-right .sim-tabpanel,#sim-dock.dock-float .sim-tabpanel{display:block;margin-bottom:6px}
@@ -187,7 +197,7 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .sim-tape .row.tr{color:#94a3b8;padding-left:18px;font-weight:400}
 .sim-tape .row.tr.cur{background:#eef2ff;color:#4f46e5}
 .sim-tape .row.pr{color:#6d28d9;font-weight:700;padding-left:14px}
-.sim-tape .row.act{color:#64748b;padding-left:20px;font-size:11px;font-weight:400;display:flex;gap:6px;align-items:baseline}
+.sim-tape .row.act{color:#64748b;padding-left:20px;font-size:11px;font-weight:400;display:flex;gap:6px;align-items:baseline;cursor:help}
 .sim-tape .row.act .g{flex-shrink:0;width:12px;display:inline-block;text-align:center}
 .sim-tape .row.act.done .g{color:#10b981}
 .sim-tape .row.act.active .g{color:#0284c7}
@@ -280,6 +290,21 @@ def inject(phase_html, payload):
             <summary>Device / timer levers</summary>
             <div class="body"><div class="sim-edit" id="sim-levers"></div></div>
           </details>
+          <details class="sim-sect" id="sim-psect" open>
+            <summary>Phase parameters (P_ / D_)</summary>
+            <div class="body">
+              <div class="sim-phint">Computed values are shown live from the walk. Inputs the sim can't derive (process/device readings) are editable \u2014 change one to re-drive the sequence.</div>
+              <div class="sim-edit" id="sim-pparams"></div>
+            </div>
+          </details>
+          <details class="sim-sect" id="sim-asect">
+            <summary>Alias resolution (devices driven)</summary>
+            <div class="body">
+              <label class="sim-atoggle"><input type="checkbox" onchange="toggleResolveAliases(this)"> Show resolved device tags in place of #aliases# in the walk</label>
+              <input id="sim-afilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin:7px 0">
+              <div class="sim-aliaslist" id="sim-aliases"></div>
+            </div>
+          </details>
         </div>
         <!-- Steps & Actions tab -->
         <div class="sim-tabpanel" data-t="steps">
@@ -313,6 +338,15 @@ function gStep(s){{ return runBlockEl().querySelector('.step[data-step="'+cssq(s
 function gTrans(t){{ return runBlockEl().querySelector('.trans[data-trans="'+cssq(t)+'"]'); }}
 function cssq(s){{ return String(s).replace(/"/g,'\\\\"'); }}
 function esc(s){{ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }}
+// #ALIAS# -> resolved device tag substitution for display. Toggle via the Alias section.
+let RESOLVE_ALIASES=false;
+function resolveAliasText(s){{
+  if(!RESOLVE_ALIASES || !s) return s;
+  const al=PAYLOAD.aliases||{{}};
+  return String(s).replace(/#([A-Za-z0-9_]+)#/g, function(m,name){{ return al[name]!==undefined?al[name]:m; }});
+}}
+function toggleResolveAliases(cb){{ RESOLVE_ALIASES=!!cb.checked; if(sim) render(); }}
+window.toggleResolveAliases=toggleResolveAliases;
 
 function buildOverrides(){{ const o=Object.assign({{}},overrides); for(const k in heldConfirms)o[k]=heldConfirms[k]; return o; }}
 function rewalk(anchor){{
@@ -388,7 +422,7 @@ function render(){{
         else {{cls+=' done'; glyph='\u2713';}}
         // if a SET action is still active at the CURRENT position, mark it active not done
         if((a.kind==='activated') && curActive.indexOf(a.body)<0){{ cls=cls.replace('active','done'); glyph='\u2713'; }}
-        tape+='<div class="row '+cls+'"><span class="g">'+glyph+'</span><span>'+esc(tag)+esc(a.body||'')+'</span></div>';
+        tape+='<div class="row '+cls+'" title="'+esc(resolveAliasText(a.full||a.body||''))+'"><span class="g">'+glyph+'</span><span>'+esc(tag)+esc(resolveAliasText(a.body||''))+'</span></div>';
       }});
     }} else if(ev.kind==='fire'){{
       // item 3: transitions shown in the bottom panel
@@ -441,9 +475,10 @@ function render(){{
     nd.classList.add(cls==='prompt'?'sim-prompt':(cls==='timer'?'sim-timer':(cls==='wait'?'sim-wait':'sim-active')));
     nd.scrollIntoView&&nd.scrollIntoView({{block:'center',behavior:'smooth'}}); }} }}
 
-  document.getElementById('sim-now').textContent = lastEnter?('at '+lastEnter+(activeActs.length?'  \u00b7 active: '+activeActs.join(', '):'')):'idle';
+  // now-line shows the step only; full action text lives in the Steps & Actions tab (hover to expand)
+  document.getElementById('sim-now').textContent = lastEnter?('at '+lastEnter):'idle';
   const rr=document.getElementById('sim-rerun'); if(rr) rr.style.display=(lastEnter&&idx>=0)?'inline-block':'none';
-  document.getElementById('sim-msg').innerHTML=esc(msg)+(msg2?'<span class="m2">'+esc(msg2)+'</span>':'');
+  document.getElementById('sim-msg').innerHTML=esc(resolveAliasText(msg))+(msg2?'<span class="m2">'+esc(resolveAliasText(msg2))+'</span>':'');
   const s=document.getElementById('sim-status'); s.className='sim-status '+cls; s.textContent=txt;
   // meaningful position: which step we're on out of steps walked (not raw events)
   let stepNum=0, stepTotal=0;
@@ -469,7 +504,7 @@ function render(){{
 }}
 
 function waitingHere(tail){{ return tail.indexOf('waiting')>=0 || tail.indexOf('no outgoing')>=0; }}
-function transAbbr(tn){{ const e=(PAYLOAD.trans[tn]||'').replace(/\\s+/g,' ').trim(); return e.length>46?e.slice(0,46)+'\u2026':e; }}
+function transAbbr(tn){{ const e=resolveAliasText((PAYLOAD.trans[tn]||'').replace(/\\s+/g,' ').trim()); return e.length>46?e.slice(0,46)+'\u2026':e; }}
 // a fire is a loop-back if its target step was already entered earlier in the trace
 function isLoopBack(T,k){{
   const to=T[k].to; if(!to) return false;
@@ -552,7 +587,39 @@ function buildLevers(){{
     document.getElementById(id).addEventListener('change',function(){{ overrides[key]=readWidget(this,kind); stop(); rewalk(); }});
   }});
 }}
-function buildEdit(){{ buildRParams(''); buildLevers();
+function buildPParams(){{
+  const el=document.getElementById('sim-pparams'); if(!el) return; el.innerHTML='';
+  const pp=PAYLOAD.p_params||[];
+  if(!pp.length){{ el.innerHTML='<div class="sim-phint">No phase parameters referenced by this phase\\'s logic.</div>'; return; }}
+  pp.forEach(function(p){{
+    const id='p_'+p.name.replace(/[^A-Za-z0-9]/g,'_');
+    // live value: an override wins; else the current computed value from the walk
+    // (sim.store reflects values computed up to the end of the walk); else seed.
+    let live=(sim&&sim.store&&(p.key in sim.store))?sim.store[p.key]:undefined;
+    let cur=(p.key in overrides)?overrides[p.key]
+            :(live!==undefined?live
+            :(PAYLOAD.seed[p.key]!==undefined?PAYLOAD.seed[p.key]:p.value));
+    const isInput=(p.role==='input');
+    const tag=isInput?'<span class="pp-in">input</span>':'<span class="pp-cmp">computed</span>';
+    const unit=p.units?(' <span style="color:#94a3b8">'+esc(p.units)+'</span>'):'';
+    const title=esc(p.key)+(p.desc?(' \\u2014 '+esc(p.desc)):'');
+    el.insertAdjacentHTML('beforeend','<label title="'+title+'">'+tag+' '+esc(p.name)+unit+'</label>'+widgetFor(p.key,p.kind||'text',cur,null,id));
+    document.getElementById(id).addEventListener('change',function(){{ overrides[p.key]=readWidget(this,p.kind||'text'); stop(); rewalk(); }});
+  }});
+}}
+function buildAliases(filter){{
+  const el=document.getElementById('sim-aliases'); if(!el) return; el.innerHTML='';
+  const al=PAYLOAD.aliases||{{}};
+  const keys=Object.keys(al); const f=(filter||'').toLowerCase();
+  if(!keys.length){{ el.innerHTML='<div class="sim-phint">No alias resolutions for this unit.</div>'; return; }}
+  keys.sort().forEach(function(a){{
+    const tgt=al[a];
+    if(f && a.toLowerCase().indexOf(f)<0 && String(tgt).toLowerCase().indexOf(f)<0) return;
+    el.insertAdjacentHTML('beforeend','<div class="alias-row"><code class="al-a">#'+esc(a)+'#</code><span class="al-arrow">\\u2192</span><code class="al-t">'+esc(tgt)+'</code></div>');
+  }});
+}}
+function buildEdit(){{ buildRParams(''); buildLevers(); buildPParams(); buildAliases('');
+  const af=document.getElementById('sim-afilter'); if(af&&!af._wired){{ af._wired=1; af.addEventListener('input',function(){{buildAliases(this.value);}}); }}
   const ff=document.getElementById('sim-rfilter'); if(ff&&!ff._wired){{ ff._wired=1; ff.addEventListener('input',function(){{buildRParams(this.value);}}); }}
 }}
 function truthy(v){{ return v===true||v==='True'||(typeof v==='number'&&v!==0)||(typeof v==='string'&&v!==''&&v!=='0'&&v!=='False'); }}
@@ -739,6 +806,14 @@ window.SIM={{
     var col=btn.closest('.sim-tab-col'); if(!col) return;
     col.querySelectorAll('.sim-tab').forEach(function(t){{t.classList.toggle('on',t===btn);}});
     col.querySelectorAll('.sim-tabpanel').forEach(function(p){{p.classList.toggle('on',p.dataset.t===which);}});
+    // when opening Steps & Actions, jump to the current step so the operator sees
+    // where the walk is rather than the top of a long tape.
+    if(which==='steps'){{
+      setTimeout(function(){{
+        var cur=col.querySelector('.sim-tape .row.cur');
+        if(cur&&cur.scrollIntoView) cur.scrollIntoView({{block:'center'}});
+      }},20);
+    }}
   }},
   toggle:function(){{ const d=document.getElementById('sim-dock'); const on=d.classList.toggle('open');
     document.body.classList.toggle('sim-on',on);
@@ -754,9 +829,20 @@ window.SIM={{
     Object.keys(answers).forEach(k=>delete answers[k]);
     Object.keys(overrides).forEach(k=>{{ if(k.indexOf('TM_COMPLETE')>=0) delete overrides[k]; }});
     idx=-1; prevWatch={{}}; rewalk(); idx=-1; render(); }},
-  step:function(){{ stop(); if(idx>=sim.trace.length-1) idx=-1; stepFwd(); }},
+  _waitingForPrompt:function(){{
+    if(!sim) return false;
+    if(idx < sim.trace.length-1) return false;
+    if(sim.pausedPrompt) return true;
+    const ev=sim.trace[idx];
+    return !!(ev && ev.kind==='prompt');
+  }},
+  step:function(){{ stop();
+    if(this._waitingForPrompt()) return;
+    if(idx>=sim.trace.length-1) idx=-1; stepFwd(); }},
   back:function(){{ stop(); stepBack(); }},
-  play:function(){{ if(timer){{stop();return;}} if(idx>=sim.trace.length-1)idx=-1;
+  play:function(){{ if(timer){{stop();return;}}
+    if(this._waitingForPrompt()) return;
+    if(idx>=sim.trace.length-1)idx=-1;
     document.getElementById('sim-play').textContent='\u23f8 Pause'; timer=setInterval(stepFwd,650); }},
   answer:function(step,val){{ recordAnswer(step,val); stop(); rewalk(); }},
   rerunStep:function(){{
