@@ -138,7 +138,7 @@ function fbdSetLayout(btn,which){
 
 
 
-def build_fbd_views(text):
+def build_fbd_views(text, only=None):
     """Return {object_name: fbd_view_html} for every module/composite/composite-
     definition in the export that contains a function block diagram. This
     includes nested composite definitions (e.g. C_C_ML_V01) so the explorer can
@@ -151,6 +151,8 @@ def build_fbd_views(text):
     comp_names = {o['name'] for o in objs if o['kind'] == 'FUNCTION_BLOCK_DEFINITION'}
     for o in objs:
         name = o['name']
+        if only is not None and name != only:
+            continue
         fbd = fbd_parser.parse_module_fbd(text, name)
         if not fbd or not fbd['blocks']:
             continue
@@ -158,6 +160,11 @@ def build_fbd_views(text):
             b['is_composite'] = b['definition'] in comp_names
         views[name] = build_fbd_view_html(fbd)
     return views
+
+
+def list_fbd_names(text):
+    """Names of objects that have an FBD view (for lazy loading), without building them."""
+    return [o['name'] for o in fbd_parser.list_fbd_objects(text)]
 
 
 def build_param_index(text):

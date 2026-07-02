@@ -113,15 +113,20 @@ def build_phase_view_html(phase_name, blocks, text=None):
     return _fix_sfc_chrome(sfc_html.build_sfc_html(blocks, phase_name))
 
 
-def phase_view_map(text, with_sim=True):
+def phase_view_map(text, with_sim=True, only=None):
     """Return {phase_name: interactive_html} for all phases in the export.
 
     When with_sim is True, each phase view gets the interactive simulator overlay
     (Simulate button -> live walk over the real SFC, operator-prompt handling).
     The overlay is injected post-render and falls back silently if the phase has
     no steppable RUN sequence, so the explorer is unaffected on failure.
+
+    If `only` is given, build just that one phase (used by the lazy /phase_view
+    route so large exports don't pay to build every phase up front).
     """
     phases = parse_phases_from_export(text)
+    if only is not None:
+        phases = {k: v for k, v in phases.items() if k == only}
     out = {}
     for pname, blocks in phases.items():
         try:

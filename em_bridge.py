@@ -222,20 +222,30 @@ pick('{html.escape(first)}');
 </script></body></html>""".replace('__D__', data)
 
 
-def build_em_views(text):
+def build_em_views(text, only=None):
     """Return {em_name: {fbd, state, cms}} for every EM in the export, for the
-    explorer's EM leaves."""
+    explorer's EM leaves. If `only` is given, build just that one EM (and only
+    its FBD), which is dramatically cheaper on large exports."""
     ems, cms = em_modules(text)
-    fbd_views = fbd_bridge.build_fbd_views(text)
+    if only is not None:
+        ems = [e for e in ems if e['name'] == only]
     out = {}
     for em in ems:
         name = em['name']
+        # build only this EM's FBD, not every FBD in the export
+        fbd_one = fbd_bridge.build_fbd_views(text, only=name)
         out[name] = {
-            'fbd': fbd_views.get(name, ''),
+            'fbd': fbd_one.get(name, ''),
             'state': command_state_html(text, name),
             'cms': cms,
         }
     return out
+
+
+def list_em_names(text):
+    """EM names for lazy loading, without building any views."""
+    ems, _ = em_modules(text)
+    return [e['name'] for e in ems]
 
 
 def build_em_leaf(text, em_name):

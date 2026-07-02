@@ -392,12 +392,18 @@ def _nav_badge(key):
             f'{_NAV_ICON.get(key, "")}</svg></span>')
 
 
-def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_views=None,
+def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
+                        fbd_names=None, em_views=None, em_names=None,
                         param_index=None, expr_index=None, export_token=None):
-    """phase_views: optional {phase_name: interactive_html} to embed as drill-down
-    leaf views for Phase Class objects."""
+    """phase_names/fbd_names/em_names: lists of objects available for lazy drill-down
+    (built on click via /phase_view, /fbd_view, /em_view). The *_views maps are the
+    legacy eager form, still accepted as a fallback."""
     phase_views = phase_views or {}
+    phase_names = phase_names or list(phase_views.keys())
     fbd_views = fbd_views or {}
+    fbd_names = fbd_names or list(fbd_views.keys())
+    em_views = em_views or {}
+    em_names = em_names or list(em_views.keys())
     em_views = em_views or {}
     summary = {
         'Areas': len(catalog['areas']),
@@ -459,8 +465,11 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
                             'module_params': catalog.get('module_params', {}),
                             'area_tree': catalog.get('area_tree', {})})
     phase_views_json = json.dumps(phase_views)
+    phase_names_json = json.dumps(phase_names)
     s88_svg_json = json.dumps(s88_model.build_s88_svg())
     fbd_views_json = json.dumps(fbd_views)
+    fbd_names_json = json.dumps(fbd_names)
+    em_names_json = json.dumps(em_names)
     em_views_json = json.dumps(em_views)
     param_index_json = json.dumps(param_index or {})
     expr_index_json = json.dumps(expr_index or [])
@@ -468,7 +477,10 @@ def build_explorer_html(catalog, fname, phase_views=None, fbd_views=None, em_vie
     js = """
 const DB = __DATA__;
 const PHASE_VIEWS = __PHASE_VIEWS__;
+const PHASE_NAMES = __PHASE_NAMES__;
 const FBD_VIEWS = __FBD_VIEWS__;
+const FBD_NAMES = __FBD_NAMES__;
+const EM_NAMES = __EM_NAMES__;
 const EM_VIEWS = __EM_VIEWS__;
 const PARAM_INDEX = __PARAM_INDEX__;
 const EXPR_INDEX = __EXPR_INDEX__;
@@ -781,9 +793,18 @@ function renderObj(id){
        + '<span><i style="background:var(--st-warn)"></i>Fault monitor</span>'
        + '<span><i style="background:var(--edge-reset)"></i>Reset path</span></div></div>';
     }
-    if(PHASE_VIEWS[o.name]){
+    var _hasEager = PHASE_VIEWS[o.name];
+    var _hasLazy = (typeof PHASE_NAMES!=='undefined') && PHASE_NAMES.indexOf(o.name)>=0;
+    if(_hasEager){
       h+='<div class="card" style="max-width:none"><h3>Phase logic — interactive</h3>';
       h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
+      h+='</div>';
+    } else if(_hasLazy && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+      // lazy: fetch this phase's interactive view on demand (built server-side only
+      // when opened, so large exports don't render every phase up front)
+      var _src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(o.name);
+      h+='<div class="card" style="max-width:none"><h3>Phase logic — interactive</h3>';
+      h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" loading="lazy"></iframe>';
       h+='</div>';
     } else {
       h+='<div class="card"><h3>Phase logic</h3><span class="empty">No parsed logic available for this phase in this export.</span></div>';
@@ -794,6 +815,9 @@ function renderObj(id){
     if(FBD_VIEWS[o.name]){
       h+='<div class="card" style="max-width:none">'+FBD_VIEWS[o.name]+'</div>';
       setTimeout(wireFbdLinks, 0);
+    } else if(typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(o.name)>=0 && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+      h+='<div class="card" style="max-width:none" id="fbdLazy"><h3>Detail</h3><span class="empty">Loading diagram…</span></div>';
+      (function(nm){ setTimeout(function(){ lazyFbd(nm); },0); })(o.name);
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No function block diagram in this export (this object may be an expression/action block or referenced type).</span></div>';
     }
@@ -809,21 +833,11 @@ function renderObj(id){
     }
     const ev=EM_VIEWS[o.name];
     if(ev){
-      h+='<div class="card" style="max-width:none">';
-      h+='<div class="emtabs">';
-      h+='<button class="emtab on" data-e="fb" onclick="emTab(this,\\'fb\\')">Function Blocks</button>';
-      if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">'+(stateSet?'State Table':'Command Logic')+'</button>';
-      if(ev.cms&&ev.cms.length) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+ev.cms.length+')</button>';
-      h+='</div>';
-      h+='<div class="empanel on" data-e="fb" id="empanel_fb">'+(ev.fbd||'<span class="empty">No function block layer.</span>')+'</div>';
-      if(ev.state) h+='<div class="empanel" data-e="state"><iframe class="phaseframe" srcdoc="'+ev.state.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe></div>';
-      if(ev.cms&&ev.cms.length){
-        h+='<div class="empanel" data-e="cms"><div class="chips">';
-        ev.cms.forEach(c=>{h+='<span class="chip" onclick="show(\\'cm:'+esc(c.name)+'\\')">'+esc(c.name)+' · '+c.n_blocks+' blocks</span>';});
-        h+='</div></div>';
-      }
-      h+='</div>';
+      h+=renderEmPanel(ev, stateSet);
       setTimeout(wireFbdLinks,0);
+    } else if(typeof EM_NAMES!=='undefined' && EM_NAMES.indexOf(o.name)>=0 && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+      h+='<div class="card" style="max-width:none" id="emLazy"><h3>Equipment Module</h3><span class="empty">Loading equipment module…</span></div>';
+      (function(nm,ss){ setTimeout(function(){ lazyEm(nm,ss); },0); })(o.name, stateSet);
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No parsed EM view available in this export.</span></div>';
     }
@@ -863,7 +877,48 @@ function show(id){
   if(id && id.indexOf('inst:')===0){ var iid=id.slice(5); if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); return; }
   if(DB.objs[id]) navTo({k:'obj',id:id});
 }
-function showFbd(def,label){ if(FBD_VIEWS[def]) navTo({k:'fbd',def:def,label:label}); }
+function showFbd(def,label){ if(FBD_VIEWS[def] || (typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(def)>=0)) navTo({k:'fbd',def:def,label:label}); }
+
+// ── lazy view loaders (large exports don't build FBD/EM views up front) ──
+function renderEmPanel(ev, stateSet){
+  var h='<div class="card" style="max-width:none">';
+  h+='<div class="emtabs">';
+  h+='<button class="emtab on" data-e="fb" onclick="emTab(this,\\'fb\\')">Function Blocks</button>';
+  if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">'+(stateSet?'State Table':'Command Logic')+'</button>';
+  if(ev.cms&&ev.cms.length) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+ev.cms.length+')</button>';
+  h+='</div>';
+  h+='<div class="empanel on" data-e="fb" id="empanel_fb">'+(ev.fbd||'<span class="empty">No function block layer.</span>')+'</div>';
+  if(ev.state) h+='<div class="empanel" data-e="state"><iframe class="phaseframe" srcdoc="'+ev.state.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe></div>';
+  if(ev.cms&&ev.cms.length){
+    h+='<div class="empanel" data-e="cms"><div class="chips">';
+    ev.cms.forEach(function(c){h+='<span class="chip" onclick="show(\\'cm:'+esc(c.name)+'\\')">'+esc(c.name)+' · '+c.n_blocks+' blocks</span>';});
+    h+='</div></div>';
+  }
+  h+='</div>';
+  return h;
+}
+function lazyEm(name, stateSet){
+  var box=document.getElementById('emLazy');
+  fetch('/em_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(name))
+    .then(function(r){return r.json();})
+    .then(function(ev){
+      if(!box) box=document.getElementById('emLazy');
+      if(ev && !ev.error){ EM_VIEWS[name]=ev; if(box){ box.outerHTML=renderEmPanel(ev, stateSet); setTimeout(wireFbdLinks,0);} }
+      else if(box){ box.innerHTML='<h3>Detail</h3><span class="empty">Could not load EM view'+(ev&&ev.error?': '+ev.error:'')+'.</span>'; }
+    })
+    .catch(function(){ if(box) box.innerHTML='<h3>Detail</h3><span class="empty">Could not load EM view.</span>'; });
+}
+function lazyFbd(name){
+  var box=document.getElementById('fbdLazy');
+  fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(name))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!box) box=document.getElementById('fbdLazy');
+      if(d && d.html){ FBD_VIEWS[name]=d.html; if(box){ box.outerHTML='<div class="card" style="max-width:none">'+d.html+'</div>'; setTimeout(wireFbdLinks,0);} }
+      else if(box){ box.innerHTML='<h3>Detail</h3><span class="empty">Could not load diagram'+(d&&d.error?': '+d.error:'')+'.</span>'; }
+    })
+    .catch(function(){ if(box) box.innerHTML='<h3>Detail</h3><span class="empty">Could not load diagram.</span>'; });
+}
 function showParam(name){ if(PARAM_INDEX[name]) navTo({k:'param',name:name}); }
 function showInst(parent,tag){ var iid=parent+'\\u0001'+tag; if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); }
 function showDeployed(tag){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag}); }
@@ -872,7 +927,7 @@ function showDeployed(tag){ if(DB.deployed_modules&&DB.deployed_modules[tag]) na
 function modLink(name){
   var c=['em:'+name,'cm:'+name,'composite:'+name,'uclass:'+name,'phase:'+name];
   for(var i=0;i<c.length;i++){ if(DB.objs[c[i]]) return '<span class="link" onclick="show(\\''+c[i]+'\\')">'+esc(name)+'</span>'; }
-  if(FBD_VIEWS[name]) return '<span class="link" onclick="showFbd(\\''+esc(name)+'\\',\\''+esc(name)+'\\')">'+esc(name)+'</span>';
+  if(FBD_VIEWS[name] || (typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(name)>=0)) return '<span class="link" onclick="showFbd(\\''+esc(name)+'\\',\\''+esc(name)+'\\')">'+esc(name)+'</span>';
   return esc(name);
 }
 
@@ -907,7 +962,7 @@ function renderParam(name){
 function viewClass(cls){
   var c=['cm:'+cls,'composite:'+cls,'em:'+cls,'uclass:'+cls];
   for(var i=0;i<c.length;i++){ if(DB.objs[c[i]]){ show(c[i]); return; } }
-  if(FBD_VIEWS[cls]) showFbd(cls,cls);
+  if(FBD_VIEWS[cls] || (typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(cls)>=0)) showFbd(cls,cls);
 }
 
 // ── CM instance card: identity + class link + siblings + inherited values ──
@@ -988,16 +1043,24 @@ function renderDeployed(tag){
 
 // FBD composite drill-down: clicking a composite block/link shows its diagram.
 function renderFbd(defName, label){
-  if(!FBD_VIEWS[defName]){return;}
   const d=document.getElementById('detail');
-  let h='<h2 class="dt">'+esc(label||defName)+'</h2>';
-  h+='<span class="dt-type b-composite">Composite Definition</span>';
-  const back = VIEW_STACK.length>1 ? ' <span class="link" onclick="goBack()">← back</span>' : '';
-  h+='<p class="dt-desc">Nested composite inside the parent module.'+back+'</p>';
-  h+='<div class="card" style="max-width:none">'+FBD_VIEWS[defName]+'</div>';
-  d.innerHTML=h;
-  d.scrollTop=0;
-  wireFbdLinks();
+  function paint(){
+    let h='<h2 class="dt">'+esc(label||defName)+'</h2>';
+    h+='<span class="dt-type b-composite">Composite Definition</span>';
+    const back = VIEW_STACK.length>1 ? ' <span class="link" onclick="goBack()">← back</span>' : '';
+    h+='<p class="dt-desc">Nested composite inside the parent module.'+back+'</p>';
+    h+='<div class="card" style="max-width:none">'+FBD_VIEWS[defName]+'</div>';
+    d.innerHTML=h; d.scrollTop=0; wireFbdLinks();
+  }
+  if(FBD_VIEWS[defName]){ paint(); return; }
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+    d.innerHTML='<h2 class="dt">'+esc(label||defName)+'</h2><p class="dt-desc"><span class="empty">Loading diagram…</span></p>';
+    fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(defName))
+      .then(function(r){return r.json();})
+      .then(function(x){ if(x&&x.html){ FBD_VIEWS[defName]=x.html; paint(); }
+        else { d.innerHTML='<p class="dt-desc"><span class="empty">Could not load diagram.</span></p>'; } })
+      .catch(function(){ d.innerHTML='<p class="dt-desc"><span class="empty">Could not load diagram.</span></p>'; });
+  }
 }
 function emTab(btn,which){
   const card=btn.closest('.card');
@@ -1025,6 +1088,9 @@ function wireFbdLinks(){
         return s.replace('</', '<\\/')
     js = (js.replace('__DATA__', _script_safe(data_json))
             .replace('__PHASE_VIEWS__', _script_safe(phase_views_json))
+            .replace('__PHASE_NAMES__', _script_safe(phase_names_json))
+            .replace('__FBD_NAMES__', _script_safe(fbd_names_json))
+            .replace('__EM_NAMES__', _script_safe(em_names_json))
             .replace('__FBD_VIEWS__', _script_safe(fbd_views_json))
             .replace('__EM_VIEWS__', _script_safe(em_views_json))
             .replace('__PARAM_INDEX__', _script_safe(param_index_json))

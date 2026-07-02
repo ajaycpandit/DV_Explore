@@ -17,17 +17,22 @@ import re
 
 def _extract_block(text, start):
     i = text.index('{', start)
-    depth = 0
     s = i
-    while i < len(text):
-        if text[i] == '{':
+    depth = 0
+    find = text.find
+    while True:
+        nb = find('{', i)
+        nc = find('}', i)
+        if nc == -1:
+            return ''
+        if nb != -1 and nb < nc:
             depth += 1
-        elif text[i] == '}':
+            i = nb + 1
+        else:
             depth -= 1
             if depth == 0:
-                return text[s:i + 1]
-        i += 1
-    return ''
+                return text[s:nc + 1]
+            i = nc + 1
 
 
 # Basic DeltaV function block types (everything else is treated as a composite)

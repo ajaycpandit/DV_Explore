@@ -15,7 +15,7 @@ import os
 import re
 import secrets
 import tempfile
-from flask import Flask, request, send_file, Response, abort
+from flask import Flask, request, send_file, Response, abort, jsonify
 
 import db_parser
 import db_explorer
@@ -112,6 +112,14 @@ button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:10px;backg
 button:hover{filter:brightness(1.06)}
 button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .fn{margin-top:14px;color:var(--link);font-size:13px;text-align:center;word-break:break-all;font-family:'IBM Plex Mono'}
+.prog{margin-top:16px;display:none}
+.prog.on{display:block}
+.prog .bar{height:8px;border-radius:6px;background:var(--border);overflow:hidden;position:relative}
+.prog .fill{height:100%;width:0;background:var(--accent);border-radius:6px;transition:width .15s ease}
+.prog.indet .fill{width:40%;border-radius:6px;animation:dvslide 1.1s ease-in-out infinite}
+@keyframes dvslide{0%{margin-left:-40%}100%{margin-left:100%}}
+.prog .lbl{margin-top:8px;font-size:12px;color:var(--ink-2);text-align:center;font-family:'IBM Plex Mono'}
+.prog .lbl .pct{color:var(--ink);font-weight:600}
 .note{margin-top:18px;color:var(--ink-3);font-size:12px;text-align:center;line-height:1.5}
 .note a{color:var(--link);text-decoration:none;font-weight:600}
 .note a:hover{text-decoration:underline}
@@ -138,6 +146,10 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
     </label>
     <div class="fn" id="fn"></div>
     <button type="submit" id="btn" disabled>Open in Explorer</button>
+    <div class="prog" id="prog">
+      <div class="bar"><div class="fill" id="fill"></div></div>
+      <div class="lbl" id="plbl"><span class="pct" id="ppct">0%</span> uploading…</div>
+    </div>
   </form>
   <div class="divider"></div>
   <div class="note">Large exports (e.g. a full area, 30&nbsp;MB) may take a minute to parse.</div>
@@ -151,7 +163,49 @@ var drop=document.getElementById('drop');
 ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.style.borderColor='var(--accent)';}));
 ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.style.borderColor='';}));
 drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files.length){fi.files=ev.dataTransfer.files;fn.textContent=ev.dataTransfer.files[0].name;btn.disabled=false;}});
-document.getElementById('f').addEventListener('submit',function(){btn.disabled=true;btn.textContent='Opening…';});
+document.getElementById('f').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  if(!fi.files.length) return;
+  var prog=document.getElementById('prog'), fill=document.getElementById('fill'),
+      ppct=document.getElementById('ppct'), plbl=document.getElementById('plbl');
+  btn.disabled=true; btn.textContent='Opening…';
+  prog.classList.add('on'); prog.classList.remove('indet');
+  fill.style.width='0'; ppct.textContent='0%';
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST','/explore',true);
+  // upload phase: real byte progress
+  xhr.upload.addEventListener('progress',function(e){
+    if(e.lengthComputable){
+      var p=Math.round(e.loaded/e.total*100);
+      fill.style.width=p+'%'; ppct.textContent=p+'%';
+      if(p>=100){ // upload done -> server is now parsing (no granular signal)
+        prog.classList.add('indet');
+        plbl.innerHTML='<span class="pct">Parsing</span> the export — this can take a moment for large files…';
+      }
+    }
+  });
+  xhr.addEventListener('load',function(){
+    if(xhr.status===200){
+      plbl.innerHTML='<span class="pct">Done</span> — loading explorer…';
+      // replace the whole document with the returned explorer HTML
+      document.open(); document.write(xhr.responseText); document.close();
+    } else {
+      prog.classList.remove('indet');
+      fill.style.background='#dc2626'; fill.style.width='100%';
+      plbl.innerHTML='<span class="pct" style="color:#dc2626">Error '+xhr.status+'</span> — '+
+        (xhr.status===504||xhr.status===502?'the server timed out parsing this file.':'could not parse this export.');
+      btn.disabled=false; btn.textContent='Open in Explorer';
+    }
+  });
+  xhr.addEventListener('error',function(){
+    prog.classList.remove('indet');
+    fill.style.background='#dc2626'; fill.style.width='100%';
+    plbl.innerHTML='<span class="pct" style="color:#dc2626">Network error</span> — upload failed.';
+    btn.disabled=false; btn.textContent='Open in Explorer';
+  });
+  var fd=new FormData(); fd.append('file', fi.files[0]);
+  xhr.send(fd);
+});
 var SUN='<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';
 var MOON='<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
 function tgl(){var d=document.documentElement,m=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=m;
@@ -175,42 +229,90 @@ def index():
 
 @app.route('/explore', methods=['POST'])
 def explore():
+    import time, traceback
+    t_start = time.time()
     f = request.files.get('file')
     if not f:
         return "No file uploaded.", 400
     raw = f.read()
     fname = (f.filename or 'export.fhx').rsplit('.', 1)[0]
-    text = db_parser.decode_fhx(raw)
 
-    catalog = db_parser.parse_database(text)
-    export_token = _stash_fhx(text)
+    try:
+        text = db_parser.decode_fhx(raw)
+    except Exception as e:
+        app.logger.exception('decode failed')
+        return _explore_error('Could not decode the file', e, fname), 500
 
-    phase_views = {}
+    try:
+        catalog = db_parser.parse_database(text)
+    except Exception as e:
+        app.logger.exception('parse_database failed')
+        return _explore_error('Could not parse the database catalog', e, fname), 500
+
+    try:
+        export_token = _stash_fhx(text)
+    except Exception:
+        app.logger.exception('stash failed (non-fatal)')
+        export_token = ''
+
+    # Phase views are now built lazily (per-phase, on click) via /phase_view, so a
+    # large export no longer pays to render every phase up front. We embed only the
+    # list of phase names the explorer can drill into.
+    phase_names = []
     if _HAS_PHASE:
         try:
-            phase_views = phase_bridge.phase_view_map(text)
+            phase_names = list(phase_bridge.parse_phases_from_export(text).keys())
         except Exception:
-            phase_views = {}   # explorer still works without drill-down
+            app.logger.exception('phase name list failed (non-fatal)')
+            phase_names = []
 
-    fbd_views, em_views, param_index, expr_index = {}, {}, {}, []
+    fbd_names, em_names, param_index, expr_index = [], [], {}, []
     try:
         import fbd_bridge
-        fbd_views = fbd_bridge.build_fbd_views(text)
+        fbd_names = fbd_bridge.list_fbd_names(text)
         _ix = fbd_bridge.build_indexes(text)
         param_index, expr_index = _ix['params'], _ix['exprs']
     except Exception:
-        fbd_views = {}
+        app.logger.exception('fbd index failed (non-fatal)')
+        fbd_names = []
     try:
         import em_bridge
-        em_views = em_bridge.build_em_views(text)
+        em_names = em_bridge.list_em_names(text)
     except Exception:
-        em_views = {}
+        app.logger.exception('em names failed (non-fatal)')
+        em_names = []
 
-    html = db_explorer.build_explorer_html(catalog, fname, phase_views=phase_views,
-                                           fbd_views=fbd_views, em_views=em_views,
-                                           param_index=param_index, expr_index=expr_index,
-                                           export_token=export_token)
+    try:
+        html = db_explorer.build_explorer_html(catalog, fname, phase_names=phase_names,
+                                               fbd_names=fbd_names, em_names=em_names,
+                                               param_index=param_index, expr_index=expr_index,
+                                               export_token=export_token)
+    except Exception as e:
+        app.logger.exception('build_explorer_html failed')
+        return _explore_error('Could not render the explorer', e, fname), 500
+
+    app.logger.info('explore OK: %s in %.1fs (%d phases, %.1f MB out)',
+                    fname, time.time() - t_start, len(phase_names), len(html) / 1e6)
     return Response(html, mimetype='text/html')
+
+
+def _explore_error(what, exc, fname):
+    """Return a readable error page instead of a bare 500, so the cause is visible."""
+    import html as _h
+    msg = _h.escape(f'{type(exc).__name__}: {exc}')
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<title>Parse error</title>'
+        '<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:60px auto;'
+        'padding:0 20px;color:#16202c;line-height:1.5}h1{font-size:20px}'
+        '.err{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px;'
+        'font-family:monospace;font-size:13px;color:#991b1b;white-space:pre-wrap;word-break:break-word}'
+        'a{color:#1d4ed8}</style></head><body>'
+        f'<h1>{_h.escape(what)}</h1>'
+        f'<p>The file <b>{_h.escape(fname)}</b> could not be fully processed.</p>'
+        f'<div class="err">{msg}</div>'
+        '<p><a href="/">&larr; Try another file</a></p></body></html>'
+    )
 
 
 def _extract_object_fhx(text, obj):
@@ -228,6 +330,63 @@ def _extract_object_fhx(text, obj):
     if not m:
         return None
     return db_parser.extract_block(text, m.start())
+
+
+@app.route('/fbd_view')
+def fbd_view():
+    """Lazily build one CM/composite FBD view on demand (JSON: {name, html})."""
+    import html as _h
+    token = request.args.get('t', ''); name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import fbd_bridge
+        fv = fbd_bridge.build_fbd_views(text, only=name)
+        return jsonify({'name': name, 'html': fv.get(name, '')})
+    except Exception as e:
+        app.logger.exception('fbd_view failed')
+        return jsonify({'error': _h.escape(str(e))})
+
+
+@app.route('/em_view')
+def em_view():
+    """Lazily build one EM view on demand (JSON: {fbd, state, cms})."""
+    import html as _h
+    token = request.args.get('t', ''); name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import em_bridge
+        ev = em_bridge.build_em_views(text, only=name)
+        return jsonify(ev.get(name) or {'error': 'not found'})
+    except Exception as e:
+        app.logger.exception('em_view failed')
+        return jsonify({'error': _h.escape(str(e))})
+
+
+@app.route('/phase_view')
+def phase_view():
+    """Lazily build a single phase's interactive view on demand, so /explore
+    doesn't have to build every phase up front (the big cost on large exports)."""
+    import html as _h
+    token = request.args.get('t', '')
+    name = request.args.get('p', '')
+    text = _read_stash(token)
+    if not text:
+        return Response('<p>Session expired — please re-open the export.</p>', mimetype='text/html')
+    if not _HAS_PHASE:
+        return Response('<p>Phase view unavailable.</p>', mimetype='text/html')
+    try:
+        vm = phase_bridge.phase_view_map(text, only=name)
+        htmlv = vm.get(name)
+        if not htmlv:
+            return Response(f'<p>Phase "{_h.escape(name)}" not found.</p>', mimetype='text/html')
+        return Response(htmlv, mimetype='text/html')
+    except Exception as e:
+        app.logger.exception('phase_view failed')
+        return Response(f'<p>Could not build phase view: {_h.escape(str(e))}</p>', mimetype='text/html')
 
 
 @app.route('/export')
