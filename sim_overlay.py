@@ -145,6 +145,7 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .alias-row .al-a{color:#7c3aed;font-weight:600}
 .alias-row .al-arrow{color:#94a3b8}
 .alias-row .al-t{color:#0369a1;font-weight:600}
+.alias-row .al-d{color:#94a3b8;font-size:11px;margin-left:4px}
 .sim-atoggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#46566b;cursor:pointer;margin-bottom:2px}
 .sim-atoggle input{margin:0}
 /* narrow docks (left/right/float): stack everything, tabs become section headers */
@@ -297,7 +298,7 @@ def inject(phase_html, payload):
               <div class="sim-edit" id="sim-pparams"></div>
             </div>
           </details>
-          <details class="sim-sect" id="sim-asect">
+          <details class="sim-sect" id="sim-asect" open>
             <summary>Alias resolution (devices driven)</summary>
             <div class="body">
               <label class="sim-atoggle"><input type="checkbox" onchange="toggleResolveAliases(this)"> Show resolved device tags in place of #aliases# in the walk</label>
@@ -340,10 +341,17 @@ function cssq(s){{ return String(s).replace(/"/g,'\\\\"'); }}
 function esc(s){{ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }}
 // #ALIAS# -> resolved device tag substitution for display. Toggle via the Alias section.
 let RESOLVE_ALIASES=false;
+// alias entries are {{desc, module}} objects; some tables store a bare string. Pull
+// the resolved device tag out of whichever shape we get.
+function aliasTag(v){{
+  if(v===undefined||v===null) return undefined;
+  if(typeof v==='string') return v;
+  return v.module||v.value||v.tag||undefined;
+}}
 function resolveAliasText(s){{
   if(!RESOLVE_ALIASES || !s) return s;
   const al=PAYLOAD.aliases||{{}};
-  return String(s).replace(/#([A-Za-z0-9_]+)#/g, function(m,name){{ return al[name]!==undefined?al[name]:m; }});
+  return String(s).replace(/#([A-Za-z0-9_]+)#/g, function(m,name){{ const t=aliasTag(al[name]); return t!==undefined?t:m; }});
 }}
 function toggleResolveAliases(cb){{ RESOLVE_ALIASES=!!cb.checked; if(sim) render(); }}
 window.toggleResolveAliases=toggleResolveAliases;
@@ -613,9 +621,11 @@ function buildAliases(filter){{
   const keys=Object.keys(al); const f=(filter||'').toLowerCase();
   if(!keys.length){{ el.innerHTML='<div class="sim-phint">No alias resolutions for this unit.</div>'; return; }}
   keys.sort().forEach(function(a){{
-    const tgt=al[a];
-    if(f && a.toLowerCase().indexOf(f)<0 && String(tgt).toLowerCase().indexOf(f)<0) return;
-    el.insertAdjacentHTML('beforeend','<div class="alias-row"><code class="al-a">#'+esc(a)+'#</code><span class="al-arrow">\\u2192</span><code class="al-t">'+esc(tgt)+'</code></div>');
+    const entry=al[a];
+    const tgt=aliasTag(entry)||'';
+    const desc=(entry&&typeof entry==='object'&&entry.desc)?entry.desc:'';
+    if(f && a.toLowerCase().indexOf(f)<0 && String(tgt).toLowerCase().indexOf(f)<0 && desc.toLowerCase().indexOf(f)<0) return;
+    el.insertAdjacentHTML('beforeend','<div class="alias-row"><code class="al-a">#'+esc(a)+'#</code><span class="al-arrow">\\u2192</span><code class="al-t">'+esc(tgt)+'</code>'+(desc?'<span class="al-d">'+esc(desc)+'</span>':'')+'</div>');
   }});
 }}
 function buildEdit(){{ buildRParams(''); buildLevers(); buildPParams(); buildAliases('');

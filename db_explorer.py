@@ -411,7 +411,7 @@ def _nav_badge(key):
             f'{_NAV_ICON.get(key, "")}</svg></span>')
 
 
-_BUILD_ID = "20260702-1956"
+_BUILD_ID = "20260702-2022"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
