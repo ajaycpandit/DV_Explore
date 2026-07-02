@@ -482,8 +482,25 @@ const FBD_VIEWS = __FBD_VIEWS__;
 const FBD_NAMES = __FBD_NAMES__;
 const EM_NAMES = __EM_NAMES__;
 const EM_VIEWS = __EM_VIEWS__;
-const PARAM_INDEX = __PARAM_INDEX__;
-const EXPR_INDEX = __EXPR_INDEX__;
+let PARAM_INDEX = __PARAM_INDEX__;
+let EXPR_INDEX = __EXPR_INDEX__;
+var SEARCH_IDX_LOADED = (Object.keys(PARAM_INDEX).length>0 || EXPR_INDEX.length>0);
+var SEARCH_IDX_LOADING = false;
+function ensureSearchIndex(cb){
+  // The params/expressions search index is built lazily on first use so opening a
+  // large export stays fast. Names search works immediately (from DB.objs).
+  if(SEARCH_IDX_LOADED || SEARCH_IDX_LOADING){ if(cb)cb(); return; }
+  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN){ if(cb)cb(); return; }
+  SEARCH_IDX_LOADING=true;
+  fetch('/search_index?t='+encodeURIComponent(EXPORT_TOKEN))
+    .then(function(r){return r.json();})
+    .then(function(x){
+      PARAM_INDEX = x.params||{}; EXPR_INDEX = x.exprs||[];
+      SEARCH_IDX_LOADED=true; SEARCH_IDX_LOADING=false; SIDX=null;  // rebuild names+params
+      if(cb)cb();
+    })
+    .catch(function(){ SEARCH_IDX_LOADING=false; if(cb)cb(); });
+}
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass','FB Type':'b-fbtype','Named Set':'b-nset'};return m[t]||'b-composite';}
 function badgeColor(t){const m={'b-area':'#0ea5e9','b-unit':'#6366f1','b-em':'#0f766e','b-cm':'#7c3aed','b-phase':'#b45309','b-recipe':'#be123c','b-composite':'#475569','b-uclass':'#2563eb','b-fbtype':'#334155'};if(t==='Parameter')return '#0891b2';if(t==='Instance')return '#6d28d9';return m[badge(t)]||'#475569';}
@@ -512,6 +529,13 @@ function navSearch(q){
   var box=document.getElementById('navres');
   q=(q||'').trim();
   if(!q){box.style.display='none';box.innerHTML='';SRES=[];SSEL=-1;return;}
+  // expr/values search needs the lazily-built index; fetch then re-run once.
+  if((SMODE==='expr'||SMODE==='values') && !SEARCH_IDX_LOADED){
+    box.style.display='block';
+    box.innerHTML='<div class="navres-empty">Building search index…</div>';
+    ensureSearchIndex(function(){ navSearch(q); });
+    return;
+  }
   var ql=q.toLowerCase(), out=[], h='';
   if(SMODE==='expr'){
     for(var i=0;i<EXPR_INDEX.length && out.length<60;i++){

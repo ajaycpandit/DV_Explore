@@ -189,12 +189,24 @@ document.getElementById('f').addEventListener('submit',function(ev){
       plbl.innerHTML='<span class="pct">Done</span> — loading explorer…';
       // replace the whole document with the returned explorer HTML
       document.open(); document.write(xhr.responseText); document.close();
-    } else {
+    } else if(xhr.status===502||xhr.status===504){
       prog.classList.remove('indet');
       fill.style.background='#dc2626'; fill.style.width='100%';
-      plbl.innerHTML='<span class="pct" style="color:#dc2626">Error '+xhr.status+'</span> — '+
-        (xhr.status===504||xhr.status===502?'the server timed out parsing this file.':'could not parse this export.');
+      plbl.innerHTML='<span class="pct" style="color:#dc2626">Error '+xhr.status+'</span> — the server timed out parsing this file.';
       btn.disabled=false; btn.textContent='Open in Explorer';
+    } else {
+      // the server returns a readable error PAGE naming the real exception —
+      // show it so the actual cause is visible rather than a generic message.
+      var body=xhr.responseText||'';
+      if(body.indexOf('<')>=0 && body.length>40){
+        document.open(); document.write(body); document.close();
+      } else {
+        prog.classList.remove('indet');
+        fill.style.background='#dc2626'; fill.style.width='100%';
+        plbl.innerHTML='<span class="pct" style="color:#dc2626">Error '+xhr.status+'</span> — '+
+          (body?body.slice(0,300):'could not parse this export.');
+        btn.disabled=false; btn.textContent='Open in Explorer';
+      }
     }
   });
   xhr.addEventListener('error',function(){
@@ -270,10 +282,11 @@ def explore():
     try:
         import fbd_bridge
         fbd_names = fbd_bridge.list_fbd_names(text)
-        _ix = fbd_bridge.build_indexes(text)
-        param_index, expr_index = _ix['params'], _ix['exprs']
+        # NOTE: the global search index (params/exprs) is the single biggest remaining
+        # cost (~2.8s on a large export) because it re-parses every FBD. We defer it to
+        # a lazy /search_index fetch on first search, so /explore stays fast.
     except Exception:
-        app.logger.exception('fbd index failed (non-fatal)')
+        app.logger.exception('fbd names failed (non-fatal)')
         fbd_names = []
     try:
         import em_bridge
@@ -298,19 +311,24 @@ def explore():
 
 def _explore_error(what, exc, fname):
     """Return a readable error page instead of a bare 500, so the cause is visible."""
-    import html as _h
+    import html as _h, traceback
     msg = _h.escape(f'{type(exc).__name__}: {exc}')
+    tb = _h.escape(traceback.format_exc())
     return (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
         '<title>Parse error</title>'
-        '<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:60px auto;'
+        '<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:60px auto;'
         'padding:0 20px;color:#16202c;line-height:1.5}h1{font-size:20px}'
         '.err{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:14px;'
         'font-family:monospace;font-size:13px;color:#991b1b;white-space:pre-wrap;word-break:break-word}'
+        'details{margin-top:14px}summary{cursor:pointer;color:#6b7280;font-size:13px}'
+        'pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;'
+        'overflow:auto;font-size:12px;color:#334155;white-space:pre-wrap;word-break:break-word}'
         'a{color:#1d4ed8}</style></head><body>'
         f'<h1>{_h.escape(what)}</h1>'
         f'<p>The file <b>{_h.escape(fname)}</b> could not be fully processed.</p>'
         f'<div class="err">{msg}</div>'
+        f'<details><summary>Show technical details</summary><pre>{tb}</pre></details>'
         '<p><a href="/">&larr; Try another file</a></p></body></html>'
     )
 
@@ -330,6 +348,23 @@ def _extract_object_fhx(text, obj):
     if not m:
         return None
     return db_parser.extract_block(text, m.start())
+
+
+@app.route('/search_index')
+def search_index():
+    """Build the global search index (params + expressions) on demand — deferred
+    from /explore because it re-parses every FBD (~seconds on large exports)."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired'})
+    try:
+        import fbd_bridge
+        ix = fbd_bridge.build_indexes(text)
+        return jsonify({'params': ix['params'], 'exprs': ix['exprs']})
+    except Exception as e:
+        app.logger.exception('search_index failed')
+        return jsonify({'params': {}, 'exprs': [], 'error': str(e)})
 
 
 @app.route('/fbd_view')
