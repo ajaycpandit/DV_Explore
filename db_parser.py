@@ -20,18 +20,27 @@ def decode_fhx(raw):
 
 
 def extract_block(text, start):
-    """Return the {...} block beginning at/after `start` (balanced braces)."""
+    """Return the {...} block beginning at/after `start` (balanced braces).
+    Uses str.find to jump between braces instead of scanning every character,
+    and hoists len() out of the loop (big win on multi-MB exports)."""
     i = text.index('{', start)
-    depth = 0
     s = i
-    while i < len(text):
-        if text[i] == '{':
+    depth = 0
+    n = len(text)
+    find = text.find
+    while i < n and i != -1:
+        nb = find('{', i)
+        nc = find('}', i)
+        if nc == -1:
+            break
+        if nb != -1 and nb < nc:
             depth += 1
-        elif text[i] == '}':
+            i = nb + 1
+        else:
             depth -= 1
             if depth == 0:
-                return text[s:i+1]
-        i += 1
+                return text[s:nc + 1]
+            i = nc + 1
     return ''
 
 

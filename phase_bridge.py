@@ -40,6 +40,11 @@ def _load_core():
     body = body[:body.find('@app.route')]
     ns = {'__name__': 'fhx_core'}
     exec(compile(body, _APP_FILE, 'exec'), ns)
+    try:
+        import perf_patch          # fast extract_block for the frozen core parser
+        perf_patch.apply(ns)
+    except Exception:
+        pass
     import sfc_html
     return ns, sfc_html
 

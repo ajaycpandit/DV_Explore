@@ -15,6 +15,11 @@ sys.path.insert(0, 'core')
 import fhx_app                       # converter parser (SFC graph)
 import db_parser
 import sim_eval
+try:
+    import perf_patch               # fast extract_block for the frozen core parser
+    perf_patch.apply(fhx_app)
+except Exception:
+    pass
 
 
 # ── correct, escaping-aware transition-expression extraction ─────────────────

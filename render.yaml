@@ -3,5 +3,5 @@ services:
     name: deltav-db-explorer
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn server:app
+    startCommand: gunicorn server:app --timeout 120 --workers 1 --threads 4
     plan: free
