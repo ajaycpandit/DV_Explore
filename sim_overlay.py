@@ -114,7 +114,7 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .sim-status.timer{background:#0c3a52;color:#7dd3fc}
 
 /* dock body: 3 columns in bottom mode; stacks vertically in left/right/float */
-.sim-dockbody{flex:1;display:grid;grid-template-columns:minmax(280px,1.1fr) minmax(240px,1fr) minmax(300px,1.4fr);
+.sim-dockbody{flex:1;display:grid;grid-template-columns:minmax(300px,1fr) minmax(360px,1.5fr);
   gap:0;overflow:hidden;min-height:0;position:relative}
 #sim-dock.dock-left .sim-dockbody,#sim-dock.dock-right .sim-dockbody,#sim-dock.dock-float .sim-dockbody{
   grid-template-columns:1fr;grid-auto-rows:min-content;overflow:auto}
@@ -124,6 +124,23 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .sim-col:last-child{border-right:none}
 .sim-col h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#7689a0;margin:0 0 8px;font-weight:700}
 .sim-col h3.mt{margin-top:14px}
+/* right-side tabbed pane (Option B) */
+.sim-tab-col{padding:0;display:flex;flex-direction:column;overflow:hidden}
+#sim-dock.dock-left .sim-tab-col,#sim-dock.dock-right .sim-tab-col,#sim-dock.dock-float .sim-tab-col{overflow:visible}
+.sim-tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid #eef2f7;flex-shrink:0;background:#fafbfc}
+.sim-tab{font:600 12px 'IBM Plex Sans';border:none;background:transparent;color:#7689a0;padding:7px 13px;
+  cursor:pointer;border-radius:7px 7px 0 0;border-bottom:2px solid transparent;margin-bottom:-1px}
+.sim-tab:hover{color:#334155;background:#f1f5f9}
+.sim-tab.on{color:#1d4ed8;border-bottom-color:#2563eb;background:#fff}
+.sim-tabwrap{flex:1;overflow:auto;padding:11px 13px;min-height:0}
+#sim-dock.dock-left .sim-tabwrap,#sim-dock.dock-right .sim-tabwrap,#sim-dock.dock-float .sim-tabwrap{overflow:visible}
+.sim-tabpanel{display:none}
+.sim-tabpanel.on{display:block}
+.sim-tape-legend{font:11px 'IBM Plex Mono';color:#94a3b8;margin-bottom:8px}
+/* narrow docks (left/right/float): stack everything, tabs become section headers */
+#sim-dock.dock-left .sim-tabs,#sim-dock.dock-right .sim-tabs,#sim-dock.dock-float .sim-tabs{display:none}
+#sim-dock.dock-left .sim-tabpanel,#sim-dock.dock-right .sim-tabpanel,#sim-dock.dock-float .sim-tabpanel{display:block;margin-bottom:6px}
+#sim-dock.dock-left .sim-tabwrap,#sim-dock.dock-right .sim-tabwrap,#sim-dock.dock-float .sim-tabwrap{padding:11px 13px}
 
 .sim-nowstep{font:12px 'IBM Plex Mono';color:#16202c;margin-bottom:6px}
 .sim-msg{font-size:13px;font-weight:600;color:#1d4ed8;min-height:18px;line-height:1.35;margin-bottom:6px}
@@ -232,8 +249,8 @@ def inject(phase_html, payload):
     <button class="iconbtn" onclick="SIM.toggle()" title="Close">\u2715</button>
   </div>
   <div class="sim-dockbody">
-    <!-- col 1: operator (always visible) -->
-    <div class="sim-col">
+    <!-- LEFT: operator + transport context, always visible -->
+    <div class="sim-col sim-op-col">
       <h3>Operator</h3>
       <div class="sim-nowstep" id="sim-now">idle</div>
       <div class="sim-msg" id="sim-msg">\u2014</div>
@@ -242,28 +259,38 @@ def inject(phase_html, payload):
       <button id="sim-rerun" onclick="SIM.rerunStep()" title="Re-execute the current step's actions from a clean re-walk"
         style="display:none;margin-top:8px;font:600 11px 'IBM Plex Sans';border:1px solid #c7d2de;background:#fff;color:#334155;border-radius:7px;padding:5px 10px;cursor:pointer">\u21bb Re-run this step</button>
     </div>
-    <!-- col 2: inputs -->
-    <div class="sim-col">
-      <details class="sim-sect" id="sim-rsect" open>
-        <summary>Recipe parameters (R_)</summary>
-        <div class="body">
-          <input id="sim-rfilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin-bottom:7px">
-          <div class="sim-edit" id="sim-rparams"></div>
+    <!-- RIGHT: tabbed pane (Inputs / Steps & Actions / Watch) -->
+    <div class="sim-col sim-tab-col">
+      <div class="sim-tabs">
+        <button class="sim-tab on" data-t="inputs" onclick="SIM.tab(this,'inputs')">Inputs</button>
+        <button class="sim-tab" data-t="steps" onclick="SIM.tab(this,'steps')">Steps &amp; Actions</button>
+        <button class="sim-tab" data-t="watch" onclick="SIM.tab(this,'watch')">Watch</button>
+      </div>
+      <div class="sim-tabwrap">
+        <!-- Inputs tab -->
+        <div class="sim-tabpanel on" data-t="inputs">
+          <details class="sim-sect" id="sim-rsect" open>
+            <summary>Recipe parameters (R_)</summary>
+            <div class="body">
+              <input id="sim-rfilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin-bottom:7px">
+              <div class="sim-edit" id="sim-rparams"></div>
+            </div>
+          </details>
+          <details class="sim-sect" open>
+            <summary>Device / timer levers</summary>
+            <div class="body"><div class="sim-edit" id="sim-levers"></div></div>
+          </details>
         </div>
-      </details>
-      <details class="sim-sect">
-        <summary>Device / timer levers</summary>
-        <div class="body"><div class="sim-edit" id="sim-levers"></div></div>
-      </details>
-      <details class="sim-sect">
-        <summary>Variable watch</summary>
-        <div class="body"><div class="sim-watch" id="sim-watch"></div></div>
-      </details>
-    </div>
-    <!-- col 3: steps & actions -->
-    <div class="sim-col">
-      <h3>Steps &amp; actions <span style="font-weight:400;color:#94a3b8;text-transform:none;letter-spacing:0">\u2014 \u2713 done \u00b7 \u25cf active \u00b7 \u25cb pending</span></h3>
-      <div class="sim-tape" id="sim-tape"></div>
+        <!-- Steps & Actions tab -->
+        <div class="sim-tabpanel" data-t="steps">
+          <div class="sim-tape-legend">\u2713 done \u00b7 \u25cf active \u00b7 \u25cb pending</div>
+          <div class="sim-tape" id="sim-tape"></div>
+        </div>
+        <!-- Watch tab -->
+        <div class="sim-tabpanel" data-t="watch">
+          <div class="sim-watch" id="sim-watch"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -708,6 +735,11 @@ function recordAnswer(step,val){{
 }}
 
 window.SIM={{
+  tab:function(btn,which){{
+    var col=btn.closest('.sim-tab-col'); if(!col) return;
+    col.querySelectorAll('.sim-tab').forEach(function(t){{t.classList.toggle('on',t===btn);}});
+    col.querySelectorAll('.sim-tabpanel').forEach(function(p){{p.classList.toggle('on',p.dataset.t===which);}});
+  }},
   toggle:function(){{ const d=document.getElementById('sim-dock'); const on=d.classList.toggle('open');
     document.body.classList.toggle('sim-on',on);
     document.getElementById('sim-fab').classList.toggle('hidden',on);
