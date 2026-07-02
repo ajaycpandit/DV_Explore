@@ -151,13 +151,20 @@
     }
     if (!ans) return { halt: descr };
     if (descr.release === 'value') {
-      const key = descr.input_key || (step + '/FAIL_MONITOR/OAR/INPUT.CV');
-      this.store[key] = ans.input;
-      // The outgoing transition reads OAR/INPUT to pick the branch, so we must NOT
-      // clear it now. Instead schedule a reset once the walk has LEFT this prompt
-      // step, so a later prompt reading the same shared OAR/INPUT can't inherit a
-      // stale answer (real DeltaV consumes the OAR input when the request clears).
-      this._pendingOarReset = { input_key: key, status_key: descr.status_key || null };
+      if (descr.bool_key) {
+        // boolean-prompt dialect: the outgoing transitions test a bool var
+        // (e.g. PROMPT_BOOL = TRUE/FALSE). Write the operator's Yes/No as a bool.
+        this.store[descr.bool_key] = (ans.input === 1 || ans.input === true);
+        this._pendingOarReset = null;
+      } else {
+        const key = descr.input_key || (step + '/FAIL_MONITOR/OAR/INPUT.CV');
+        this.store[key] = ans.input;
+        // The outgoing transition reads OAR/INPUT to pick the branch, so we must NOT
+        // clear it now. Instead schedule a reset once the walk has LEFT this prompt
+        // step, so a later prompt reading the same shared OAR/INPUT can't inherit a
+        // stale answer (real DeltaV consumes the OAR input when the request clears).
+        this._pendingOarReset = { input_key: key, status_key: descr.status_key || null };
+      }
     } else { // 'ack'
       this.store[descr.confirm_key] = 0;
       if (descr.status_key) this._pendingOarReset = { input_key: null, status_key: descr.status_key };

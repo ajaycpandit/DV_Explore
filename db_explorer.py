@@ -165,7 +165,18 @@ button{font-family:inherit}
 .badge.b-inst{background:var(--b-inst)}
 
 /* detail */
-.detail{overflow:auto;padding:22px 24px 48px}
+.detail{overflow:auto;padding:22px 24px 48px;position:relative}
+.obj-export{position:absolute;top:18px;right:24px;display:flex;gap:6px;z-index:3}
+.exp-mini{font-size:11.5px;font-weight:600;padding:5px 10px;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface);color:var(--ink-2);text-decoration:none;transition:.15s;white-space:nowrap}
+.exp-mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.metabinder{margin:2px 0 12px}
+.metabinder>summary{cursor:pointer;color:var(--ink-3);font-size:12.5px;font-weight:600;list-style:none;
+  display:inline-flex;align-items:center;gap:5px;padding:3px 0;user-select:none}
+.metabinder>summary::-webkit-details-marker{display:none}
+.metabinder>summary::before{content:'\\25b8';font-size:10px;transition:transform .15s}
+.metabinder[open]>summary::before{transform:rotate(90deg)}
+.metabinder .kv{margin-top:8px}
 .alias-filter{width:100%;max-width:420px;margin:0 0 10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);font-family:inherit}
 .loading-detail{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin-top:20px}
 .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:dvspin .7s linear infinite}
@@ -684,17 +695,25 @@ function switchView(v){
 function renderObj(id){
   const o=DB.objs[id]; if(!o)return;
   document.querySelectorAll('.navitem').forEach(n=>n.classList.toggle('sel',n.dataset.id===id));
-  let h='<h2 class="dt">'+esc(o.name)+'</h2>';
-  h+='<span class="dt-type '+badge(o._type)+'">'+o._type+'</span>';
-  if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
-  // key-values
-  h+='<div class="kv">';
-  if(o.category) h+='<div class="k">Category</div><div>'+esc(o.category)+'</div>';
-  if(o.area) h+='<div class="k">Area</div><div><span class="link" onclick="show(\\'area:'+esc(o.area)+'\\')">'+esc(o.area)+'</span></div>';
-  if(o.area_path) h+='<div class="k">Area path</div><div>'+esc(o.area_path)+'</div>';
-  if(o.control_type) h+='<div class="k">Control type</div><div>'+esc(o.control_type)+'</div>';
-  if(o.type && o._type==='Recipe') h+='<div class="k">Recipe type</div><div>'+esc(o.type)+'</div>';
-  h+='</div>';
+  // For phases (which have a big interactive diagram), collapse the metadata into a
+  // compact disclosure so the diagram sits near the top. Other objects keep the
+  // full header inline.
+  var isPhase = (o._type==='Phase Class');
+  let h='<h2 class="dt">'+esc(o.name)+' <span class="dt-type '+badge(o._type)+'">'+o._type+'</span></h2>';
+  var meta='';
+  if(o.description) meta+='<p class="dt-desc">'+esc(o.description)+'</p>';
+  meta+='<div class="kv">';
+  if(o.category) meta+='<div class="k">Category</div><div>'+esc(o.category)+'</div>';
+  if(o.area) meta+='<div class="k">Area</div><div><span class="link" onclick="show(\\'area:'+esc(o.area)+'\\')">'+esc(o.area)+'</span></div>';
+  if(o.area_path) meta+='<div class="k">Area path</div><div>'+esc(o.area_path)+'</div>';
+  if(o.control_type) meta+='<div class="k">Control type</div><div>'+esc(o.control_type)+'</div>';
+  if(o.type && o._type==='Recipe') meta+='<div class="k">Recipe type</div><div>'+esc(o.type)+'</div>';
+  meta+='</div>';
+  if(isPhase){
+    h+='<details class="metabinder"><summary>Details</summary>'+meta+'</details>';
+  } else {
+    h+=meta;
+  }
 
   // "Used by" — every place this class is referenced as a child module
   // (EM embedding a CM, unit embedding an EM, ...). Grouped by parent.
@@ -1573,11 +1592,11 @@ const EXPORT_TOKEN={json.dumps(export_token or "")};
 function exportBar(obj,name){{
   if(!EXPORT_TOKEN) return '';
   var base='/export?token='+encodeURIComponent(EXPORT_TOKEN)+'&obj='+encodeURIComponent(obj)+'&name='+encodeURIComponent(name);
-  return '<div class="card"><h3>Export this object</h3>'
-    +'<div style="display:flex;gap:8px">'
-    +'<a class="exp-btn" href="'+base+'&fmt=excel">&#8681; Excel</a>'
-    +'<a class="exp-btn" href="'+base+'&fmt=word">&#8681; Word DDS</a></div>'
-    +'<div style="margin-top:9px;color:var(--ink-3);font-size:12px">Generates a validation-ready document for this object only.</div></div>';
+  // compact pill in the detail header row (not a full card) so it doesn't push
+  // the phase content down. Sits top-right of the object view.
+  return '<div class="obj-export">'
+    +'<a class="exp-mini" href="'+base+'&fmt=excel" title="Download an Excel workbook for this object">&#8681; Excel</a>'
+    +'<a class="exp-mini" href="'+base+'&fmt=word" title="Download a Word DDS document for this object">&#8681; Word</a></div>';
 }}
 function skinTree(theme){{
   var set=ICON_THEMES[theme], cols=THEME_COLORS[theme];

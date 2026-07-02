@@ -32,7 +32,7 @@ import re
 
 # OAR variable suffixes (the '^/FAIL_MONITOR/OAR/...' path may vary in prefix,
 # so match on the OAR/<field> tail).
-_RE_MSGTYPE = re.compile(r"P_MSG_TYPE\d?\.CV'\s*:=\s*'_MSG_TYPE:(\w+)'")
+_RE_MSGTYPE = re.compile(r"P_MSG_TYPE\d?\.CV'\s*:=\s*'[A-Za-z_]*(?:MSG_TYPE|msgtype):(\w+)'", re.IGNORECASE)
 _RE_OARTYPE = re.compile(r"OAR/TYPE\.CV'\s*:=\s*'_OAR_TYPE_BOI:([^']+)'")
 _RE_OARSTAT = re.compile(r"OAR/OAR_STATUS\.CV'\s*:=\s*'_OAR_STATUS:(\w+)'")
 _RE_MSG1 = re.compile(r'P_MSG1\.CV\'\s*:=\s*""([^"]*)""')
@@ -90,6 +90,7 @@ def extract_prompts(order, actions, s2t, t2s, trans):
         # classify release by inspecting outgoing transitions
         choices = []
         input_key = None
+        bool_key = None
         for tn in s2t.get(sn, []):
             expr = trans.get(tn, '')
             m = _RE_INPUT_CMP.search(expr)
@@ -102,12 +103,27 @@ def extract_prompts(order, actions, s2t, t2s, trans):
                     km = re.search(r"'([^']*OAR/INPUT\.CV)'", expr)
                     if km:
                         input_key = km.group(1)
+            else:
+                # boolean-prompt dialect: transition tests a bool var = TRUE/FALSE
+                # (e.g. '^/PROMPT_BOOL.CV' = TRUE). The operator answers Yes/No and
+                # we write that bool. Find the var and which value routes where.
+                bm = re.search(r"'([^']+)'\s*=\s*(TRUE|FALSE)\b", expr, re.IGNORECASE)
+                if bm:
+                    tgt = t2s.get(tn)
+                    tgt = tgt[0] if isinstance(tgt, list) else tgt
+                    is_true = bm.group(2).upper() == 'TRUE'
+                    choices.append({'value': 1 if is_true else 0, 'trans': tn, 'to': tgt,
+                                    'bool': True})
+                    if bool_key is None:
+                        bool_key = bm.group(1)
 
         oar_type = info.get('oar_type', '')
+        is_bool_prompt = any(c.get('bool') for c in choices)
         if choices:
             release = 'value'
-            # label YesNo choices conventionally (INPUT 1 = Yes, 0 = No in DeltaV BOI)
-            if oar_type.lower().replace(' ', '') == 'yesno':
+            # label YesNo choices conventionally (INPUT 1 = Yes, 0 = No in DeltaV BOI;
+            # boolean prompts use PROMPT_BOOL TRUE=Yes / FALSE=No the same way).
+            if is_bool_prompt or oar_type.lower().replace(' ', '') == 'yesno':
                 for c in choices:
                     c['label'] = 'Yes' if c['value'] == 1 else 'No'
             else:
@@ -118,11 +134,12 @@ def extract_prompts(order, actions, s2t, t2s, trans):
             release = 'ack'
 
         prompts[sn] = {
-            'oar_type': oar_type,
+            'oar_type': oar_type or ('YesNo' if is_bool_prompt else ''),
             'release': release,
             'msg1': info.get('msg1', ''),
             'msg2': info.get('msg2', ''),
             'input_key': input_key,
+            'bool_key': bool_key,          # boolean-prompt answer var (PROMPT_BOOL)
             'status_key': _oar_status_key(input_key),
             'choices': choices,
             'confirm_key': sn + '/PENDING_CONFIRMS.CV',
