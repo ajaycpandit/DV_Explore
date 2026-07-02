@@ -60,14 +60,65 @@ def _as_str(v):
     return str(v)
 
 
+def _numf(v):
+    """Numeric coercion for math builtins."""
+    v = _num(v)
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _call_builtin(fn, args):
+    """DeltaV structured-text builtins (mostly used in message construction).
+    Unknown functions pass through their first arg so a message still renders."""
+    import math
+    if fn == 'round':
+        return int(round(_numf(args[0])))
+    if fn in ('trunc', 'int'):
+        return int(_numf(args[0]))
+    if fn == 'abs':
+        return abs(_numf(args[0]))
+    if fn == 'float':
+        return _numf(args[0])
+    if fn == 'sqrt':
+        return math.sqrt(_numf(args[0]))
+    if fn == 'min':
+        r = min(_numf(a) for a in args)
+        return int(r) if r == int(r) else r
+    if fn == 'max':
+        r = max(_numf(a) for a in args)
+        return int(r) if r == int(r) else r
+    if fn in ('time', 'time_to_str'):
+        return '<time>'
+    if fn == 'date_to_str':
+        return '<date>'
+    if fn == 'str':
+        return _as_str(args[0]) if args else ''
+    if fn == 'str_to_int':
+        try:
+            return int(_as_str(args[0]))
+        except (ValueError, TypeError):
+            return 0
+    if fn == 'str_to_float':
+        try:
+            return float(_as_str(args[0]))
+        except (ValueError, TypeError):
+            return 0.0
+    if fn == 'len':
+        return len(_as_str(args[0])) if args else 0
+    return args[0] if args else 0   # unknown fn: pass through
+
+
 # ───────────────────────────── tokenizer ────────────────────────────────────
 _TOKEN_RE = re.compile(r"""
     (?P<ws>\s+)
   | (?P<ref>'(?:[^']|'')*')                 # 'a/b.CV'  or  'SET:MEMBER'
   | (?P<str>"[^"]*")                         # "text"  (quotes already un-doubled)
+  | (?P<denum>\$[A-Za-z_][A-Za-z0-9_]*:[^)'"\s,;]+)   # $time_format:Local
   | (?P<num>\d+\.\d+|\d+)
   | (?P<op>:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|/)
-  | (?P<punc>[()] | ;)
+  | (?P<punc>[(),] | ;)
   | (?P<word>[A-Za-z_][A-Za-z0-9_]*)
 """, re.VERBOSE)
 
@@ -75,8 +126,10 @@ _KEYWORDS = {'AND', 'OR', 'NOT', 'IF', 'THEN', 'ELSE', 'END_IF', 'ENDIF', 'TRUE'
 
 
 def tokenize(src):
-    # strip (* ... *) comments, then un-double the FHX-escaped quotes once.
+    # strip (* ... *) block comments and `rem ...` line comments, then un-double
+    # the FHX-escaped quotes once.
     src = re.sub(r'\(\*.*?\*\)', '', src, flags=re.DOTALL)
+    src = re.sub(r'(^|[;\r\n])[ \t]*rem\b[^\r\n]*', r'\1', src, flags=re.IGNORECASE)
     src = src.replace('""', '"')
     toks, i, n = [], 0, len(src)
     while i < n:
@@ -92,6 +145,8 @@ def tokenize(src):
             toks.append(('ref', val[1:-1].replace("''", "'")))
         elif kind == 'str':
             toks.append(('str', val[1:-1]))
+        elif kind == 'denum':
+            toks.append(('str', val))   # $time_format:Local -> literal string
         elif kind == 'num':
             toks.append(('num', float(val) if '.' in val else int(val)))
         elif kind == 'word':
@@ -188,8 +243,19 @@ class Parser:
         if kind == 'ref':
             self._next()
             return self._ref_or_member(val)
-        if kind == 'word':           # bare word (rare) — treat as ref key
-            self._next(); return ('ref', val)
+        if kind == 'word':
+            self._next()
+            # function call?  word( args )
+            if self._peek()[0] == '(':
+                self._next()
+                args = []
+                if self._peek()[0] != ')':
+                    args.append(self.parse_expr())
+                    while self._peek()[0] == ',':
+                        self._next(); args.append(self.parse_expr())
+                self._expect(')')
+                return ('call', val.lower(), args)
+            return ('ref', val)
         raise SyntaxError(f'unexpected token {self._peek()}')
 
     def _ref_or_member(self, raw):
@@ -229,9 +295,10 @@ class Parser:
             else:
                 self._expect('END_IF')
             return ('if', cond, then, els)
-        # assignment:  ref := expr
+        # assignment:  ref := expr  (ref is normally '^/...'; also allow a bare
+        # word for DeltaV local/temporary variables like COUNT := 0)
         kind, val = self._next()
-        if kind != 'ref':
+        if kind not in ('ref', 'word'):
             raise SyntaxError(f'assignment must start with a ref, got {(kind, val)}')
         self._expect(':=')
         return ('assign', Ref(val), self.parse_expr())
@@ -255,6 +322,8 @@ class Evaluator:
             return self._read(r) if isinstance(r, Ref) else self.store.get(r, 0)
         if op == 'not':
             return not _truthy(self.eval(node[1]))
+        if op == 'call':
+            return _call_builtin(node[1], [self.eval(a) for a in node[2]])
         if op == 'bin':
             _, o, a, b = node
             l, r = self.eval(a), self.eval(b)

@@ -239,6 +239,8 @@ def inject(phase_html, payload):
       <div class="sim-msg" id="sim-msg">\u2014</div>
       <div id="sim-prompt-host"></div>
       <div id="sim-timer-host"></div>
+      <button id="sim-rerun" onclick="SIM.rerunStep()" title="Re-execute the current step's actions from a clean re-walk"
+        style="display:none;margin-top:8px;font:600 11px 'IBM Plex Sans';border:1px solid #c7d2de;background:#fff;color:#334155;border-radius:7px;padding:5px 10px;cursor:pointer">\u21bb Re-run this step</button>
     </div>
     <!-- col 2: inputs -->
     <div class="sim-col">
@@ -413,6 +415,7 @@ function render(){{
     nd.scrollIntoView&&nd.scrollIntoView({{block:'center',behavior:'smooth'}}); }} }}
 
   document.getElementById('sim-now').textContent = lastEnter?('at '+lastEnter+(activeActs.length?'  \u00b7 active: '+activeActs.join(', '):'')):'idle';
+  const rr=document.getElementById('sim-rerun'); if(rr) rr.style.display=(lastEnter&&idx>=0)?'inline-block':'none';
   document.getElementById('sim-msg').innerHTML=esc(msg)+(msg2?'<span class="m2">'+esc(msg2)+'</span>':'');
   const s=document.getElementById('sim-status'); s.className='sim-status '+cls; s.textContent=txt;
   // meaningful position: which step we're on out of steps walked (not raw events)
@@ -724,6 +727,24 @@ window.SIM={{
   play:function(){{ if(timer){{stop();return;}} if(idx>=sim.trace.length-1)idx=-1;
     document.getElementById('sim-play').textContent='\u23f8 Pause'; timer=setInterval(stepFwd,650); }},
   answer:function(step,val){{ recordAnswer(step,val); stop(); rewalk(); }},
+  rerunStep:function(){{
+    // re-execute the current step by re-anchoring the walk to this step's entry
+    // (a fresh walk with current inputs), so its actions run again and any lever/
+    // param change since is reflected. Useful to re-evaluate a step in place.
+    if(!sim||idx<0) return;
+    // find the step at the current position
+    let step=null, entryN=0, seen={{}};
+    for(let k=0;k<=idx&&k<sim.trace.length;k++){{ const ev=sim.trace[k];
+      if(ev.kind==='enter'){{ if(ev.step) seen[ev.step]=(seen[ev.step]||0); if(k===idx||(idx<sim.trace.length&&sim.trace[idx].kind!=='enter'&&ev.step)) {{}} }} }}
+    // simplest: current lastEnter step
+    for(let k=idx;k>=0;k--){{ if(sim.trace[k].kind==='enter'){{ step=sim.trace[k].step; break; }} }}
+    if(!step) return;
+    stop();
+    rewalk();  // fresh walk with current inputs
+    // re-anchor idx to the first enter of that step
+    for(let k=0;k<sim.trace.length;k++){{ if(sim.trace[k].kind==='enter'&&sim.trace[k].step===step){{ idx=k; break; }} }}
+    render();
+  }},
   answerInput:function(step){{ const v=parseFloat(document.getElementById('sim-vin').value)||0; recordAnswer(step,v); stop(); rewalk(); }},
   runTimer:function(step){{
     const t=TIMERS[step]; if(!t) return; if(countdown){{clearInterval(countdown);}}

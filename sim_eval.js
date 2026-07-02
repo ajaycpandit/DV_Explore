@@ -23,6 +23,31 @@
   function makeRef(key) { return new Ref(key); }
   function isRef(v) { return v instanceof Ref; }
 
+  // Built-in DeltaV structured-text functions. These appear mostly in message
+  // construction (round a timer value, format a timestamp). We implement the
+  // common ones; unknown functions return their first arg (or 0) so a message
+  // still renders rather than the whole action erroring.
+  function callBuiltin(fn, args) {
+    switch (fn) {
+      case 'round':  return Math.round(num(args[0]));
+      case 'trunc':  return Math.trunc(num(args[0]));
+      case 'abs':    return Math.abs(num(args[0]));
+      case 'int':    return Math.trunc(num(args[0]));
+      case 'float':  return num(args[0]);
+      case 'sqrt':   return Math.sqrt(num(args[0]));
+      case 'min': { const r = Math.min.apply(null, args.map(num)); return r; }
+      case 'max': { const r = Math.max.apply(null, args.map(num)); return r; }
+      case 'time':   return '<time>';              // current time placeholder
+      case 'time_to_str': return '<time>';         // formatted time placeholder
+      case 'date_to_str': return '<date>';
+      case 'str':    return asStr(args[0]);
+      case 'str_to_int': { const n = parseInt(asStr(args[0]), 10); return isNaN(n) ? 0 : n; }
+      case 'str_to_float': { const n = parseFloat(asStr(args[0])); return isNaN(n) ? 0 : n; }
+      case 'len':    return asStr(args[0]).length;
+      default:       return args.length ? args[0] : 0;   // unknown fn: pass through
+    }
+  }
+
   function truthy(v) {
     if (typeof v === 'boolean') return v;
     if (typeof v === 'number') return v !== 0;
@@ -52,15 +77,18 @@
     ['ws',   /\s+/y],
     ['ref',  /'(?:[^']|'')*'/y],            // 'a/b.CV' or 'SET:MEMBER'
     ['str',  /"[^"]*"/y],                    // "text"
+    ['denum', /\$[A-Za-z_][A-Za-z0-9_]*:[^)'"\s,;]+/y],  // $time_format:Local (bare enum)
     ['num',  /\d+\.\d+|\d+/y],
     ['op',   /:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|\//y],
-    ['punc', /[()]|;/y],
+    ['punc', /[(),]|;/y],
     ['word', /[A-Za-z_][A-Za-z0-9_]*/y],
   ];
 
   function tokenize(srcIn) {
-    // strip (* ... *) comments, then un-double FHX-escaped quotes once.
+    // strip (* ... *) block comments and `rem ...` line comments (DeltaV remarks),
+    // then un-double FHX-escaped quotes once.
     let src = srcIn.replace(/\(\*[\s\S]*?\*\)/g, '');
+    src = src.replace(/(^|[;\r\n])[ \t]*rem\b[^\r\n]*/gi, '$1');  // rem to end of line
     src = src.split('""').join('"');
     const toks = [];
     let i = 0;
@@ -81,6 +109,8 @@
             toks.push(['ref', val.slice(1, -1).split("''").join("'")]);
           } else if (kind === 'str') {
             toks.push(['str', val.slice(1, -1)]);
+          } else if (kind === 'denum') {
+            toks.push(['str', val]);   // $time_format:Local -> treat as literal string
           } else if (kind === 'num') {
             toks.push(['num', val.indexOf('.') >= 0 ? parseFloat(val) : parseInt(val, 10)]);
           } else if (kind === 'word') {
@@ -165,7 +195,21 @@
     if (kind === 'TRUE') { this._next(); return ['lit', true]; }
     if (kind === 'FALSE') { this._next(); return ['lit', false]; }
     if (kind === 'ref') { this._next(); return this._refOrMember(val); }
-    if (kind === 'word') { this._next(); return ['ref', val]; }
+    if (kind === 'word') {
+      this._next();
+      // function call?  word( args )
+      if (this._peek()[0] === '(') {
+        this._next();
+        const args = [];
+        if (this._peek()[0] !== ')') {
+          args.push(this.parseExpr());
+          while (this._peek()[0] === ',') { this._next(); args.push(this.parseExpr()); }
+        }
+        this._expect(')');
+        return ['call', val.toLowerCase(), args];
+      }
+      return ['ref', val];
+    }
     throw new SyntaxError('unexpected token ' + JSON.stringify(this._peek()));
   };
   Parser.prototype._refOrMember = function (raw) {
@@ -207,7 +251,11 @@
       return ['if', cond, then, els];
     }
     const tok = this._next();
-    if (tok[0] !== 'ref') throw new SyntaxError('assignment must start with a ref, got ' + JSON.stringify(tok));
+    // assignment target is normally a quoted ref ('^/...'); DeltaV structured text
+    // also uses bare local/temporary variables (e.g. COUNT := 0). Accept a bare
+    // word as a local variable keyed by its name in the store.
+    if (tok[0] !== 'ref' && tok[0] !== 'word')
+      throw new SyntaxError('assignment must start with a ref, got ' + JSON.stringify(tok));
     this._expect(':=');
     return ['assign', new Ref(tok[1]), this.parseExpr()];
   };
@@ -231,6 +279,11 @@
       return v === undefined ? 0 : v;
     }
     if (op === 'not') return !truthy(this.eval(node[1]));
+    if (op === 'call') {
+      const fn = node[1];
+      const args = node[2].map(a => this.eval(a));
+      return callBuiltin(fn, args);
+    }
     if (op === 'bin') {
       const o = node[1];
       const l = this.eval(node[2]), r = this.eval(node[3]);
