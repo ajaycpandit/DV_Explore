@@ -106,6 +106,26 @@ _FB_TYPE_GLOSSARY = {
 }
 
 
+def _parse_aliases(scope_text):
+    """Extract ALIAS_RESOLUTION entries -> list of {alias, value, desc}.
+    DeltaV phases reference members as #ALIAS#; the unit resolves each alias to a
+    concrete module tag here. Returns them in document order."""
+    out = []
+    for m in re.finditer(r'ALIAS_RESOLUTION\s+NAME="([^"]+)"\s*\{', scope_text):
+        alias = m.group(1)
+        blk = extract_block(scope_text, m.end() - 1)
+        val = re.search(r'VALUE="([^"]*)"', blk)
+        desc = re.search(r'DESCRIPTION="([^"]*)"', blk)
+        ign = re.search(r'IGNORE=([TF])', blk)
+        out.append({
+            'alias': alias,
+            'value': val.group(1) if val else '',
+            'desc': desc.group(1) if desc else '',
+            'ignore': (ign.group(1) == 'T') if ign else False,
+        })
+    return out
+
+
 def parse_database(text):
     """Return a catalog dict describing all objects + relationships in the export."""
     catalog = {
@@ -350,8 +370,14 @@ def _parse_hierarchy(text, catalog):
             'area': parts[0] if parts else '',
             'cell': parts[1] if len(parts) >= 2 else '',
             'description': desc.group(1).strip() if desc else '',
-            'values': vals, 'modules': unit_modules.get(name, [])}
+            'values': vals, 'modules': unit_modules.get(name, []),
+            'aliases': _parse_aliases(blk)}
     catalog['unit_instances'] = unit_instances
+
+    # also collect a global alias table (name -> resolved tag) across the export,
+    # so phase views can resolve #Alias# references even when the unit block layout
+    # differs. Unit-scoped aliases (above) take precedence for display.
+    catalog['aliases'] = _parse_aliases(text)
 
     ucph = {}
     uc_detail = {}

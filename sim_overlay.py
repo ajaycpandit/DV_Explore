@@ -765,6 +765,32 @@ window.SIM={{
     if(countdown){{clearInterval(countdown);countdown=null;}}
     overrides[t.complete_key]=true; stop(); rewalk(); }},
 }};
+
+// ── enable hand-pan and transition-click on the SFC as soon as the phase view
+// loads, so they work BEFORE the simulator is opened. Operates on whatever
+// block is visible; re-runs when the user switches blocks.
+function initTransClickAll(){{
+  document.querySelectorAll('.block .trans').forEach(function(g){{
+    if(g._transClick) return; g._transClick=1;
+    g.style.cursor='pointer';
+    g.addEventListener('click',function(e){{
+      e.stopPropagation();
+      var tn=g.dataset.trans;
+      if(tn) showTransitionPanel(tn, g);
+    }});
+  }});
+}}
+function _initExplorerInteractions(){{
+  try{{ initPan(); }}catch(e){{}}
+  try{{ initTransClickAll(); }}catch(e){{}}
+}}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_initExplorerInteractions);
+else _initExplorerInteractions();
+document.addEventListener('click',function(e){{
+  if(e.target && (e.target.closest('.blocktab')||e.target.closest('.tab')||e.target.closest('.controls'))){{
+    setTimeout(_initExplorerInteractions, 30);
+  }}
+}});
 }})();
 </script>
 """

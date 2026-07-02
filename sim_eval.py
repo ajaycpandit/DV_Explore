@@ -117,8 +117,8 @@ _TOKEN_RE = re.compile(r"""
   | (?P<str>"[^"]*")                         # "text"  (quotes already un-doubled)
   | (?P<denum>\$[A-Za-z_][A-Za-z0-9_]*:[^)'"\s,;]+)   # $time_format:Local
   | (?P<num>\d+\.\d+|\d+)
-  | (?P<op>:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|/)
-  | (?P<punc>[(),] | ;)
+  | (?P<op>:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|/|\?|:)
+  | (?P<punc>[(),\[\]] | ;)
   | (?P<word>[A-Za-z_][A-Za-z0-9_]*)
 """, re.VERBOSE)
 
@@ -154,8 +154,15 @@ def tokenize(src):
             toks.append((up if up in _KEYWORDS else 'word', val))
         else:  # op / punc
             toks.append((val.strip(), val.strip()))
-    toks.append(('eof', None))
-    return toks
+    # implicit concatenation of adjacent string literals (multi-line messages)
+    merged = []
+    for t in toks:
+        if t[0] == 'str' and merged and merged[-1][0] == 'str':
+            merged[-1] = ('str', merged[-1][1] + t[1])
+        else:
+            merged.append(t)
+    merged.append(('eof', None))
+    return merged
 
 
 # ───────────────────────────── parser ───────────────────────────────────────
@@ -181,7 +188,14 @@ class Parser:
 
     # -- expressions --
     def parse_expr(self):
-        return self._or()
+        cond = self._or()
+        if self._peek()[0] == '?':
+            self._next()
+            a = self.parse_expr()
+            self._expect(':')
+            b = self.parse_expr()
+            return ('ternary', cond, a, b)
+        return cond
 
     def _or(self):
         node = self._and()
@@ -242,7 +256,13 @@ class Parser:
             self._next(); return ('lit', False)
         if kind == 'ref':
             self._next()
-            return self._ref_or_member(val)
+            node = self._ref_or_member(val)
+            while self._peek()[0] == '[':
+                self._next()
+                ix = self.parse_expr()
+                self._expect(']')
+                node = ('index', node, ix)
+            return node
         if kind == 'word':
             self._next()
             # function call?  word( args )
@@ -300,8 +320,23 @@ class Parser:
         kind, val = self._next()
         if kind not in ('ref', 'word'):
             raise SyntaxError(f'assignment must start with a ref, got {(kind, val)}')
+        key = val
+        while self._peek()[0] == '[':
+            self._next()
+            ix_node = self.parse_expr()
+            self._expect(']')
+            key = key + '[' + _key_part(ix_node) + ']'
         self._expect(':=')
-        return ('assign', Ref(val), self.parse_expr())
+        return ('assign', Ref(key), self.parse_expr())
+
+
+def _key_part(node):
+    if node[0] == 'lit':
+        return str(node[1])
+    if node[0] == 'ref':
+        r = node[1]
+        return r.key if isinstance(r, Ref) else str(r)
+    return 'x'
 
 
 # ───────────────────────────── evaluator ────────────────────────────────────
@@ -322,6 +357,17 @@ class Evaluator:
             return self._read(r) if isinstance(r, Ref) else self.store.get(r, 0)
         if op == 'not':
             return not _truthy(self.eval(node[1]))
+        if op == 'ternary':
+            return self.eval(node[2]) if _truthy(self.eval(node[1])) else self.eval(node[3])
+        if op == 'index':
+            parts = []
+            n = node
+            while n[0] == 'index':
+                parts.insert(0, '[' + _as_str(self.eval(n[2])) + ']')
+                n = n[1]
+            base = n[1].key if (n[0] == 'ref' and isinstance(n[1], Ref)) else (n[1] if n[0] == 'ref' else '')
+            v = self.store.get(base + ''.join(parts))
+            return 0 if v is None else v
         if op == 'call':
             return _call_builtin(node[1], [self.eval(a) for a in node[2]])
         if op == 'bin':

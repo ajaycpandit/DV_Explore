@@ -79,8 +79,8 @@
     ['str',  /"[^"]*"/y],                    // "text"
     ['denum', /\$[A-Za-z_][A-Za-z0-9_]*:[^)'"\s,;]+/y],  // $time_format:Local (bare enum)
     ['num',  /\d+\.\d+|\d+/y],
-    ['op',   /:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|\//y],
-    ['punc', /[(),]|;/y],
+    ['op',   /:=|<=|>=|<>|!=|=|<|>|\+|\-|\*|\/|\?|:/y],
+    ['punc', /[(),\[\]]|;/y],
     ['word', /[A-Za-z_][A-Za-z0-9_]*/y],
   ];
 
@@ -127,8 +127,20 @@
         throw new SyntaxError('cannot tokenize at: ' + JSON.stringify(src.slice(i, i + 30)));
       }
     }
-    toks.push(['eof', null]);
-    return toks;
+    // DeltaV structured text implicitly concatenates adjacent string literals
+    // (a long message split across lines: "part one" \n "part two"). Merge them
+    // so they read as a single string, matching how DeltaV evaluates it.
+    const merged = [];
+    for (let k = 0; k < toks.length; k++) {
+      const t = toks[k];
+      if (t[0] === 'str' && merged.length && merged[merged.length - 1][0] === 'str') {
+        merged[merged.length - 1][1] += t[1];
+      } else {
+        merged.push(t);
+      }
+    }
+    merged.push(['eof', null]);
+    return merged;
   }
 
   // ── parser ───────────────────────────────────────────────────────────────
@@ -145,7 +157,18 @@
     return tok;
   };
 
-  Parser.prototype.parseExpr = function () { return this._or(); };
+  Parser.prototype.parseExpr = function () {
+    const cond = this._or();
+    // C-style ternary:  cond ? a : b  (DeltaV uses it in message construction)
+    if (this._peek()[0] === '?') {
+      this._next();
+      const a = this.parseExpr();
+      this._expect(':');
+      const b = this.parseExpr();
+      return ['ternary', cond, a, b];
+    }
+    return cond;
+  };
   Parser.prototype._or = function () {
     let node = this._and();
     while (this._peek()[0] === 'OR') { this._next(); node = ['or', node, this._and()]; }
@@ -194,7 +217,18 @@
     if (kind === 'str') { this._next(); return ['lit', val]; }
     if (kind === 'TRUE') { this._next(); return ['lit', true]; }
     if (kind === 'FALSE') { this._next(); return ['lit', false]; }
-    if (kind === 'ref') { this._next(); return this._refOrMember(val); }
+    if (kind === 'ref') {
+      this._next();
+      let node = this._refOrMember(val);
+      // array subscripts: ref[i][j] — fold into a compound key so it round-trips
+      while (this._peek()[0] === '[') {
+        this._next();
+        const ix = this.parseExpr();
+        this._expect(']');
+        node = ['index', node, ix];
+      }
+      return node;
+    }
     if (kind === 'word') {
       this._next();
       // function call?  word( args )
@@ -256,9 +290,24 @@
     // word as a local variable keyed by its name in the store.
     if (tok[0] !== 'ref' && tok[0] !== 'word')
       throw new SyntaxError('assignment must start with a ref, got ' + JSON.stringify(tok));
+    // array subscripts on the target: ref[i][j] := ...  — fold into a compound key
+    let key = tok[1];
+    while (this._peek()[0] === '[') {
+      this._next();
+      const ixNode = this.parseExpr();
+      this._expect(']');
+      key = key + '[' + _keyPart(ixNode) + ']';
+    }
     this._expect(':=');
-    return ['assign', new Ref(tok[1]), this.parseExpr()];
+    return ['assign', new Ref(key), this.parseExpr()];
   };
+  // best-effort stable string for a subscript, so the same index maps to the same key
+  function _keyPart(node) {
+    if (node[0] === 'lit') return String(node[1]);
+    if (node[0] === 'ref' && node[1] instanceof Ref) return node[1].key;
+    if (node[0] === 'ref') return String(node[1]);
+    return 'x';
+  }
 
   // ── evaluator ──────────────────────────────────────────────────────────────
   function Evaluator(store, namedSets) {
@@ -279,6 +328,16 @@
       return v === undefined ? 0 : v;
     }
     if (op === 'not') return !truthy(this.eval(node[1]));
+    if (op === 'ternary') return truthy(this.eval(node[1])) ? this.eval(node[2]) : this.eval(node[3]);
+    if (op === 'index') {
+      // ref[i][j]: fold to the same compound key the assignment side produces
+      const parts = [];
+      let n = node;
+      while (n[0] === 'index') { parts.unshift('[' + asStr(this.eval(n[2])) + ']'); n = n[1]; }
+      const base = (n[0] === 'ref' && n[1] instanceof Ref) ? n[1].key : (n[0] === 'ref' ? n[1] : '');
+      const v = this.store[base + parts.join('')];
+      return v === undefined ? 0 : v;
+    }
     if (op === 'call') {
       const fn = node[1];
       const args = node[2].map(a => this.eval(a));

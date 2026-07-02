@@ -89,10 +89,14 @@ button{font-family:inherit}
 .main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;
   background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/26px 26px,
     linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/26px 26px,var(--canvas)}
-.panes{flex:1;display:grid;grid-template-columns:316px 1fr;overflow:hidden}
+.panes{flex:1;display:grid;grid-template-columns:var(--navw,316px) 6px 1fr;overflow:hidden}
+.pane-divider{cursor:col-resize;background:transparent;position:relative;z-index:4}
+.pane-divider:hover,.pane-divider.dragging{background:var(--accent-soft)}
+.pane-divider::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--border)}
+.pane-divider:hover::after,.pane-divider.dragging::after{background:var(--accent);width:2px}
 
 /* tree */
-.nav{border-right:1px solid var(--border);overflow:auto;background:color-mix(in srgb,var(--surface) 55%,transparent);padding:6px 8px}
+.nav{overflow:auto;background:color-mix(in srgb,var(--surface) 55%,transparent);padding:6px 8px}
 .navsearch{position:sticky;top:0;z-index:5;padding:8px 6px 10px;background:var(--surface);border-bottom:1px solid var(--border);margin:-6px -8px 6px}
 .navsearch input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;
   outline:none;background:var(--surface-2);color:var(--ink);font-family:inherit}
@@ -162,6 +166,10 @@ button{font-family:inherit}
 
 /* detail */
 .detail{overflow:auto;padding:22px 24px 48px}
+.alias-filter{width:100%;max-width:420px;margin:0 0 10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);font-family:inherit}
+.loading-detail{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin-top:20px}
+.spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:dvspin .7s linear infinite}
+@keyframes dvspin{to{transform:rotate(360deg)}}
 h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:'IBM Plex Mono'}
 .dt-type{display:inline-block;font-size:11px;color:#fff;padding:3px 10px;border-radius:8px;margin:8px 0 14px;font-weight:600;letter-spacing:.02em}
 .dt-desc{color:var(--ink-2);margin:0 0 18px;font-size:13.5px}
@@ -617,6 +625,22 @@ function navSearchKey(ev){
     else navPick(r.id);
   }
 }
+// ── resizable left nav pane (drag the divider) ──
+(function(){
+  var div=document.getElementById('paneDivider'), panes=document.querySelector('.panes');
+  if(!div||!panes) return;
+  var dragging=false;
+  // restore saved width (in-memory only; localStorage is unavailable in some sandboxes)
+  function setW(px){ px=Math.max(180,Math.min(680,px)); panes.style.setProperty('--navw', px+'px'); }
+  div.addEventListener('mousedown',function(e){ dragging=true; div.classList.add('dragging');
+    document.body.style.userSelect='none'; document.body.style.cursor='col-resize'; e.preventDefault(); });
+  window.addEventListener('mousemove',function(e){ if(!dragging)return;
+    var left=panes.getBoundingClientRect().left; setW(e.clientX-left); });
+  window.addEventListener('mouseup',function(){ if(dragging){ dragging=false; div.classList.remove('dragging');
+    document.body.style.userSelect=''; document.body.style.cursor=''; } });
+  // double-click to reset
+  div.addEventListener('dblclick',function(){ panes.style.setProperty('--navw','316px'); });
+})();
 document.addEventListener('keydown',function(e){
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();var q=document.getElementById('navq');if(q){q.focus();q.select();}}
 });
@@ -716,6 +740,17 @@ function renderObj(id){
       vals.forEach(function(v){var cv=v.cv;h+='<tr><td>'+esc(v.name)+'</td><td>'+((cv===''||cv==='\"\"')?'<span style="color:#94a3b8">(empty)</span>':'<code>'+esc(cv)+'</code>')+'</td></tr>';});
       h+='</tbody></table></div>';
     }
+    var als=ui.aliases||[];
+    if(als.length){
+      h+='<div class="card"><h3>Alias resolution ('+als.length+') <span style="font-weight:400;color:var(--ink-3);font-size:12px">\u2014 #ALIAS# maps to the module tag used by this unit</span></h3>';
+      h+='<input class="alias-filter" id="aliasFilter" placeholder="Filter aliases\u2026" oninput="filterAliases()">';
+      h+='<table class="fbd-table" id="aliasTable"><thead><tr><th>Alias</th><th>Resolves to</th><th>Description</th></tr></thead><tbody>';
+      als.forEach(function(a){
+        var tgt=a.value?('<span class="link" onclick="showTag(\\''+esc(a.value)+'\\')"><code>'+esc(a.value)+'</code></span>'):'<span style="color:#94a3b8">(unresolved)</span>';
+        h+='<tr'+(a.ignore?' style="opacity:.5"':'')+'><td><code>#'+esc(a.alias)+'#</code></td><td>'+tgt+'</td><td style="font-size:12px;color:var(--ink-2)">'+esc(a.desc||'')+'</td></tr>';
+      });
+      h+='</tbody></table></div>';
+    }
   }
   if(o._type==='Unit Class' && o.instances){
     h+='<div class="card"><h3>Instances ('+o.instances.length+')</h3><div class="chips">';
@@ -803,36 +838,45 @@ function renderObj(id){
   // placeholder for future leaf views
   if(o._type==='Phase Class'){
     if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN) h+=exportBar('phase:'+o.name, o.name);
-    if(typeof S88_SVG!=='undefined' && S88_SVG){
-      h+='<div class="card s88card" style="max-width:none"><h3>State Model (ISA-88) '
-       + '<span style="font-weight:400;color:var(--ink-3);text-transform:none;letter-spacing:0">'
-       + 'click an acting state to open its logic below</span></h3>'
-       + '<div class="s88wrap"><div class="s88diagram">'+S88_SVG+'</div>'
+    var _hasEager = PHASE_VIEWS[o.name];
+    var _hasLazy = (typeof PHASE_NAMES!=='undefined') && PHASE_NAMES.indexOf(o.name)>=0;
+    var _hasS88 = (typeof S88_SVG!=='undefined' && S88_SVG);
+    // Combined card: State Model and Interactive Logic share one space via tabs,
+    // instead of two stacked full-width cards (better use of vertical room).
+    h+='<div class="card" style="max-width:none">';
+    h+='<div class="emtabs">';
+    h+='<button class="emtab on" data-e="logic" onclick="phaseTab(this,\\'logic\\')">Interactive Logic</button>';
+    if(_hasS88) h+='<button class="emtab" data-e="state" onclick="phaseTab(this,\\'state\\')">State Model (ISA-88)</button>';
+    h+='</div>';
+
+    // ── Interactive Logic panel (default) ──
+    h+='<div class="empanel on" data-e="logic" id="phasepanel_logic">';
+    if(_hasEager){
+      h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
+    } else if(_hasLazy && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+      var _src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(o.name);
+      h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" loading="lazy"></iframe>';
+    } else {
+      h+='<span class="empty">No parsed logic available for this phase in this export.</span>';
+    }
+    h+='</div>';
+
+    // ── State Model panel ──
+    if(_hasS88){
+      h+='<div class="empanel" data-e="state">';
+      h+='<div class="s88wrap"><div class="s88diagram">'+S88_SVG+'</div>'
        + '<div class="s88side"><h4 id="s88h">Procedural state model</h4>'
        + '<p id="s88p">The six <b>acting</b> states (blue) always carry logic — Running, Holding, '
        + 'Restarting, Stopping, Aborting and the fault monitor. A <code>· blank</code> tag means the '
-       + 'block holds a blank step with no actions. Outlined states are <b>resting</b> states.</p></div></div>'
+       + 'block holds a blank step with no actions. Outlined states are <b>resting</b> states.</p>'
+       + '<p style="color:var(--ink-3);font-size:12px">Click an acting state to open its logic in the interactive tab.</p></div></div>'
        + '<div class="s88legend"><span><i style="background:var(--st-active)"></i>Acting state (logic)</span>'
        + '<span><i style="background:var(--st-quiet);border:1px solid var(--st-quiet-bd)"></i>Resting state</span>'
        + '<span><i style="background:var(--st-warn)"></i>Fault monitor</span>'
-       + '<span><i style="background:var(--edge-reset)"></i>Reset path</span></div></div>';
-    }
-    var _hasEager = PHASE_VIEWS[o.name];
-    var _hasLazy = (typeof PHASE_NAMES!=='undefined') && PHASE_NAMES.indexOf(o.name)>=0;
-    if(_hasEager){
-      h+='<div class="card" style="max-width:none"><h3>Phase logic — interactive</h3>';
-      h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
+       + '<span><i style="background:var(--edge-reset)"></i>Reset path</span></div>';
       h+='</div>';
-    } else if(_hasLazy && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
-      // lazy: fetch this phase's interactive view on demand (built server-side only
-      // when opened, so large exports don't render every phase up front)
-      var _src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(o.name);
-      h+='<div class="card" style="max-width:none"><h3>Phase logic — interactive</h3>';
-      h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" loading="lazy"></iframe>';
-      h+='</div>';
-    } else {
-      h+='<div class="card"><h3>Phase logic</h3><span class="empty">No parsed logic available for this phase in this export.</span></div>';
     }
+    h+='</div>';  // end combined card
   }
   // CM Class / Composite -> Function Block Diagram (FHX structure/wiring)
   if(o._type==='CM Class' || o._type==='Composite'){
@@ -887,12 +931,26 @@ function secToggle(sid,el){const b=document.getElementById(sid);if(!b)return;con
 // ── view stack so the back button returns to the previous view ──
 let VIEW_STACK=[];
 function renderEntry(e){
-  if(e.k==='obj') renderObj(e.id);
-  else if(e.k==='fbd') renderFbd(e.def,e.label);
-  else if(e.k==='param') renderParam(e.name);
-  else if(e.k==='inst') renderInstance(e.iid);
-  else if(e.k==='dep') renderDeployed(e.tag);
-  const d=document.getElementById('detail'); if(d) d.scrollTop=0;
+  const d=document.getElementById('detail');
+  // paint an immediate loading state so selecting an object feels responsive,
+  // then do the (possibly heavier) render on the next frame so the loader shows.
+  var label = e.k==='obj' ? ((DB.objs[e.id]&&DB.objs[e.id].name)||'')
+            : e.k==='fbd' ? (e.label||e.def)
+            : e.k==='inst' ? (e.iid||'').split('\\u0001').pop()
+            : e.k==='param' ? e.name : (e.tag||'');
+  if(d){
+    d.innerHTML='<h2 class="dt">'+esc(label)+'</h2>'+
+      '<div class="loading-detail"><span class="spin"></span> Loading…</div>';
+    d.scrollTop=0;
+  }
+  requestAnimationFrame(function(){
+    if(e.k==='obj') renderObj(e.id);
+    else if(e.k==='fbd') renderFbd(e.def,e.label);
+    else if(e.k==='param') renderParam(e.name);
+    else if(e.k==='inst') renderInstance(e.iid);
+    else if(e.k==='dep') renderDeployed(e.tag);
+    var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
+  });
 }
 function navTo(e){ VIEW_STACK.push(e); renderEntry(e); }
 function goBack(){ if(VIEW_STACK.length>1){ VIEW_STACK.pop(); renderEntry(VIEW_STACK[VIEW_STACK.length-1]); } }
@@ -946,6 +1004,23 @@ function lazyFbd(name){
 function showParam(name){ if(PARAM_INDEX[name]) navTo({k:'param',name:name}); }
 function showInst(parent,tag){ var iid=parent+'\\u0001'+tag; if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); }
 function showDeployed(tag){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag}); }
+// jump to whatever a resolved alias points at: a deployed module tag, an instance,
+// or a class object — whichever exists. Falls back to a no-op if not in the export.
+function showTag(tag){
+  if(!tag) return;
+  if(DB.deployed_modules&&DB.deployed_modules[tag]){ navTo({k:'dep',tag:tag}); return; }
+  // instance keyed by parent\\u0001tag
+  if(DB.instances){ for(var iid in DB.instances){ if(DB.instances[iid].tag===tag){ navTo({k:'inst',iid:iid}); return; } } }
+  var c=['cm:'+tag,'em:'+tag,'composite:'+tag,'uclass:'+tag];
+  for(var i=0;i<c.length;i++){ if(DB.objs[c[i]]){ show(c[i]); return; } }
+  // resolved to a tag not separately catalogued (e.g. a raw field device) — no nav
+}
+function filterAliases(){
+  var f=(document.getElementById('aliasFilter')||{}).value||'';
+  f=f.toLowerCase();
+  var tb=document.querySelectorAll('#aliasTable tbody tr');
+  tb.forEach(function(tr){ tr.style.display = tr.textContent.toLowerCase().indexOf(f)>=0 ? '' : 'none'; });
+}
 
 // link to a module by name, resolving to whatever navigable view exists for it
 function modLink(name){
@@ -957,6 +1032,11 @@ function modLink(name){
 
 // ── parameter cross-reference card (database-wide) ──
 function renderParam(name){
+  if(!SEARCH_IDX_LOADED){
+    var dd=document.getElementById('detail');
+    if(dd) dd.innerHTML='<h2 class="dt">'+esc(name)+'</h2><div class="loading-detail"><span class="spin"></span> Loading parameter…</div>';
+    ensureSearchIndex(function(){ renderParam(name); }); return;
+  }
   var v=PARAM_INDEX[name];
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   var back = VIEW_STACK.length>1 ? ' <span class="link" onclick="goBack()">← back</span>' : '';
@@ -992,6 +1072,9 @@ function viewClass(cls){
 // ── CM instance card: identity + class link + siblings + inherited values ──
 function renderInstance(iid){
   var d=DB.instances&&DB.instances[iid]; if(!d){return;}
+  // instance parameter values come from the search index (params), which is now
+  // lazily loaded — ensure it's available, then (re)render so values appear.
+  if(!SEARCH_IDX_LOADED){ ensureSearchIndex(function(){ renderInstance(iid); }); }
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   document.querySelectorAll('.navinst').forEach(function(n){
     n.classList.toggle('sel', n.dataset.parent+'\\u0001'+n.dataset.tag===iid);
@@ -1031,6 +1114,7 @@ function renderInstance(iid){
 // ── deployed module instance (a real tag in a unit) ──
 function renderDeployed(tag){
   var d=DB.deployed_modules&&DB.deployed_modules[tag]; if(!d){return;}
+  if(!SEARCH_IDX_LOADED){ ensureSearchIndex(function(){ renderDeployed(tag); }); }
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   document.querySelectorAll('.navinst').forEach(function(n){n.classList.toggle('sel',n.dataset.tag===tag&&n.dataset.dep==='1');});
   var isEM=!!DB.objs['em:'+d.cls];
@@ -1091,6 +1175,12 @@ function emTab(btn,which){
   card.querySelectorAll('.emtab').forEach(t=>t.classList.toggle('on',t===btn));
   card.querySelectorAll('.empanel').forEach(p=>p.classList.toggle('on',p.dataset.e===which));
   if(which==='fb') wireFbdLinks();
+}
+// phase view uses the same tabbed card structure (Interactive Logic / State Model)
+function phaseTab(btn,which){
+  const card=btn.closest('.card');
+  card.querySelectorAll('.emtab').forEach(t=>t.classList.toggle('on',t===btn));
+  card.querySelectorAll('.empanel').forEach(p=>p.classList.toggle('on',p.dataset.e===which));
 }
 function wireFbdLinks(){
   document.querySelectorAll('.fbd-comp-link').forEach(el=>{
@@ -1470,6 +1560,7 @@ function wireFbdLinks(){
 <main class="main">
   <div class="panes">
     <div class="nav">{''.join(nav)}</div>
+    <div class="pane-divider" id="paneDivider" title="Drag to resize"></div>
     <div class="detail" id="detail">{welcome}</div>
   </div>
 </main>
