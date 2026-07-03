@@ -16,6 +16,11 @@ import json
 import fbd_bridge  # for the shared expression-popup modal assets
 import fonts  # embedded IBM Plex (offline-safe)
 import s88_model  # ISA-88 phase state model
+try:
+    import recipe_bridge
+    _RECIPE_CSS = recipe_bridge.RECIPE_CSS
+except Exception:
+    _RECIPE_CSS = ""
 
 
 _CSS = """
@@ -147,6 +152,14 @@ button{font-family:inherit}
 .navinst .inst-cls{color:var(--ink-3);font-size:10.5px;margin-left:auto;padding-left:8px;white-space:nowrap;flex:0 0 auto}
 .own-dot{display:inline-flex;align-items:center;margin-left:5px;flex:0 0 auto}
 .own-dot svg{display:block}
+.sim-chip{background:var(--accent-soft);border-color:var(--accent)!important;color:var(--accent);font-weight:600}
+.sim-chip:hover{background:var(--accent);color:#fff}
+.emsim-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9999;display:flex;align-items:center;justify-content:center}
+.emsim-modal{background:#fff;border-radius:12px;width:94%;height:90%;max-width:1400px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
+.emsim-h{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.emsim-x{cursor:pointer;font-size:24px;color:var(--ink-3);line-height:1}
+.emsim-x:hover{color:var(--ink)}
+.emsim-frame{flex:1;border:none;width:100%}
 .bigbtn{margin-top:12px;width:100%;padding:10px 12px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;border-radius:9px;cursor:pointer;box-shadow:var(--shadow)}
 .bigbtn:hover{filter:brightness(1.06)}
 .navgroup{position:relative}
@@ -218,12 +231,12 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .kv{display:grid;grid-template-columns:170px 1fr;gap:5px 16px;font-size:13px;margin-bottom:6px;max-width:760px}
 .kv .k{color:var(--ink-3)}
 .card{border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px;background:var(--surface);max-width:920px;box-shadow:var(--shadow)}
-.card-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin:-4px -6px 8px;padding:4px 6px;border-radius:7px;transition:background .12s}
-.card-toggle:hover{background:var(--surface-2)}
-.card-toggle::before{content:'\\25be';font-size:11px;color:var(--accent);transition:transform .15s;flex-shrink:0}
-.card.collapsed>.card-toggle{margin-bottom:-4px}
-.card.collapsed>.card-toggle::before{transform:rotate(-90deg)}
-.card.collapsed>*:not(.card-toggle){display:none!important}
+.card > h3{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin:-4px -6px 8px;padding:4px 6px;border-radius:7px;transition:background .12s}
+.card > h3:hover{background:var(--surface-2)}
+.card > h3::before{content:'\\25be';font-size:11px;color:var(--accent);transition:transform .15s;flex-shrink:0}
+.card.collapsed>h3{margin-bottom:-4px}
+.card.collapsed>h3::before{transform:rotate(-90deg)}
+.card.collapsed>*:not(h3){display:none!important}
 .card.collapsed{padding-bottom:11px}
 .card h3{margin:0 0 11px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -467,15 +480,17 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-0643"
+_BUILD_ID = "20260703-1525"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
                         fbd_names=None, em_views=None, em_names=None,
-                        param_index=None, expr_index=None, export_token=None):
+                        param_index=None, expr_index=None, export_token=None,
+                        recipe_views=None):
     """phase_names/fbd_names/em_names: lists of objects available for lazy drill-down
     (built on click via /phase_view, /fbd_view, /em_view). The *_views maps are the
     legacy eager form, still accepted as a fallback."""
+    recipe_views = recipe_views or {}
     phase_views = phase_views or {}
     phase_names = phase_names or list(phase_views.keys())
     fbd_views = fbd_views or {}
@@ -549,6 +564,7 @@ def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_
     fbd_names_json = json.dumps(fbd_names)
     em_names_json = json.dumps(em_names)
     em_views_json = json.dumps(em_views)
+    recipe_views_json = json.dumps(recipe_views)
     param_index_json = json.dumps(param_index or {})
     expr_index_json = json.dumps(expr_index or [])
 
@@ -560,6 +576,7 @@ const FBD_VIEWS = __FBD_VIEWS__;
 const FBD_NAMES = __FBD_NAMES__;
 const EM_NAMES = __EM_NAMES__;
 const EM_VIEWS = __EM_VIEWS__;
+const RECIPE_VIEWS = __RECIPE_VIEWS__;
 let PARAM_INDEX = __PARAM_INDEX__;
 let EXPR_INDEX = __EXPR_INDEX__;
 var SEARCH_IDX_LOADED = (Object.keys(PARAM_INDEX).length>0 || EXPR_INDEX.length>0);
@@ -737,6 +754,45 @@ function paramsCard(name){
     h+='</tbody></table></div>';
   });
   return h+'</div>';
+}
+// #4: append another FHX (e.g. a recipe) onto the current import without losing it.
+function openAppend(){
+  var tok=(typeof EXPORT_TOKEN!=='undefined')?EXPORT_TOKEN:'';
+  if(!tok){ alert('Append needs the current import token, which is unavailable. Re-import the base file and try again.'); return; }
+  var ov=document.getElementById('appendOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='appendOverlay'; ov.className='ip-pop-overlay'; document.body.appendChild(ov); }
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div class="ip-pop" style="max-width:520px"><div class="ip-pop-h"><b>Append another FHX</b>'
+    +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'appendOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<div style="padding:16px 18px">'
+    +'<p style="margin:0 0 12px;color:var(--ink-2);font-size:13px;line-height:1.5">Merge a second export (for example a recipe) into this one. The current import is kept; the new file is added on top. If an object with the same name already exists, choose what to do with the duplicate.</p>'
+    +'<input type="file" id="appendFile" accept=".fhx" style="display:block;margin-bottom:12px;font-size:13px">'
+    +'<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px">'
+    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="appendMode" value="skip" checked> Skip duplicates <span style="color:var(--ink-3)">(keep original)</span></label>'
+    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="appendMode" value="overwrite"> Overwrite <span style="color:var(--ink-3)">(new wins)</span></label>'
+    +'</div>'
+    +'<div id="appendStatus" style="font-size:12.5px;color:var(--ink-3);min-height:18px;margin-bottom:10px"></div>'
+    +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="doAppend()">Merge &amp; reload</button>'
+    +'</div></div>';
+}
+function doAppend(){
+  var fi=document.getElementById('appendFile');
+  var st=document.getElementById('appendStatus');
+  if(!fi.files || !fi.files.length){ st.textContent='Please choose an FHX file first.'; return; }
+  var mode=(document.querySelector('input[name=appendMode]:checked')||{}).value||'skip';
+  var fd=new FormData();
+  fd.append('token', EXPORT_TOKEN);
+  fd.append('mode', mode);
+  fd.append('file', fi.files[0]);
+  st.textContent='Merging…';
+  fetch('/append',{method:'POST',body:fd})
+    .then(function(r){ return r.text().then(function(t){ return {ok:r.ok,t:t}; }); })
+    .then(function(res){
+      if(!res.ok){ st.textContent='Merge failed: '+res.t.slice(0,200); return; }
+      // replace the whole document with the merged explorer
+      document.open(); document.write(res.t); document.close();
+    })
+    .catch(function(e){ st.textContent='Merge error: '+e.message; });
 }
 function switchView(v){
   var conv=document.getElementById('view-converter');
@@ -972,6 +1028,7 @@ function renderObj(id){
   }
   // EM Class -> full view: Function Blocks + Command/State Logic + Control Modules
   if(o._type==='EM Class'){
+    _emCurrent=o.name;
     var stateSet=(DB.em_state_set&&DB.em_state_set[o.name])||'';
     if(stateSet){
       h+='<div class="card"><h3>State Set</h3><div class="kv">'
@@ -988,10 +1045,20 @@ function renderObj(id){
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No parsed EM view available in this export.</span></div>';
     }
+    // #11: command simulator — command-driven EMs can be walked like phases.
+    if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+      h+='<div class="card" style="max-width:none" id="emSimCard"><h3>Command simulator <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 walk a command step-by-step</span></h3>'
+        +'<div class="empty" id="emSimList">Loading commands\\u2026</div></div>';
+      (function(nm){ setTimeout(function(){ lazyEmSim(nm); },0); })(o.name);
+    }
     h+=paramsCard(o.name);
   }
   if(o._type==='Recipe'){
-    h+='<div class="card"><h3>Detail</h3><span class="empty">Detailed Recipe view (procedure tree, parameters) plugs in here.</span></div>';
+    if(RECIPE_VIEWS[o.name]){
+      h+=RECIPE_VIEWS[o.name];
+    } else {
+      h+='<div class="card"><h3>Detail</h3><span class="empty">No procedure detail parsed for this recipe.</span></div>';
+    }
   }
   if(o._type==='FB Type'){
     h+='<div class="card"><h3>Standard DeltaV Function Block</h3>';
@@ -1001,7 +1068,7 @@ function renderObj(id){
     h+='<p class="empty" style="margin-top:10px">A primitive block type provided by DeltaV (not a user composite). Instances of it appear inside control/equipment module diagrams.</p>';
     h+='</div>';
   }
-  document.getElementById('detail').innerHTML=h;
+  document.getElementById('detail').innerHTML=h; try{makeCardsCollapsible();}catch(e){}
 }
 
 function toggle(el,e){e.stopPropagation();const ul=el.closest('.navgroup').querySelector('.navchildren');if(ul){ul.style.display=ul.style.display==='none'?'block':'none';el.textContent=ul.style.display==='none'?'▸':'▾';}}
@@ -1009,6 +1076,30 @@ function secToggle(sid,el){const b=document.getElementById(sid);if(!b)return;con
 
 // ── view stack so the back button returns to the previous view ──
 let VIEW_STACK=[];
+let _emCurrent='';
+// #1/#3: open an EM's control-module MEMBER in an instance-style view (diagram +
+// role context), matching the richer CM-under-unit view rather than the bare class.
+function showEmMember(emName, memberName, cls){
+  navTo({k:'emmember', em:emName, member:memberName, cls:cls});
+}
+function renderEmMember(emName, memberName, cls){
+  var d=document.getElementById('detail'); if(!d) return;
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
+  var h='<h2 class="dt">'+esc(memberName)+' <span class="dt-type" style="background:#6d28d9">CM member</span></h2>';
+  h+='<p class="dt-desc">Control module <b>'+esc(memberName)+'</b> within EM '
+    +(DB.objs['em:'+emName]?'<span class="link" onclick="show(\\'em:'+esc(emName)+'\\')">'+esc(emName)+'</span>':esc(emName))
+    +' \\u00b7 instance of '+modLink(cls)+'.'+back+'</p>';
+  h+='<div class="card" style="max-width:none" id="emmDiag"><h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(cls)+'</span></h3><div class="frame-load"><span class="spin"></span> Loading diagram\\u2026</div></div>';
+  h+=paramsCard(cls);
+  d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
+  // load the class FBD as the member's diagram (member reuses class logic, wired per EM)
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+    fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(cls))
+      .then(function(r){return r.json();})
+      .then(function(x){ var b=document.getElementById('emmDiag'); if(b&&x&&x.html){ b.innerHTML='<h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(cls)+'</span></h3>'+x.html; setTimeout(wireFbdLinks,0);} else if(b){ b.innerHTML='<h3>Diagram</h3><span class="empty">No diagram for '+esc(cls)+'.</span>'; } try{makeCardsCollapsible();}catch(e){} })
+      .catch(function(){ var b=document.getElementById('emmDiag'); if(b) b.innerHTML='<h3>Diagram</h3><span class="empty">Could not load diagram.</span>'; });
+  }
+}
 function renderEntry(e){
   const d=document.getElementById('detail');
   // paint an immediate loading state so selecting an object feels responsive,
@@ -1028,22 +1119,25 @@ function renderEntry(e){
     else if(e.k==='param') renderParam(e.name);
     else if(e.k==='inst') renderInstance(e.iid);
     else if(e.k==='dep') renderDeployed(e.tag);
+    else if(e.k==='emmember') renderEmMember(e.em,e.member,e.cls);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
   });
 }
-// #3: let the user collapse any card by clicking its header, to focus on one section.
-// Non-invasive: enhances every .card > h3 in the detail pane after each render.
-function makeCardsCollapsible(){
-  var d=document.getElementById('detail'); if(!d) return;
-  d.querySelectorAll('.card > h3').forEach(function(h){
-    if(h._collapsible) return; h._collapsible=1;
-    h.classList.add('card-toggle');
-    h.addEventListener('click',function(ev){
-      // don't collapse when clicking a link/control inside the header
-      if(ev.target.closest('a,.link,button,input,select')) return;
-      h.parentElement.classList.toggle('collapsed');
-    });
+// #3/#5: collapse any card by clicking its header. Pure CSS affordance on every
+// .card > h3, plus one delegated click handler — works for cards added at any time
+// (async EM panels, instance params, recipe views) across ALL object types.
+function makeCardsCollapsible(){ /* no-op: handled by CSS + delegation below */ }
+if(!window._cardCollapseWired){
+  window._cardCollapseWired=1;
+  document.addEventListener('click',function(ev){
+    var t=ev.target;
+    if(!t.closest) return;
+    var h=t.closest('.card > h3');
+    if(!h || !h.parentElement.classList.contains('card')) return;
+    if(!h.closest('#detail')) return;
+    if(t.closest('a,.link,button,input,select')) return; // let controls work
+    h.parentElement.classList.toggle('collapsed');
   });
 }
 function navTo(e){ VIEW_STACK.push(e); renderEntry(e); }
@@ -1057,6 +1151,7 @@ function showFbd(def,label){ if(FBD_VIEWS[def] || (typeof FBD_NAMES!=='undefined
 
 // ── lazy view loaders (large exports don't build FBD/EM views up front) ──
 function renderEmPanel(ev, stateSet){
+  _emCurrent=(ev&&ev.name)||_emCurrent||'';
   var mem=(ev.members&&ev.members.length)?ev.members:null;
   var cmCount=mem?mem.length:((ev.cms&&ev.cms.length)||0);
   var h='<div class="card" style="max-width:none">';
@@ -1095,12 +1190,36 @@ function cmGroup(label, list, kind){
   var h='<details class="cm-group" open><summary>'+esc(label)+' <span class="cm-count">'+list.length+'</span></summary><div class="cm-list">';
   list.forEach(function(m){
     var cls=m.module||'';
-    h+='<span class="cm-chip" title="'+esc(m.desc||'')+'" onclick="show(\\'cm:'+esc(cls)+'\\')">'
+    h+='<span class="cm-chip" title="'+esc(m.desc||'')+'" onclick="showEmMember(\\''+esc(_emCurrent).replace(/'/g,"\\\\'")+'\\',\\''+esc(m.name).replace(/'/g,"\\\\'")+'\\',\\''+esc(cls).replace(/'/g,"\\\\'")+'\\')">'
       +'<span class="cm-ico '+icoClass+'" title="'+icoTitle+'"></span>'
       +'<b>'+esc(m.name)+'</b> <span class="cm-sub">'+esc(cls)+'</span></span>';
   });
   h+='</div></details>';
   return h;
+}
+// #11: load an EM's command list and offer a Simulate button for each.
+function lazyEmSim(name){
+  var box=document.getElementById('emSimList'); if(!box) return;
+  fetch('/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(name))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var cmds=(j&&j.commands)||[];
+      if(!cmds.length){ box.outerHTML='<div class="empty" id="emSimList">This EM has no command SFCs to simulate (it may be a monitor or message module).</div>'; return; }
+      var h='<div class="chips">';
+      cmds.forEach(function(cn){
+        h+='<span class="chip sim-chip" onclick="openEmSim(\\''+esc(name).replace(/'/g,"\\\\'")+'\\',\\''+esc(cn).replace(/'/g,"\\\\'")+'\\')">\\u25b6 '+esc(cn)+'</span>';
+      });
+      h+='</div>';
+      box.outerHTML='<div id="emSimList">'+h+'</div>';
+    })
+    .catch(function(){ var b=document.getElementById('emSimList'); if(b) b.textContent='Could not load commands.'; });
+}
+function openEmSim(em, cmd){
+  var ov=document.getElementById('emSimOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='emSimOverlay'; ov.className='emsim-overlay'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="emsim-modal"><div class="emsim-h"><b>'+esc(em)+' \\u2014 '+esc(cmd)+'</b>'
+    +'<span class="emsim-x" onclick="var o=document.getElementById(\\'emSimOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<iframe class="emsim-frame" src="/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(em)+'&c='+encodeURIComponent(cmd)+'"></iframe></div>';
 }
 function lazyEm(name, stateSet){
   var box=document.getElementById('emLazy');
@@ -1182,7 +1301,7 @@ function renderParam(name){
     function(r){return '<td>'+modLink(r.m)+'</td><td><b>'+esc(r.from)+'</b></td><td><code>'+esc(r.via)+'</code></td>';});
   h+=tbl('Used in expressions', v.exprs, '<th>Module</th><th>Block</th><th>Attribute</th><th>Kind</th>',
     function(e){return '<td>'+modLink(e.m)+'</td><td>'+esc(e.blk)+'</td><td><code>'+esc(e.attr)+'</code></td><td>'+esc(e.kind||'—')+'</td>';});
-  var d=document.getElementById('detail'); d.innerHTML=h; d.scrollTop=0;
+  var d=document.getElementById('detail'); d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
 }
 
 // jump from an instance to the class that defines its logic/parameters
@@ -1231,7 +1350,7 @@ function renderInstance(iid){
     vals.forEach(function(v){ h+='<tr><td><span class="link" onclick="showParam(\\''+esc(v.p)+'\\')">'+esc(v.p)+'</span></td><td>'+(v.cv===''?'<span style="color:#94a3b8">(empty)</span>':'<code>'+esc(v.cv)+'</code>')+'</td></tr>'; });
     h+='</tbody></table></div>';
   }
-  var dd=document.getElementById('detail'); dd.innerHTML=h; dd.scrollTop=0;
+  var dd=document.getElementById('detail'); dd.innerHTML=h; dd.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
 }
 
 // ── deployed module instance (a real tag in a unit) ──
@@ -1261,7 +1380,7 @@ function renderDeployed(tag){
   if(isEM){
     h+='<div class="card" style="max-width:none" id="instLogic"><h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3><div class="frame-load"><span class="spin"></span> Loading command logic\\u2026</div></div>';
   }
-  var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0;
+  var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
   // fetch this instance's FBD (falls back to class diagram if the instance has none)
   lazyInstDiagram(d);
   lazyInstParams(tag);
@@ -1369,7 +1488,7 @@ function renderFbd(defName, label){
     const back = VIEW_STACK.length>1 ? ' <span class="link" onclick="goBack()">← back</span>' : '';
     h+='<p class="dt-desc">Nested composite inside the parent module.'+back+'</p>';
     h+='<div class="card" style="max-width:none">'+FBD_VIEWS[defName]+'</div>';
-    d.innerHTML=h; d.scrollTop=0; wireFbdLinks();
+    d.innerHTML=h; d.scrollTop=0; wireFbdLinks(); try{makeCardsCollapsible();}catch(e){}
   }
   if(FBD_VIEWS[defName]){ paint(); return; }
   if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
@@ -1418,6 +1537,7 @@ function wireFbdLinks(){
             .replace('__EM_NAMES__', _script_safe(em_names_json))
             .replace('__FBD_VIEWS__', _script_safe(fbd_views_json))
             .replace('__EM_VIEWS__', _script_safe(em_views_json))
+            .replace('__RECIPE_VIEWS__', _script_safe(recipe_views_json))
             .replace('__PARAM_INDEX__', _script_safe(param_index_json))
             .replace('__EXPR_INDEX__', _script_safe(expr_index_json)))
 
@@ -1737,6 +1857,7 @@ function wireFbdLinks(){
             f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=word&amp;name={ft}" '
             f'title="Download a Word DDS document generated from this database">{_WORD_ICON}Word DDS</a>'
             f'<a class="exp-btn" href="javascript:void 0" title="Open the FHX Converter wizard" onclick="switchView(\'converter\')">&#9881; Converter</a>'
+            f'<a class="exp-btn" href="javascript:void 0" title="Append another FHX such as a recipe without losing this import" onclick="openAppend()">&#43; Append FHX</a>'
             f'</div>')
 
     theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)
@@ -1751,7 +1872,8 @@ function wireFbdLinks(){
 <style>{fonts.FONT_CSS}
 {_CSS}
 {s88_model.S88_CSS}
-{fbd_bridge.EXPR_MODAL_CSS}</style></head><body>
+{fbd_bridge.EXPR_MODAL_CSS}
+{_RECIPE_CSS}</style></head><body>
 <div class="app">
 <nav class="rail">
   <div class="brand" title="DeltaV Strategy Workbench">

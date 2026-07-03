@@ -241,8 +241,7 @@ def index():
 
 @app.route('/explore', methods=['POST'])
 def explore():
-    import time, traceback
-    t_start = time.time()
+    import time
     f = request.files.get('file')
     if not f:
         return "No file uploaded.", 400
@@ -255,6 +254,109 @@ def explore():
         app.logger.exception('decode failed')
         return _explore_error('Could not decode the file', e, fname), 500
 
+    return _render_explore(text, fname)
+
+
+@app.route('/append', methods=['POST'])
+def append():
+    """Merge a second FHX (e.g. a recipe) on top of an already-imported export,
+    keeping the original intact. The two exports' block text is concatenated so the
+    combined database parses as one. Duplicate top-level blocks (same TYPE+NAME) are
+    handled per `mode`: 'skip' keeps the original block, 'overwrite' keeps the new one.
+    Requires the existing export token (so we can read the stashed original)."""
+    import time
+    token = request.form.get('token', '')
+    mode = request.form.get('mode', 'skip')  # 'skip' | 'overwrite'
+    f = request.files.get('file')
+    if not f:
+        return "No file uploaded.", 400
+    base = _read_stash(token)
+    if not base:
+        return "Original import not found or expired — please re-import the base file.", 400
+    raw = f.read()
+    fname = (f.filename or 'append.fhx').rsplit('.', 1)[0]
+    try:
+        add = db_parser.decode_fhx(raw)
+    except Exception as e:
+        app.logger.exception('append decode failed')
+        return _explore_error('Could not decode the appended file', e, fname), 500
+    try:
+        merged = _merge_fhx(base, add, mode)
+    except Exception as e:
+        app.logger.exception('merge failed')
+        return _explore_error('Could not merge the files', e, fname), 500
+    return _render_explore(merged, fname + ' (merged)')
+
+
+def _merge_fhx(base, add, mode='skip'):
+    """Concatenate two FHX exports into one combined database text.
+
+    FHX is a flat sequence of top-level blocks. We drop the second file's SCHEMA/
+    LOCALE preamble (keeping the base's), then append the rest. For de-duplication we
+    look at top-level `KEYWORD ... NAME="..."` headers: if the same TYPE+NAME already
+    exists in the base, we either skip the incoming block ('skip') or drop the base's
+    copy so the incoming one wins ('overwrite')."""
+    import re as _re
+    # strip leading SCHEMA{...} and LOCALE{...} from the addition (base already has them)
+    add_body = add
+    for kw in ('SCHEMA', 'LOCALE'):
+        m = _re.search(r'\b' + kw + r'\b', add_body)
+        if m:
+            try:
+                blk = db_parser.extract_block(add_body, add_body.index('{', m.start()))
+                end = add_body.index('{', m.start()) + len(blk)
+                add_body = add_body[:m.start()] + add_body[end:]
+            except Exception:
+                pass
+
+    # collect top-level block identities in the base (TYPE + NAME)
+    def _identities(t):
+        ids = set()
+        for hm in _re.finditer(r'^([A-Z][A-Z_]+)\s+NAME="([^"]+)"', t, _re.M):
+            ids.add((hm.group(1), hm.group(2)))
+        return ids
+
+    base_ids = _identities(base)
+
+    # walk the addition's top-level blocks; skip/allow per dedup
+    out_add = []
+    # find each top-level NAMEd block header and its extent
+    headers = list(_re.finditer(r'^([A-Z][A-Z_]+)\s+NAME="([^"]+)"', add_body, _re.M))
+    if not headers:
+        merged = base.rstrip() + "\n\n" + add_body.lstrip()
+        return merged
+    # if overwrite, remove clashing base blocks
+    base_out = base
+    if mode == 'overwrite':
+        add_ids = _identities(add_body)
+        for (typ, nm) in add_ids:
+            bm = _re.search(r'^' + typ + r'\s+NAME="' + _re.escape(nm) + r'"', base_out, _re.M)
+            if bm:
+                try:
+                    blk = db_parser.extract_block(base_out, base_out.index('{', bm.start()))
+                    end = base_out.index('{', bm.start()) + len(blk)
+                    base_out = base_out[:bm.start()] + base_out[end:]
+                except Exception:
+                    pass
+    # build the addition, skipping clashes in skip mode
+    idx = 0
+    kept = []
+    for i, hm in enumerate(headers):
+        typ, nm = hm.group(1), hm.group(2)
+        start = hm.start()
+        end = headers[i + 1].start() if i + 1 < len(headers) else len(add_body)
+        seg = add_body[start:end]
+        if mode == 'skip' and (typ, nm) in base_ids:
+            continue
+        kept.append(seg)
+    merged = base_out.rstrip() + "\n\n" + "\n".join(kept)
+    return merged
+
+
+def _render_explore(text, fname):
+    """Shared explorer render used by both /explore and /append."""
+    import time
+    t_start = time.time()
     try:
         catalog = db_parser.parse_database(text)
     except Exception as e:
@@ -295,11 +397,23 @@ def explore():
         app.logger.exception('em names failed (non-fatal)')
         em_names = []
 
+    # recipe procedure views (batch recipes) — parsed and rendered eagerly since
+    # they're small and there are usually only a few per export.
+    recipe_views = {}
+    try:
+        import recipe_bridge
+        rec = recipe_bridge.parse_recipe(text)
+        if rec and rec['meta'].get('name'):
+            recipe_views[rec['meta']['name']] = recipe_bridge.build_recipe_html(rec)
+    except Exception:
+        app.logger.exception('recipe view failed (non-fatal)')
+
     try:
         html = db_explorer.build_explorer_html(catalog, fname, phase_names=phase_names,
                                                fbd_names=fbd_names, em_names=em_names,
                                                param_index=param_index, expr_index=expr_index,
-                                               export_token=export_token)
+                                               export_token=export_token,
+                                               recipe_views=recipe_views)
     except Exception as e:
         app.logger.exception('build_explorer_html failed')
         return _explore_error('Could not render the explorer', e, fname), 500
@@ -413,6 +527,32 @@ def em_view():
     except Exception as e:
         app.logger.exception('em_view failed')
         return jsonify({'error': _h.escape(str(e))})
+
+
+@app.route('/em_sim')
+def em_sim():
+    """Build a single EM command's SFC with the simulator injected, so command-driven
+    EMs can be walked like phases (#11). Params: t=token, e=em_name, c=command_name."""
+    import html as _h
+    token = request.args.get('t', '')
+    em = request.args.get('e', '')
+    cmd = request.args.get('c', '')
+    text = _read_stash(token)
+    if not text:
+        return Response('<p>Session expired — please re-open the export.</p>', mimetype='text/html')
+    try:
+        import em_sim_export
+        if not cmd:
+            # no command specified: return the list of commands as JSON
+            return jsonify({'em': em, 'commands': em_sim_export.list_em_commands(text, em)})
+        view = em_sim_export.build_em_command_sim_view(text, em, cmd)
+        if not view:
+            return Response(f'<p>Command "{_h.escape(cmd)}" not found in {_h.escape(em)}.</p>',
+                            mimetype='text/html')
+        return Response(view, mimetype='text/html')
+    except Exception as e:
+        app.logger.exception('em_sim failed')
+        return Response(f'<p>Could not build EM simulation: {_h.escape(str(e))}</p>', mimetype='text/html')
 
 
 @app.route('/phase_view')
