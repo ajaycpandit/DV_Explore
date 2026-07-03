@@ -123,9 +123,13 @@ def command_state_html(text, em_name):
         # parse_cdem_fhx returns commands for ALL EMs in the export; keep only this
         # EM's commands (each command carries its owning em_name). This fixes the
         # duplicate-command problem where every EM showed every EM's commands.
+        # IMPORTANT: if this EM has NONE of its own commands, it is not a command-SFC
+        # EM at all (e.g. a failure monitor / message module) — render nothing here
+        # rather than falling back to every EM's commands.
         own = [c for c in commands if (c.get('em_name') or '') == em_name]
-        if own:
-            commands = own
+        if not own:
+            return ''
+        commands = own
         # de-dupe by command name within this EM (a command is a unit; it cannot
         # legitimately repeat inside the same EM), keeping the first occurrence.
         seen = set()

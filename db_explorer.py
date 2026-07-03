@@ -216,6 +216,11 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .kv{display:grid;grid-template-columns:170px 1fr;gap:5px 16px;font-size:13px;margin-bottom:6px;max-width:760px}
 .kv .k{color:var(--ink-3)}
 .card{border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px;background:var(--surface);max-width:920px;box-shadow:var(--shadow)}
+.card-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px}
+.card-toggle::before{content:'\\25be';font-size:11px;color:var(--ink-3);transition:transform .15s;flex-shrink:0}
+.card.collapsed>.card-toggle::before{transform:rotate(-90deg)}
+.card.collapsed>*:not(.card-toggle){display:none!important}
+.card.collapsed{padding-bottom:15px}
 .card h3{margin:0 0 11px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{padding:4px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface-2);color:var(--ink-2);font-family:'IBM Plex Mono'}
@@ -444,7 +449,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-0542"
+_BUILD_ID = "20260703-0610"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1006,6 +1011,21 @@ function renderEntry(e){
     else if(e.k==='inst') renderInstance(e.iid);
     else if(e.k==='dep') renderDeployed(e.tag);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
+    makeCardsCollapsible();
+  });
+}
+// #3: let the user collapse any card by clicking its header, to focus on one section.
+// Non-invasive: enhances every .card > h3 in the detail pane after each render.
+function makeCardsCollapsible(){
+  var d=document.getElementById('detail'); if(!d) return;
+  d.querySelectorAll('.card > h3').forEach(function(h){
+    if(h._collapsible) return; h._collapsible=1;
+    h.classList.add('card-toggle');
+    h.addEventListener('click',function(ev){
+      // don't collapse when clicking a link/control inside the header
+      if(ev.target.closest('a,.link,button,input,select')) return;
+      h.parentElement.classList.toggle('collapsed');
+    });
   });
 }
 function navTo(e){ VIEW_STACK.push(e); renderEntry(e); }

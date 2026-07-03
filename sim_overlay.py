@@ -45,7 +45,7 @@ body.sim-on .trans.sim-hot line{stroke:#2563eb!important;stroke-width:3.4!import
    core positions .controls absolute (scrolls away); pin to viewport, same corner. */
 .controls{position:fixed!important;top:64px!important;z-index:50!important}
 
-#sim-fab{position:fixed;right:18px;bottom:18px;z-index:9997;background:#2563eb;color:#fff;
+#sim-fab{position:fixed;right:18px;top:14px;z-index:9997;background:#2563eb;color:#fff;
   border:none;border-radius:24px;padding:11px 18px;font:600 13px 'IBM Plex Sans',system-ui,sans-serif;
   box-shadow:0 4px 14px rgba(37,99,235,.35);cursor:pointer}
 #sim-fab.hidden{display:none}
