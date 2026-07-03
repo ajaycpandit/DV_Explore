@@ -126,6 +126,90 @@ def _parse_aliases(scope_text):
     return out
 
 
+def parse_instance_params(text, tag):
+    """Parse per-instance parameter values for a deployed module TAG from its
+    MODULE_INSTANCE block. Returns a list of {name, value, units, kind, set,
+    override} where value is the instance's configured value (which may differ
+    from the class default). Handles the common VALUE shapes:
+      VALUE { CV=<n> }                      -> scalar
+      VALUE { STRING_VALUE="..." SET=... }  -> enum member (SET names the enum)
+      VALUE { EU100=.. EU0=.. UNITS=".." }  -> scaled range
+      VALUE { PRIORITY_NAME=.. ENAB=.. }    -> alarm config (kept as summary)
+    """
+    m = re.search(r'MODULE_INSTANCE\s+TAG="' + re.escape(tag) + r'"', text)
+    if not m:
+        return []
+    blk = extract_block(text, text.index('{', m.start()))
+    out = []
+    for am in re.finditer(r'ATTRIBUTE_INSTANCE\s+NAME="([^"]+)"\s*\{', blk):
+        name = am.group(1)
+        abody = extract_block(blk, am.end() - 1)
+        vm = re.search(r'VALUE\s*\{', abody)
+        val, units, kind, setname = '', '', 'text', ''
+        override = 'EXPLICIT_OVERRIDE=T' in abody
+        if vm:
+            vbody = extract_block(abody, vm.end() - 1)
+            sv = re.search(r'STRING_VALUE="([^"]*)"', vbody)
+            # CV may be a number, a bare word (TRUE/MAN/etc.), OR a quoted string
+            cv = re.search(r'\bCV="([^"]*)"|\bCV=(-?[\d.]+|[A-Za-z_]\w*)', vbody)
+            st = re.search(r'SET="?(\$?\w+)"?', vbody)
+            eu100 = re.search(r'EU100=(-?[\d.]+)', vbody)
+            eu0 = re.search(r'EU0=(-?[\d.]+)', vbody)
+            un = re.search(r'UNITS="([^"]*)"', vbody)
+            pr = re.search(r'PRIORITY_NAME="([^"]*)"', vbody)
+            expr = re.search(r'EXPRESSION="([^"]*)"', vbody)
+            opts = re.findall(r'\b(OPTION\d+)=T\b', vbody)
+            enumset = re.search(r'ENUM_SET="?(\$?\w+)"?', vbody)
+            ref = re.search(r'\bREF="([^"]*)"', vbody)
+            masks = re.findall(r'\b(PASS|ACT\d)(?:IN|OUT)=([01X]{2,4})', vbody)
+            if sv:
+                val = sv.group(1)
+                kind = 'enum' if st else 'string'
+                if st:
+                    setname = st.group(1)
+            elif ref:
+                # I/O signal wiring: this param is connected to a field signal / another
+                # module's parameter (the actual IN/OUT connection).
+                val = ref.group(1)
+                kind = 'wiring'
+            elif masks:
+                # DeltaV device-control state masks (valve position truth table)
+                val = ', '.join(f'{k}={v}' for k, v in re.findall(r'\b(PASS(?:IN|OUT)|ACT\d(?:IN|OUT))=([01X]{2,4})', vbody))
+                kind = 'statemask'
+            elif expr:
+                # condition/action expression parameter (alarm conditions, etc.)
+                val = expr.group(1)
+                etype = re.search(r'\bTYPE=(\w+)', vbody)
+                kind = (etype.group(1).lower() if etype else 'expression')
+            elif cv:
+                raw = cv.group(1) if cv.group(1) is not None else cv.group(2)
+                val = raw.strip()
+                # classify: pure number vs string/boolean
+                kind = 'num' if re.fullmatch(r'-?[\d.]+', val or '') else 'text'
+            elif eu100 or eu0:
+                lo = eu0.group(1) if eu0 else '?'
+                hi = eu100.group(1) if eu100 else '?'
+                u = (un.group(1).strip() if un else '')
+                val = f'{lo} \u2013 {hi}' + (f' {u}' if u else '')
+                units = u
+                kind = 'range'
+            elif opts:
+                # bit-mask / multi-select option set (e.g. MSTATUS_MASK)
+                val = ', '.join(opts)
+                kind = 'options'
+                if enumset:
+                    setname = enumset.group(1)
+            elif pr:
+                enab = re.search(r'ENAB=([TF])', vbody)
+                val = pr.group(1) + (' (enabled)' if enab and enab.group(1) == 'T' else ' (disabled)')
+                kind = 'alarm'
+            if un and not units:
+                units = un.group(1).strip()
+        out.append({'name': name, 'value': val, 'units': units,
+                    'kind': kind, 'set': setname, 'override': override})
+    return out
+
+
 def parse_database(text):
     """Return a catalog dict describing all objects + relationships in the export."""
     catalog = {

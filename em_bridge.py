@@ -70,6 +70,27 @@ def _fix_sfc(html):
                         'title="Reset zoom to 100%">1:1</button>')
 
 
+def em_cm_members(text, em_name):
+    """Return the control modules embedded in an EM, with per-member ownership.
+    Each is {name, module (class), ownership ('SHARED'|'PRIVATE'|''), desc}.
+    Parsed from MODULE_BLOCK entries inside the EM's MODULE_CLASS block."""
+    import re as _re
+    m = _re.search(r'MODULE_CLASS\s+NAME="' + _re.escape(em_name) + r'"', text)
+    if not m:
+        return []
+    blk = fbd_parser._extract_block(text, m.start())
+    out = []
+    for mb in _re.finditer(r'MODULE_BLOCK\s+NAME="([^"]+)"\s+MODULE="([^"]+)"\s*\{', blk):
+        name, mod = mb.group(1), mb.group(2)
+        body = fbd_parser._extract_block(blk, mb.end() - 1)
+        own = _re.search(r'OWNERSHIP=(SHARED|PRIVATE)', body)
+        desc = _re.search(r'DESCRIPTION="([^"]*)"', body)
+        out.append({'name': name, 'module': mod,
+                    'ownership': own.group(1) if own else '',
+                    'desc': desc.group(1) if desc else ''})
+    return out
+
+
 def em_modules(text):
     """Split the export's modules into EMs and embedded CMs."""
     ems, cms = [], []
@@ -99,6 +120,23 @@ def command_state_html(text, em_name):
             return ''
         if not commands:
             return ''
+        # parse_cdem_fhx returns commands for ALL EMs in the export; keep only this
+        # EM's commands (each command carries its owning em_name). This fixes the
+        # duplicate-command problem where every EM showed every EM's commands.
+        own = [c for c in commands if (c.get('em_name') or '') == em_name]
+        if own:
+            commands = own
+        # de-dupe by command name within this EM (a command is a unit; it cannot
+        # legitimately repeat inside the same EM), keeping the first occurrence.
+        seen = set()
+        deduped = []
+        for c in commands:
+            cn = c.get('command_name', 'CMD')
+            if cn in seen:
+                continue
+            seen.add(cn)
+            deduped.append(c)
+        commands = deduped
         cmd_views = []
         for c in commands:
             cname = c.get('command_name', 'CMD')
@@ -234,10 +272,13 @@ def build_em_views(text, only=None):
         name = em['name']
         # build only this EM's FBD, not every FBD in the export
         fbd_one = fbd_bridge.build_fbd_views(text, only=name)
+        # this EM's own control-module members, with per-member ownership (#5/#6)
+        members = em_cm_members(text, name)
         out[name] = {
             'fbd': fbd_one.get(name, ''),
             'state': command_state_html(text, name),
-            'cms': cms,
+            'cms': cms,          # kept for back-compat (global CM list)
+            'members': members,  # EM's embedded CMs with ownership
         }
     return out
 

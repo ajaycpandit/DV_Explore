@@ -170,6 +170,7 @@ button{font-family:inherit}
 .exp-mini{font-size:11.5px;font-weight:600;padding:5px 10px;border:1px solid var(--border);border-radius:7px;
   background:var(--surface);color:var(--ink-2);text-decoration:none;transition:.15s;white-space:nowrap}
 .exp-mini:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.exp-mini svg,.hdr-export a svg{width:13px;height:13px;vertical-align:-2px;margin-right:4px}
 .metabinder{margin:2px 0 12px}
 .metabinder>summary{cursor:pointer;color:var(--ink-3);font-size:12.5px;font-weight:600;list-style:none;
   display:inline-flex;align-items:center;gap:5px;padding:3px 0;user-select:none}
@@ -177,6 +178,34 @@ button{font-family:inherit}
 .metabinder>summary::before{content:'\\25b8';font-size:10px;transition:transform .15s}
 .metabinder[open]>summary::before{transform:rotate(90deg)}
 .metabinder .kv{margin-top:8px}
+.ov-badge{display:inline-block;font:600 9px 'IBM Plex Sans';background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;vertical-align:middle;margin-left:5px}
+.ip-default{display:inline-block;font:600 10px 'IBM Plex Sans';background:#f1f5f9;color:#94a3b8;padding:1px 7px;border-radius:5px;letter-spacing:.02em}
+.ip-enum{font:12px 'IBM Plex Mono';padding:3px 7px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);max-width:260px}
+.ip-more{color:var(--accent);cursor:pointer;font-size:11px;font-weight:600;margin-left:4px;user-select:none}
+.ip-more:hover{text-decoration:underline}
+.ip-pop-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:9999;display:flex;align-items:center;justify-content:center}
+.ip-pop{background:#fff;border-radius:12px;max-width:640px;width:90%;max-height:70vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:0}
+.ip-pop-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border)}
+.ip-pop-x{cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.ip-pop-x:hover{color:var(--ink)}
+.ip-pop-meta{padding:8px 18px 0;color:var(--ink-3);font-size:12px}
+.ip-pop-val{margin:8px 18px 18px;padding:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;font:13px 'IBM Plex Mono';white-space:pre-wrap;word-break:break-word;color:#16202c}
+.cm-group{margin:6px 0}
+.cm-group>summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 0;list-style:none;user-select:none;display:flex;align-items:center;gap:7px}
+.cm-group>summary::-webkit-details-marker{display:none}
+.cm-group>summary::before{content:'\\25b8';font-size:10px;color:var(--ink-3);transition:transform .15s}
+.cm-group[open]>summary::before{transform:rotate(90deg)}
+.cm-count{background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;padding:1px 7px;border-radius:9px}
+.cm-list{display:flex;flex-wrap:wrap;gap:7px;padding:6px 0 4px 18px}
+.cm-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;font-size:12px;transition:.15s}
+.cm-chip:hover{border-color:var(--accent);background:var(--accent-soft)}
+.cm-chip .cm-sub{color:var(--ink-3);font-size:11px}
+.cm-ico{width:13px;height:13px;flex-shrink:0;border-radius:50%;position:relative}
+.cm-ico-shared{background:#0891b2}
+.cm-ico-shared::after{content:'';position:absolute;inset:3px;border:1.5px solid #fff;border-radius:50%;border-right-color:transparent}
+.cm-ico-private{background:#6d28d9}
+.cm-ico-private::after{content:'';position:absolute;left:4px;top:5px;width:5px;height:4px;border:1.5px solid #fff;border-bottom:none;border-radius:3px 3px 0 0}
+.cm-ico-none{background:#cbd5e1}
 .alias-filter{width:100%;max-width:420px;margin:0 0 10px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--ink);font-family:inherit}
 .loading-detail{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin-top:20px}
 .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:dvspin .7s linear infinite}
@@ -202,7 +231,9 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .dtree .tnode:not(:last-child)::after{content:"";position:absolute;left:6px;top:14px;bottom:-3px;border-left:1px dashed var(--border-strong)}
 .dtree .troot{font-weight:600;padding:2px 0}
 .tnode .link{font-size:13px}
-.phaseframe{width:100%;height:75vh;border:1px solid var(--border);border-radius:10px;background:#fff}
+.phaseframe{width:100%;height:88vh;border:1px solid var(--border);border-radius:10px;background:#fff}
+.frame-wrap{position:relative}
+.frame-load{position:absolute;top:0;left:0;right:0;height:120px;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--ink-2);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;z-index:2}
 .emtabs{display:flex;gap:6px;margin-bottom:12px}
 .pgrp{margin:6px 0 14px}.pgrp-h{font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px;display:flex;align-items:center;gap:8px}
 .ptype{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-3);white-space:nowrap}.pdesc{color:var(--ink-2);font-size:12.5px}
@@ -411,7 +442,9 @@ def _nav_badge(key):
             f'{_NAV_ICON.get(key, "")}</svg></span>')
 
 
-_BUILD_ID = "20260702-2022"
+_EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+_WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
+_BUILD_ID = "20260703-0542"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -877,7 +910,8 @@ function renderObj(id){
       h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
     } else if(_hasLazy && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
       var _src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(o.name);
-      h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" loading="lazy"></iframe>';
+      h+='<div class="frame-wrap"><div class="frame-load" id="phaseLoad"><span class="spin"></span> Loading phase logic\\u2026</div>';
+      h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" onload="var l=document.getElementById(\\'phaseLoad\\');if(l)l.style.display=\\'none\\';"></iframe></div>';
     } else {
       h+='<span class="empty">No parsed logic available for this phase in this export.</span>';
     }
@@ -985,20 +1019,49 @@ function showFbd(def,label){ if(FBD_VIEWS[def] || (typeof FBD_NAMES!=='undefined
 
 // ── lazy view loaders (large exports don't build FBD/EM views up front) ──
 function renderEmPanel(ev, stateSet){
+  var mem=(ev.members&&ev.members.length)?ev.members:null;
+  var cmCount=mem?mem.length:((ev.cms&&ev.cms.length)||0);
   var h='<div class="card" style="max-width:none">';
   h+='<div class="emtabs">';
   h+='<button class="emtab on" data-e="fb" onclick="emTab(this,\\'fb\\')">Function Blocks</button>';
   if(ev.state) h+='<button class="emtab" data-e="state" onclick="emTab(this,\\'state\\')">'+(stateSet?'State Table':'Command Logic')+'</button>';
-  if(ev.cms&&ev.cms.length) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+ev.cms.length+')</button>';
+  if(cmCount) h+='<button class="emtab" data-e="cms" onclick="emTab(this,\\'cms\\')">Control Modules ('+cmCount+')</button>';
   h+='</div>';
   h+='<div class="empanel on" data-e="fb" id="empanel_fb">'+(ev.fbd||'<span class="empty">No function block layer.</span>')+'</div>';
   if(ev.state) h+='<div class="empanel" data-e="state"><iframe class="phaseframe" srcdoc="'+ev.state.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe></div>';
-  if(ev.cms&&ev.cms.length){
-    h+='<div class="empanel" data-e="cms"><div class="chips">';
-    ev.cms.forEach(function(c){h+='<span class="chip" onclick="show(\\'cm:'+esc(c.name)+'\\')">'+esc(c.name)+' · '+c.n_blocks+' blocks</span>';});
-    h+='</div></div>';
+  if(cmCount){
+    h+='<div class="empanel" data-e="cms">';
+    if(mem){
+      // group by ownership (shared vs private), each group collapsible (#5, #6)
+      var shared=mem.filter(function(m){return (m.ownership||'').toUpperCase()==='SHARED';});
+      var priv=mem.filter(function(m){return (m.ownership||'').toUpperCase()==='PRIVATE';});
+      var other=mem.filter(function(m){var o=(m.ownership||'').toUpperCase();return o!=='SHARED'&&o!=='PRIVATE';});
+      h+=cmGroup('Shared',shared,'shared');
+      h+=cmGroup('Private',priv,'private');
+      h+=cmGroup('Unspecified ownership',other,'');
+    } else {
+      h+='<details class="cm-group" open><summary>Control Modules ('+ev.cms.length+')</summary><div class="cm-list">';
+      ev.cms.forEach(function(c){h+='<span class="cm-chip" onclick="show(\\'cm:'+esc(c.name)+'\\')"><span class="cm-ico cm-ico-none"></span>'+esc(c.name)+' <span class="cm-sub">· '+c.n_blocks+' blocks</span></span>';});
+      h+='</div></details>';
+    }
+    h+='</div>';
   }
   h+='</div>';
+  return h;
+}
+// one collapsible ownership group of CM members
+function cmGroup(label, list, kind){
+  if(!list.length) return '';
+  var icoClass=kind==='shared'?'cm-ico-shared':(kind==='private'?'cm-ico-private':'cm-ico-none');
+  var icoTitle=kind==='shared'?'Shared — usable by multiple EMs':(kind==='private'?'Private — owned by this EM':'Ownership unspecified');
+  var h='<details class="cm-group" open><summary>'+esc(label)+' <span class="cm-count">'+list.length+'</span></summary><div class="cm-list">';
+  list.forEach(function(m){
+    var cls=m.module||'';
+    h+='<span class="cm-chip" title="'+esc(m.desc||'')+'" onclick="show(\\'cm:'+esc(cls)+'\\')">'
+      +'<span class="cm-ico '+icoClass+'" title="'+icoTitle+'"></span>'
+      +'<b>'+esc(m.name)+'</b> <span class="cm-sub">'+esc(cls)+'</span></span>';
+  });
+  h+='</div></details>';
   return h;
 }
 function lazyEm(name, stateSet){
@@ -1136,39 +1199,103 @@ function renderInstance(iid){
 // ── deployed module instance (a real tag in a unit) ──
 function renderDeployed(tag){
   var d=DB.deployed_modules&&DB.deployed_modules[tag]; if(!d){return;}
-  if(!SEARCH_IDX_LOADED){ ensureSearchIndex(function(){ renderDeployed(tag); }); }
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   document.querySelectorAll('.navinst').forEach(function(n){n.classList.toggle('sel',n.dataset.tag===tag&&n.dataset.dep==='1');});
   var isEM=!!DB.objs['em:'+d.cls];
   var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
-  var h='<h2 class="dt">'+esc(d.tag)+'</h2><span class="dt-type" style="background:'+(isEM?'#0f766e':'#6d28d9')+'">'+(isEM?'EM':'CM')+' instance</span>';
-  h+='<p class="dt-desc">Deployed '+(isEM?'equipment':'control')+' module · instance of '+modLink(d.cls)+'.'+back+'</p>';
-  h+='<div class="card"><h3>Identity</h3><div class="kv">';
+  var h='<h2 class="dt">'+esc(d.tag)+' <span class="dt-type" style="background:'+(isEM?'#0f766e':'#6d28d9')+'">'+(isEM?'EM':'CM')+' instance</span></h2>';
+  // small inline class link (per request: click the class name to open the class)
+  h+='<p class="dt-desc">Instance of '+modLink(d.cls)+' \\u00b7 unit '
+    +(DB.objs['unit:'+d.unit]?'<span class="link" onclick="show(\\'unit:'+esc(d.unit)+'\\')">'+esc(d.unit)+'</span>':esc(d.unit))+'.'+back+'</p>';
+  h+='<details class="metabinder"><summary>Identity</summary><div class="kv">';
   h+='<div class="k">Tag</div><div><code>'+esc(d.tag)+'</code></div>';
   h+='<div class="k">Class</div><div>'+modLink(d.cls)+'</div>';
-  h+='<div class="k">Unit</div><div>'+(DB.objs['unit:'+d.unit]?'<span class="link" onclick="show(\\'unit:'+esc(d.unit)+'\\')">'+esc(d.unit)+'</span>':esc(d.unit))+'</div>';
   var ctl=(DB.module_controller&&DB.module_controller[tag])||'';
-  if(ctl) h+='<div class="k">Controller</div><div><code>'+esc(ctl)+'</code> <span style="color:var(--ink-3);font-size:12px">· Physical Network</span></div>';
+  if(ctl) h+='<div class="k">Controller</div><div><code>'+esc(ctl)+'</code></div>';
   h+='<div class="k">Location</div><div><code>'+esc(d.path)+'</code></div>';
-  h+='</div>';
-  h+='<button class="bigbtn" onclick="viewClass(\\''+esc(d.cls)+'\\')">View class logic &amp; parameters →</button></div>';
-  // sibling tags of the same class in the same unit
-  var sibs=(DB.unit_modules[d.unit]||[]).map(function(t){return DB.deployed_modules[t];}).filter(function(s){return s&&s.cls===d.cls&&s.tag!==d.tag;});
-  if(sibs.length){
-    h+='<div class="card"><h3>Other '+esc(d.cls)+' tags in this unit ('+sibs.length+')</h3><div class="chips">';
-    sibs.forEach(function(s){h+='<span class="chip" onclick="showDeployed(\\''+esc(s.tag)+'\\')">'+esc(s.tag)+'</span>';});
-    h+='</div></div>';
-  }
-  var vals=[];
-  for(var pn in PARAM_INDEX){(PARAM_INDEX[pn].vals||[]).forEach(function(v){if(v.m===d.cls)vals.push({p:pn,cv:v.cv});});}
-  if(vals.length){
-    h+='<div class="card"><h3>Configured values ('+vals.length+')</h3>';
-    h+='<p class="empty" style="margin:0 0 8px">Inherited from class '+esc(d.cls)+'. No instance overrides in the export.</p>';
-    h+='<table class="fbd-table"><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>';
-    vals.forEach(function(v){h+='<tr><td><span class="link" onclick="showParam(\\''+esc(v.p)+'\\')">'+esc(v.p)+'</span></td><td>'+(v.cv===''?'<span style="color:#94a3b8">(empty)</span>':'<code>'+esc(v.cv)+'</code>')+'</td></tr>';});
-    h+='</tbody></table></div>';
-  }
+  h+='</div></details>';
+  // instance diagram (its own FBD) + instance parameter values, both lazy-loaded
+  h+='<div class="card" style="max-width:none" id="instDiag"><h3>Diagram</h3><div class="frame-load"><span class="spin"></span> Loading diagram\\u2026</div></div>';
+  h+='<div class="card" id="instParams"><h3>Instance parameters</h3><div class="loading-detail"><span class="spin"></span> Loading values\\u2026</div></div>';
   var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0;
+  // fetch this instance's FBD (falls back to class diagram if the instance has none)
+  lazyInstDiagram(d);
+  lazyInstParams(tag);
+}
+function lazyInstDiagram(d){
+  var box=document.getElementById('instDiag'); if(!box) return;
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){ box.innerHTML='<h3>Diagram</h3><span class="empty">No diagram available.</span>'; return; }
+  // try the instance tag first, then the class (many CMs render from the class definition)
+  fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(d.tag))
+    .then(function(r){return r.json();})
+    .then(function(x){
+      if(x&&x.html){ box.innerHTML='<h3>Diagram</h3>'+x.html; setTimeout(wireFbdLinks,0); return; }
+      return fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(d.cls))
+        .then(function(r){return r.json();})
+        .then(function(y){
+          if(y&&y.html){ box.innerHTML='<h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+'</span></h3>'+y.html; setTimeout(wireFbdLinks,0); }
+          else box.innerHTML='<h3>Diagram</h3><span class="empty">No function block diagram for this instance or its class.</span>';
+        });
+    })
+    .catch(function(){ box.innerHTML='<h3>Diagram</h3><span class="empty">Could not load diagram.</span>'; });
+}
+function lazyInstParams(tag){
+  var box=document.getElementById('instParams'); if(!box) return;
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){ box.innerHTML='<h3>Instance parameters</h3><span class="empty">Unavailable.</span>'; return; }
+  fetch('/inst_params?t='+encodeURIComponent(EXPORT_TOKEN)+'&tag='+encodeURIComponent(tag))
+    .then(function(r){return r.json();})
+    .then(function(x){
+      var pp=(x&&x.params)||[];
+      if(!pp.length){ box.innerHTML='<h3>Instance parameters</h3><span class="empty">No instance-level parameter overrides in this export (values inherited from the class).</span>'; return; }
+      var h='<h3>Instance parameters ('+pp.length+') <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 configured values for this tag</span></h3>';
+      h+='<input class="alias-filter" id="ipFilter" placeholder="filter\\u2026" oninput="filterInstParams()">';
+      h+='<table class="fbd-table" id="ipTable"><thead><tr><th>Parameter</th><th>Value</th><th>Type</th></tr></thead><tbody>';
+      pp.forEach(function(p,i){
+        var v=String(p.value==null?'':p.value);
+        var valCell;
+        // #9: enum param whose set is defined in the export -> dropdown with the
+        // instance's value pre-selected, showing all valid options.
+        var setName=(p.set||'').replace(/^\\$/,'');
+        var nset=(DB.named_sets&&(DB.named_sets[setName]||DB.named_sets[p.set]))||null;
+        if(p.kind==='enum' && nset && nset.entries && nset.entries.length){
+          var opts='';
+          var matched=false;
+          nset.entries.forEach(function(e){
+            var sel=(String(e.name)===v||String(e.value)===v)?' selected':'';
+            if(sel) matched=true;
+            opts+='<option value="'+esc(e.name)+'"'+sel+'>'+esc(e.name)+' ('+e.value+')</option>';
+          });
+          if(!matched && v!=='') opts='<option selected>'+esc(v)+'</option>'+opts;
+          valCell='<select class="ip-enum" disabled title="Instance value (enum set '+esc(setName)+')">'+opts+'</select>';
+        }
+        else if(v===''){ valCell='<span class="ip-default" title="No instance override — value inherited from the class default">default</span>'; }
+        else if(v.length>44){
+          valCell='<code>'+esc(v.slice(0,44))+'\\u2026</code> <span class="ip-more" onclick="ipPop('+i+')" title="Show full value">show</span>';
+        } else {
+          valCell='<code>'+esc(v)+'</code>';
+        }
+        var badge=p.override?' <span class="ov-badge" title="Explicit instance override">ovr</span>':'';
+        window._IP=window._IP||{}; window._IP[i]={name:p.name,value:v,kind:p.kind,set:p.set};
+        h+='<tr><td><code>'+esc(p.name)+'</code>'+badge+'</td><td>'+valCell+'</td><td style="color:var(--ink-3);font-size:12px">'+esc(p.kind||'')+(p.set?' \\u00b7 '+esc(p.set):'')+'</td></tr>';
+      });
+      h+='</tbody></table>';
+      box.innerHTML=h;
+    })
+    .catch(function(){ box.innerHTML='<h3>Instance parameters</h3><span class="empty">Could not load values.</span>'; });
+}
+function filterInstParams(){
+  var f=((document.getElementById('ipFilter')||{}).value||'').toLowerCase();
+  document.querySelectorAll('#ipTable tbody tr').forEach(function(tr){ tr.style.display=tr.textContent.toLowerCase().indexOf(f)>=0?'':'none'; });
+}
+// pop-out for a long instance-parameter value (expression, wiring, state mask)
+function ipPop(i){
+  var d=(window._IP||{})[i]; if(!d) return;
+  var ov=document.getElementById('ipPopOver');
+  if(!ov){ ov=document.createElement('div'); ov.id='ipPopOver'; ov.className='ip-pop-overlay'; ov.onclick=function(e){ if(e.target===ov) ov.remove(); }; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="ip-pop"><div class="ip-pop-h"><code>'+esc(d.name)+'</code>'
+    +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'ipPopOver\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<div class="ip-pop-meta">'+esc(d.kind||'')+(d.set?' \\u00b7 set '+esc(d.set):'')+'</div>'
+    +'<pre class="ip-pop-val">'+esc(d.value)+'</pre></div>';
 }
 
 // FBD composite drill-down: clicking a composite block/link shows its diagram.
@@ -1540,9 +1667,9 @@ function wireFbdLinks(){
         export_html = (
             f'<div class="hdr-export">'
             f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=excel&amp;name={ft}" '
-            f'title="Download an Excel workbook generated from this database">&#8681; Excel</a>'
+            f'title="Download an Excel workbook generated from this database">{_EXCEL_ICON}Excel</a>'
             f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=word&amp;name={ft}" '
-            f'title="Download a Word DDS document generated from this database">&#8681; Word DDS</a>'
+            f'title="Download a Word DDS document generated from this database">{_WORD_ICON}Word DDS</a>'
             f'<a class="exp-btn" href="javascript:void 0" title="Open the FHX Converter wizard" onclick="switchView(\'converter\')">&#9881; Converter</a>'
             f'</div>')
 
@@ -1595,11 +1722,11 @@ const EXPORT_TOKEN={json.dumps(export_token or "")};
 function exportBar(obj,name){{
   if(!EXPORT_TOKEN) return '';
   var base='/export?token='+encodeURIComponent(EXPORT_TOKEN)+'&obj='+encodeURIComponent(obj)+'&name='+encodeURIComponent(name);
-  // compact pill in the detail header row (not a full card) so it doesn't push
-  // the phase content down. Sits top-right of the object view.
+  var xi='<svg viewBox="0 0 16 16" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" fill="none"/></svg>';
+  var wi='<svg viewBox="0 0 16 16" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" fill="none"/></svg>';
   return '<div class="obj-export">'
-    +'<a class="exp-mini" href="'+base+'&fmt=excel" title="Download an Excel workbook for this object">&#8681; Excel</a>'
-    +'<a class="exp-mini" href="'+base+'&fmt=word" title="Download a Word DDS document for this object">&#8681; Word</a></div>';
+    +'<a class="exp-mini" href="'+base+'&fmt=excel" title="Download an Excel workbook for this object">'+xi+'Excel</a>'
+    +'<a class="exp-mini" href="'+base+'&fmt=word" title="Download a Word DDS document for this object">'+wi+'Word</a></div>';
 }}
 function skinTree(theme){{
   var set=ICON_THEMES[theme], cols=THEME_COLORS[theme];

@@ -350,6 +350,20 @@ def _extract_object_fhx(text, obj):
     return db_parser.extract_block(text, m.start())
 
 
+@app.route('/inst_params')
+def inst_params():
+    """Per-instance parameter values for a deployed module tag (lazy)."""
+    token = request.args.get('t', ''); tag = request.args.get('tag', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired', 'params': []})
+    try:
+        return jsonify({'tag': tag, 'params': db_parser.parse_instance_params(text, tag)})
+    except Exception as e:
+        app.logger.exception('inst_params failed')
+        return jsonify({'error': str(e), 'params': []})
+
+
 @app.route('/search_index')
 def search_index():
     """Build the global search index (params + expressions) on demand — deferred
