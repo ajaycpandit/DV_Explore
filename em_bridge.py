@@ -154,6 +154,11 @@ def command_state_html(text, em_name):
             }
             try:
                 view = _fix_sfc(sfc.build_sfc_html({cname: block}, f"{em_name} — {cname}"))
+                try:
+                    import sfc_interact
+                    view = sfc_interact.inject_interactions(view)
+                except Exception:
+                    pass
                 cmd_views.append((cname, view))
             except Exception:
                 continue

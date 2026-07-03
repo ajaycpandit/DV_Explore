@@ -918,23 +918,47 @@ function _initExplorerInteractions(){{
 // is complete. Uses PAYLOAD (always in scope here) for transition data + from/to.
 function addTransitionRows(){{
   var tbody=document.getElementById('tbody'); if(!tbody) return;
-  // if our section is already present, nothing to do; if core rebuilt the table
-  // (wiping our rows), the section is gone and we re-add regardless of any flag.
-  if(tbody.querySelector('.trans-sec')) return;
+  // idempotent: if we've already interleaved (marker present), skip; if core rebuilt
+  // the table the marker is gone and we re-do it.
+  if(tbody.querySelector('.trow')) return;
   if(typeof PAYLOAD==='undefined'||!PAYLOAD.trans) return;
-  var tnames=Object.keys(PAYLOAD.trans);
-  if(!tnames.length){{ return; }}
-  // from-step: first step whose s2t includes this transition; to-step: t2s[tn]
-  function fromOf(tn){{ var o=PAYLOAD.order||[]; for(var i=0;i<o.length;i++){{ if((PAYLOAD.s2t[o[i]]||[]).indexOf(tn)>=0) return o[i]; }} return ''; }}
-  var rows='<tr class="step-row trans-sec"><td colspan="6">\\u25c7 Transitions ('+tnames.length+')</td></tr>';
-  tnames.forEach(function(tn){{
-    var expr=PAYLOAD.trans[tn]||'';
-    var to=(PAYLOAD.t2s&&PAYLOAD.t2s[tn])||'';
-    var from=fromOf(tn);
-    var flow=(from||to)?(esc(from||'?')+' \\u2192 '+esc(to||'?')):'';
-    rows+='<tr class="arow trow"><td>'+esc(tn)+'</td><td>'+flow+'</td><td></td><td>T</td><td class="expr">'+esc(expr||'(state transition \\u2014 no expression)')+'</td><td></td></tr>';
-  }});
-  tbody.insertAdjacentHTML('beforeend', rows);
+  var order=PAYLOAD.order||[];
+  if(!order.length) return;
+  // build the transition-row HTML for a given step's outgoing transitions
+  function transRowsFor(stepName){{
+    var ts=(PAYLOAD.s2t&&PAYLOAD.s2t[stepName])||[];
+    var html='';
+    ts.forEach(function(tn){{
+      var expr=PAYLOAD.trans[tn]||'';
+      var to=(PAYLOAD.t2s&&PAYLOAD.t2s[tn])||'';
+      var flow='\\u2192 '+esc(to||'?');
+      html+='<tr class="arow trow"><td style="color:#7c3aed">\\u25c7 '+esc(tn)+'</td><td>'+flow+'</td><td>transition</td><td>T</td><td class="expr">'+esc(expr||'(state transition \\u2014 no expression)')+'</td><td></td></tr>';
+    }});
+    return html;
+  }}
+  // walk existing rows; after the last action row of each step (i.e. right before the
+  // next .step-row), insert that step's transitions. Steps appear as .step-row with the
+  // step name in the first cell.
+  var rows=Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+  var curStep=null, insertBeforeNextStep=[];
+  // map: for each .step-row, remember the step name
+  function stepNameOf(tr){{
+    var td=tr.querySelector('td'); if(!td) return '';
+    var txt=td.textContent||''; // "STEPNAME — desc (N actions)"
+    var m=txt.match(/^([A-Za-z0-9_]+)/); return m?m[1]:'';
+  }}
+  // Insert after each step's action block. We iterate and when we hit the NEXT step-row
+  // (or end), we flush the previous step's transitions before it.
+  var pending=null;
+  for(var i=0;i<rows.length;i++){{
+    var tr=rows[i];
+    if(tr.classList.contains('step-row')){{
+      if(pending){{ var htmlp=transRowsFor(pending); if(htmlp) tr.insertAdjacentHTML('beforebegin',htmlp); }}
+      pending=stepNameOf(tr);
+    }}
+  }}
+  // flush the final step's transitions at the end of the table
+  if(pending){{ var htmlf=transRowsFor(pending); if(htmlf) tbody.insertAdjacentHTML('beforeend',htmlf); }}
 }}
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_initExplorerInteractions);
 else _initExplorerInteractions();

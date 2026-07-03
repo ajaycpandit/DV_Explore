@@ -24,13 +24,27 @@ def _blk(text, start_brace_search_from):
     return db_parser.extract_block(text, text.index('{', start_brace_search_from))
 
 
+def parse_recipes(text):
+    """Parse ALL BATCH_RECIPE blocks in the export into a list of structured dicts."""
+    out = []
+    for m in re.finditer(r'BATCH_RECIPE(?:\s+NAME="([^"]+)")?', text):
+        try:
+            blk = db_parser.extract_block(text, text.index('{', m.start()))
+        except Exception:
+            continue
+        name = m.group(1) or ''
+        out.append(_parse_one_recipe(blk, name))
+    return out
+
+
 def parse_recipe(text):
-    """Parse a BATCH_RECIPE export into a structured dict, or None if absent."""
-    m = re.search(r'BATCH_RECIPE(?:\s+NAME="([^"]+)")?', text)
-    if not m:
-        return None
-    blk = _blk(text, m.start())
-    name = m.group(1) or ''
+    """Back-compat: parse the FIRST BATCH_RECIPE, or None if absent."""
+    recs = parse_recipes(text)
+    return recs[0] if recs else None
+
+
+def _parse_one_recipe(blk, name):
+    """Parse a single BATCH_RECIPE block body into a structured dict."""
 
     def _scalar(key):
         mm = re.search(key + r'="([^"]*)"', blk)
@@ -38,6 +52,11 @@ def parse_recipe(text):
             return mm.group(1)
         mm = re.search(key + r'=([^\s{][^\r\n]*)', blk)
         return mm.group(1).strip() if mm else ''
+
+    # derive name from DESCRIPTION or a NAME= if not on the header
+    if not name:
+        nm = re.search(r'\bNAME="([^"]+)"', blk[:200])
+        name = nm.group(1) if nm else (_scalar('DESCRIPTION')[:30] or 'RECIPE')
 
     meta = {
         'name': name,
@@ -54,7 +73,6 @@ def parse_recipe(text):
         'approval': _scalar('RECIPE_APPROVAL_INFO'),
     }
 
-    # formula parameters (recipe-level inputs)
     params = []
     for pm in re.finditer(r'FORMULA_PARAMETER\s+NAME="([^"]+)"\s+TYPE=(\w+)\s*\{', blk):
         pbody = db_parser.extract_block(blk, pm.end() - 1)
@@ -68,7 +86,6 @@ def parse_recipe(text):
             'locked': locked,
         })
 
-    # unit aliases (which physical units this procedure can bind)
     aliases = []
     for am in re.finditer(r'UNIT_ALIAS\s+NAME="([^"]+)"\s*\{', blk):
         abody = db_parser.extract_block(blk, am.end() - 1)
@@ -77,24 +94,22 @@ def parse_recipe(text):
                         'desc': desc.group(1) if desc else ''})
 
     proc = _parse_pfc(blk)
-
     return {'meta': meta, 'params': params, 'aliases': aliases, 'procedure': proc}
 
 
 def _parse_pfc(blk):
-    """Parse the PFC_ALGORITHM into steps, transitions, and edges."""
+    """Parse the PFC_ALGORITHM into steps, transitions, and edges (with coords)."""
     pm = re.search(r'PFC_ALGORITHM\s*\{', blk)
     if not pm:
         return None
     pfc = db_parser.extract_block(blk, pm.end() - 1)
 
     steps = {}
-    # both INITIAL_STEP and STEP
     for sm in re.finditer(r'(INITIAL_)?STEP\s+NAME="([^"]+)"\s+DEFINITION="([^"]+)"\s*\{', pfc):
         sname, sdef = sm.group(2), sm.group(3)
         sbody = db_parser.extract_block(pfc, sm.end() - 1)
         desc = re.search(r'DESCRIPTION="([^"]*)"', sbody)
-        # step parameters (grouped)
+        rect = re.search(r'RECTANGLE=\s*\{\s*X=(-?\d+)\s+Y=(-?\d+)\s+H=(\d+)\s+W=(\d+)', sbody)
         sparams = []
         for spm in re.finditer(r'STEP_PARAMETER\s+NAME="([^"]+)"\s*\{', sbody):
             spb = db_parser.extract_block(sbody, spm.end() - 1)
@@ -108,6 +123,10 @@ def _parse_pfc(blk):
             'desc': desc.group(1) if desc else '',
             'initial': bool(sm.group(1)),
             'params': sparams,
+            'x': int(rect.group(1)) if rect else None,
+            'y': int(rect.group(2)) if rect else None,
+            'h': int(rect.group(3)) if rect else 40,
+            'w': int(rect.group(4)) if rect else 140,
         }
 
     transitions = {}
@@ -121,7 +140,6 @@ def _parse_pfc(blk):
             'desc': desc.group(1) if desc else '',
         }
 
-    # edges
     s2t, t2s = [], []
     for cm in re.finditer(r'STEP_TRANSITION_CONNECTION\s+STEP="([^"]+)"\s+TRANSITION="([^"]+)"', pfc):
         s2t.append((cm.group(1), cm.group(2)))
@@ -129,6 +147,118 @@ def _parse_pfc(blk):
         t2s.append((cm.group(1), cm.group(2)))
 
     return {'steps': steps, 'transitions': transitions, 's2t': s2t, 't2s': t2s}
+
+
+def _render_pfc_svg(proc):
+    """Render the procedure as an SVG SFC diagram using the step X/Y coordinates.
+    Transitions are placed on the edges between their source and target steps."""
+    steps = proc['steps']
+    trans = proc['transitions']
+    s2t, t2s = proc['s2t'], proc['t2s']
+
+    # step positions; some steps (START pseudo) have none — synthesize a top slot
+    coords = {n: (s['x'], s['y'], s['w'], s['h']) for n, s in steps.items()
+              if s['x'] is not None}
+    if not coords:
+        return ''  # no coordinates, can't draw
+
+    # index edges
+    step_outs = {}
+    for s, t in s2t:
+        step_outs.setdefault(s, []).append(t)
+    trans_outs = {}
+    for t, s in t2s:
+        trans_outs.setdefault(t, []).append(s)
+    trans_in = {}
+    for s, t in s2t:
+        trans_in.setdefault(t, []).append(s)
+
+    # place each transition at the midpoint between its source step(s) and target(s)
+    tpos = {}
+    for tn in trans:
+        srcs = [coords[s] for s in trans_in.get(tn, []) if s in coords]
+        tgts = [coords[s] for s in trans_outs.get(tn, []) if s in coords]
+        pts = srcs + tgts
+        if pts:
+            cx = sum(p[0] + p[2] / 2 for p in pts) / len(pts)
+            cy = sum(p[1] + p[3] / 2 for p in pts) / len(pts)
+            tpos[tn] = (cx, cy)
+
+    # compute viewbox
+    xs = [c[0] for c in coords.values()] + [c[0] + c[2] for c in coords.values()]
+    ys = [c[1] for c in coords.values()] + [c[1] + c[3] for c in coords.values()]
+    pad = 40
+    minx, maxx = min(xs) - pad, max(xs) + pad
+    miny, maxy = min(ys) - pad, max(ys) + pad
+    W, H = maxx - minx, maxy - miny
+
+    def sx(x):
+        return x - minx
+
+    def sy(y):
+        return y - miny
+
+    svg = [f'<svg class="pfc-svg" viewBox="0 0 {W} {H}" '
+           f'xmlns="http://www.w3.org/2000/svg" style="min-width:{min(W, 900)}px">']
+    svg.append('<defs><marker id="pfcarr" markerWidth="8" markerHeight="8" refX="6" refY="4" '
+               'orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"/></marker></defs>')
+
+    # edges: step -> transition -> step
+    def center(name):
+        x, y, w, h = coords[name]
+        return sx(x) + w / 2, sy(y) + h / 2
+
+    for s, t in s2t:
+        if s not in coords or t not in tpos:
+            continue
+        x1, y1 = center(s)
+        x2, y2 = tpos[t][0] - minx, tpos[t][1] - miny
+        svg.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" '
+                   f'stroke="#cbd5e1" stroke-width="1.5"/>')
+    for t, s in t2s:
+        if s not in coords or t not in tpos:
+            continue
+        x1, y1 = tpos[t][0] - minx, tpos[t][1] - miny
+        x2, y2 = center(s)
+        svg.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" '
+                   f'stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#pfcarr)"/>')
+
+    # step boxes
+    for n, (x, y, w, h) in coords.items():
+        s = steps[n]
+        fill = '#0f172a' if n == 'START' else '#ffffff'
+        txtcol = '#fff' if n == 'START' else '#16202c'
+        initial = s.get('initial')
+        stroke = '#16a34a' if initial else '#334155'
+        sw = 2.5 if initial else 1.5
+        label = html.escape(n)
+        defn = html.escape(s.get('definition', ''))
+        svg.append(f'<g class="pfc-step" data-step="{html.escape(n, quote=True)}">')
+        svg.append(f'<rect x="{sx(x)}" y="{sy(y)}" width="{w}" height="{h}" rx="5" '
+                   f'fill="{fill}" stroke="{stroke}" stroke-width="{sw}"/>')
+        svg.append(f'<text x="{sx(x) + w/2:.0f}" y="{sy(y) + 16:.0f}" text-anchor="middle" '
+                   f'font-size="11" font-weight="600" fill="{txtcol}">{label}</text>')
+        if defn and n != 'START':
+            svg.append(f'<text x="{sx(x) + w/2:.0f}" y="{sy(y) + 30:.0f}" text-anchor="middle" '
+                       f'font-size="9" fill="#64748b">{defn[:22]}</text>')
+        svg.append('</g>')
+
+    # transition bars + labels
+    for tn, (cx, cy) in tpos.items():
+        px, py = cx - minx, cy - miny
+        td = trans.get(tn, {})
+        has_expr = bool(td.get('expr'))
+        color = '#7c3aed' if has_expr else '#94a3b8'
+        svg.append(f'<g class="pfc-trans" data-trans="{html.escape(tn, quote=True)}" '
+                   f'style="cursor:pointer">')
+        svg.append(f'<rect x="{px-30:.0f}" y="{py-7:.0f}" width="60" height="14" rx="3" '
+                   f'fill="#fff" stroke="{color}" stroke-width="1.3"/>')
+        svg.append(f'<text x="{px:.0f}" y="{py+3:.0f}" text-anchor="middle" font-size="9" '
+                   f'font-weight="600" fill="{color}">{html.escape(tn[:12])}</text>')
+        svg.append('</g>')
+
+    svg.append('</svg>')
+    return '\n'.join(svg)
 
 
 # ───────────────────────── rendering ─────────────────────────
@@ -141,12 +271,34 @@ def build_recipe_html(recipe):
     meta = recipe['meta']
     h = []
 
-    # procedure flow (the main content) — render as an ordered SFC-like list
+    # procedure diagram (SVG) + flow (the main content)
     proc = recipe.get('procedure')
     if proc and proc['steps']:
-        h.append('<div class="card" style="max-width:none"><h3>Procedure flow ('
+        diagram = _render_pfc_svg(proc)
+        h.append('<div class="card" style="max-width:none"><h3>Procedure diagram ('
                  + str(len(proc['steps'])) + ' steps, '
                  + str(len(proc['transitions'])) + ' transitions)</h3>')
+        if diagram:
+            # embed transition expressions as JSON for click-to-view
+            import json as _json
+            texpr = {tn: td.get('expr', '') for tn, td in proc['transitions'].items()}
+            h.append('<div class="pfc-wrap">' + diagram + '</div>')
+            h.append('<div class="pfc-panel" id="pfcPanel_' + _safe_id(recipe['meta']['name'])
+                     + '"><span class="pfc-hint">Click a transition in the diagram to see its expression.</span></div>')
+            h.append('<script>(function(){var E=' + _json.dumps(texpr)
+                     + ';var root=document.currentScript.parentElement;'
+                     'var panel=root.querySelector(".pfc-panel");'
+                     'root.querySelectorAll(".pfc-trans").forEach(function(g){'
+                     'g.addEventListener("click",function(){'
+                     'var tn=g.getAttribute("data-trans");var e=E[tn]||"(no expression)";'
+                     'panel.innerHTML="<div class=\\"pfc-tname\\">"+tn+"</div><div class=\\"pfc-texpr\\">"+'
+                     '(e.replace(/&/g,"&amp;").replace(/</g,"&lt;"))+"</div>";});});})();</script>')
+        else:
+            h.append('<span class="empty">Diagram coordinates unavailable; see the flow below.</span>')
+        h.append('</div>')
+
+        # textual flow (steps + transitions interleaved)
+        h.append('<div class="card" style="max-width:none"><h3>Procedure flow</h3>')
         h.append(_render_flow(proc))
         h.append('</div>')
 
@@ -248,6 +400,10 @@ def _render_flow(proc):
     return '\n'.join(rows)
 
 
+def _safe_id(s):
+    return re.sub(r'[^A-Za-z0-9]', '_', s or 'x')
+
+
 RECIPE_CSS = """
 .rflow{display:flex;flex-direction:column;gap:0;font-size:13px}
 .rf-step{border:1px solid var(--border,#e2e8f0);border-radius:9px;padding:9px 12px;background:var(--surface,#fff);margin:3px 0}
@@ -260,4 +416,13 @@ RECIPE_CSS = """
 .rf-tgt{color:var(--ink-3,#64748b)}
 .rf-expr{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#475569;background:#f8fafc;border:1px solid var(--border,#e2e8f0);border-radius:6px;padding:4px 8px;margin:3px 0 3px 0;white-space:pre-wrap;word-break:break-word}
 .rp-group{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin:12px 0 6px}
+.pfc-wrap{overflow:auto;border:1px solid var(--border,#e2e8f0);border-radius:9px;background:#fff;padding:10px;max-height:520px}
+.pfc-svg{display:block}
+.pfc-step rect{transition:stroke .12s}
+.pfc-trans:hover rect{fill:#f5f3ff}
+.pfc-panel{margin-top:10px;padding:10px 12px;border:1px solid var(--border,#e2e8f0);border-radius:8px;background:#f8fafc;min-height:24px}
+.pfc-hint{color:#94a3b8;font-size:12px}
+.pfc-tname{font-weight:700;color:#7c3aed;font-size:12px;margin-bottom:4px}
+.pfc-texpr{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#334155;white-space:pre-wrap;word-break:break-word}
 """
+

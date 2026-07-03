@@ -46,9 +46,13 @@ def list_em_commands(text, em_name):
     return out
 
 
-def build_em_command_payload(text, em_name, command_name):
+def build_em_command_payload(text, em_name, command_name, tag=''):
     """Build a sim payload (same shape as sim_export.build_payload) for one command
-    of a command-driven EM, so the phase simulator engine can walk it."""
+    of a command-driven EM, so the phase simulator engine can walk it.
+
+    When `tag` (an EM instance tag) is given, aliases resolve to that instance's
+    actual wired devices — the point of running simulation on the instance not the
+    class (#2)."""
     core, _ = em_bridge._load_core()
     cmds = core['parse_cdem_fhx'](text)
     cmd = None
@@ -107,6 +111,13 @@ def build_em_command_payload(text, em_name, command_name):
             aliases = {a: all_al[a] for a in used if a in all_al}
         except Exception:
             aliases = {}
+    # #2: if an instance tag is given, resolve the EM's member roles to THIS instance's
+    # actual deployed CM tags, so the walk shows real devices (e.g. BYP_INLET_VLV ->
+    # FP005-HV-043) instead of the class role names.
+    inst_aliases = _instance_member_aliases(text, em_name, tag) if tag else {}
+    if inst_aliases:
+        for role, devtag in inst_aliases.items():
+            aliases[role] = {'module': devtag, 'desc': 'instance-wired device'}
 
     timers = {}
     if sim_timers is not None:
@@ -181,9 +192,10 @@ def _em_params(actions, trans):
     return out
 
 
-def build_em_command_sim_view(text, em_name, command_name):
+def build_em_command_sim_view(text, em_name, command_name, tag=''):
     """Build a single EM command's SFC view with the phase simulator injected,
-    so the command can be walked interactively like a phase (#11)."""
+    so the command can be walked interactively like a phase (#11). When `tag` is a
+    deployed EM instance, the sim resolves that instance's actual wired devices (#2)."""
     core, sfc = em_bridge._load_core()
     cmds = core['parse_cdem_fhx'](text)
     cmd = None
@@ -203,9 +215,34 @@ def build_em_command_sim_view(text, em_name, command_name):
     }
     sfc_view = em_bridge._fix_sfc(sfc.build_sfc_html({command_name: block},
                                                      f'{em_name} \u2014 {command_name}'))
-    payload = build_em_command_payload(text, em_name, command_name)
+    payload = build_em_command_payload(text, em_name, command_name, tag=tag)
     try:
         import sim_overlay
         return sim_overlay.inject(sfc_view, payload)
     except Exception:
         return sfc_view
+
+
+def instance_member_map(text, tag):
+    """Map an EM instance's member roles to their actual deployed CM tags, from the
+    instance's MODULE_BLOCK_RESOLUTION blocks. E.g. BYP_INLET_VLV -> FP005-HV-027.
+    This is the instance-specific device wiring (#1, #2)."""
+    m = re.search(r'MODULE_INSTANCE\s+TAG="' + re.escape(tag) + r'"', text)
+    if not m:
+        return {}
+    try:
+        blk = db_parser.extract_block(text, text.index('{', m.start()))
+    except Exception:
+        return {}
+    out = {}
+    for rm in re.finditer(r'MODULE_BLOCK_RESOLUTION\s+NAME="([^"]+)"\s*\{', blk):
+        rbody = db_parser.extract_block(blk, rm.end() - 1)
+        mod = re.search(r'MODULE="([^"]+)"', rbody)
+        if mod:
+            out[rm.group(1)] = mod.group(1)
+    return out
+
+
+def _instance_member_aliases(text, em_name, tag):
+    """Alias-style map (role -> device tag) for a specific EM instance."""
+    return instance_member_map(text, tag)

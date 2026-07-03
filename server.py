@@ -402,9 +402,10 @@ def _render_explore(text, fname):
     recipe_views = {}
     try:
         import recipe_bridge
-        rec = recipe_bridge.parse_recipe(text)
-        if rec and rec['meta'].get('name'):
-            recipe_views[rec['meta']['name']] = recipe_bridge.build_recipe_html(rec)
+        for rec in recipe_bridge.parse_recipes(text):
+            nm = rec['meta'].get('name')
+            if nm:
+                recipe_views[nm] = recipe_bridge.build_recipe_html(rec)
     except Exception:
         app.logger.exception('recipe view failed (non-fatal)')
 
@@ -462,6 +463,22 @@ def _extract_object_fhx(text, obj):
     if not m:
         return None
     return db_parser.extract_block(text, m.start())
+
+
+@app.route('/em_members')
+def em_members():
+    """Resolve an EM instance's member roles to their actual deployed CM tags (#1/#2)."""
+    token = request.args.get('t', '')
+    tag = request.args.get('tag', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired', 'members': {}})
+    try:
+        import em_sim_export
+        return jsonify({'tag': tag, 'members': em_sim_export.instance_member_map(text, tag)})
+    except Exception as e:
+        app.logger.exception('em_members failed')
+        return jsonify({'error': str(e), 'members': {}})
 
 
 @app.route('/inst_params')
@@ -537,6 +554,7 @@ def em_sim():
     token = request.args.get('t', '')
     em = request.args.get('e', '')
     cmd = request.args.get('c', '')
+    tag = request.args.get('tag', '')
     text = _read_stash(token)
     if not text:
         return Response('<p>Session expired — please re-open the export.</p>', mimetype='text/html')
@@ -545,7 +563,7 @@ def em_sim():
         if not cmd:
             # no command specified: return the list of commands as JSON
             return jsonify({'em': em, 'commands': em_sim_export.list_em_commands(text, em)})
-        view = em_sim_export.build_em_command_sim_view(text, em, cmd)
+        view = em_sim_export.build_em_command_sim_view(text, em, cmd, tag=tag)
         if not view:
             return Response(f'<p>Command "{_h.escape(cmd)}" not found in {_h.escape(em)}.</p>',
                             mimetype='text/html')

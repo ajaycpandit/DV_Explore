@@ -94,11 +94,13 @@ button{font-family:inherit}
 .main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;
   background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/26px 26px,
     linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/26px 26px,var(--canvas)}
-.panes{flex:1;display:grid;grid-template-columns:var(--navw,316px) 6px 1fr;overflow:hidden}
-.pane-divider{cursor:col-resize;background:transparent;position:relative;z-index:4}
+.panes{flex:1;display:grid;grid-template-columns:var(--navw,316px) 8px 1fr;overflow:hidden}
+.pane-divider{cursor:col-resize;background:transparent;position:relative;z-index:6}
 .pane-divider:hover,.pane-divider.dragging{background:var(--accent-soft)}
-.pane-divider::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--border)}
+.pane-divider::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--border)}
 .pane-divider:hover::after,.pane-divider.dragging::after{background:var(--accent);width:2px}
+.pane-divider::before{content:'';position:absolute;left:1px;top:50%;transform:translateY(-50%);width:6px;height:34px;border-radius:4px;background:var(--border);opacity:.6}
+.pane-divider:hover::before{background:var(--accent);opacity:1}
 
 /* tree */
 .nav{overflow:auto;background:color-mix(in srgb,var(--surface) 55%,transparent);padding:6px 8px}
@@ -238,6 +240,12 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .card.collapsed>h3::before{transform:rotate(-90deg)}
 .card.collapsed>*:not(h3){display:none!important}
 .card.collapsed{padding-bottom:11px}
+.subcard{border:1px solid var(--border);border-radius:9px;padding:11px 12px;margin:10px 0;background:var(--surface)}
+.card > h4, .subcard > h4, .subcard > h3{cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;margin:0 0 7px;padding:2px 4px;border-radius:6px;transition:background .12s;font-size:12.5px}
+.card > h4:hover, .subcard > h4:hover, .subcard > h3:hover{background:var(--surface-2)}
+.card > h4::before, .subcard > h4::before, .subcard > h3::before{content:'\\25be';font-size:10px;color:var(--accent);transition:transform .15s;flex-shrink:0}
+.card.collapsed>h4::before, .subcard.collapsed>h4::before, .subcard.collapsed>h3::before{transform:rotate(-90deg)}
+.subcard.collapsed>*:not(h4):not(h3){display:none!important}
 .card h3{margin:0 0 11px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{padding:4px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface-2);color:var(--ink-2);font-family:'IBM Plex Mono'}
@@ -480,7 +488,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-1525"
+_BUILD_ID = "20260703-1706"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1045,12 +1053,6 @@ function renderObj(id){
     } else {
       h+='<div class="card"><h3>Detail</h3><span class="empty">No parsed EM view available in this export.</span></div>';
     }
-    // #11: command simulator — command-driven EMs can be walked like phases.
-    if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
-      h+='<div class="card" style="max-width:none" id="emSimCard"><h3>Command simulator <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 walk a command step-by-step</span></h3>'
-        +'<div class="empty" id="emSimList">Loading commands\\u2026</div></div>';
-      (function(nm){ setTimeout(function(){ lazyEmSim(nm); },0); })(o.name);
-    }
     h+=paramsCard(o.name);
   }
   if(o._type==='Recipe'){
@@ -1124,20 +1126,24 @@ function renderEntry(e){
     makeCardsCollapsible();
   });
 }
-// #3/#5: collapse any card by clicking its header. Pure CSS affordance on every
-// .card > h3, plus one delegated click handler — works for cards added at any time
-// (async EM panels, instance params, recipe views) across ALL object types.
+// #3/#5: collapse any card OR sub-card by clicking its header. Handles top-level
+// .card > h3 and nested sub-cards / h4 headers, so a master card (e.g. Diagram) with
+// internal sub-sections can each collapse independently. Pure CSS affordance + one
+// delegated handler — works for cards added at any time across ALL object types.
 function makeCardsCollapsible(){ /* no-op: handled by CSS + delegation below */ }
 if(!window._cardCollapseWired){
   window._cardCollapseWired=1;
   document.addEventListener('click',function(ev){
     var t=ev.target;
     if(!t.closest) return;
-    var h=t.closest('.card > h3');
-    if(!h || !h.parentElement.classList.contains('card')) return;
-    if(!h.closest('#detail')) return;
     if(t.closest('a,.link,button,input,select')) return; // let controls work
-    h.parentElement.classList.toggle('collapsed');
+    // a header is a direct h3/h4 child of a .card or .subcard container
+    var h=t.closest('.card > h3, .card > h4, .subcard > h4, .subcard > h3');
+    if(!h) return;
+    if(!h.closest('#detail')) return;
+    var box=h.parentElement;
+    box.classList.toggle('collapsed');
+    ev.stopPropagation();
   });
 }
 function navTo(e){ VIEW_STACK.push(e); renderEntry(e); }
@@ -1197,29 +1203,53 @@ function cmGroup(label, list, kind){
   h+='</div></details>';
   return h;
 }
-// #11: load an EM's command list and offer a Simulate button for each.
-function lazyEmSim(name){
-  var box=document.getElementById('emSimList'); if(!box) return;
-  fetch('/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(name))
+// #2/#11: load an EM INSTANCE's command list and offer a Simulate button for each.
+// Simulation runs against the instance so its actual wired CMs/aliases resolve.
+// #1/#2: resolve this EM instance's member roles to actual deployed CM tags and
+// link each to the real CM instance view (e.g. BYP_INLET_VLV -> FP005-HV-027).
+function lazyInstMembers(d){
+  var box=document.getElementById('instMembersList'); if(!box) return;
+  fetch('/em_members?t='+encodeURIComponent(EXPORT_TOKEN)+'&tag='+encodeURIComponent(d.tag))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var mm=(j&&j.members)||{};
+      var roles=Object.keys(mm);
+      if(!roles.length){ box.outerHTML='<div class="empty" id="instMembersList">No resolved control modules for this instance.</div>'; return; }
+      var h='<table class="fbd-table"><thead><tr><th>Role in EM</th><th>Wired device</th></tr></thead><tbody>';
+      roles.sort().forEach(function(role){
+        var dev=mm[role];
+        var link=(DB.deployed_modules&&DB.deployed_modules[dev])
+          ? '<span class="link" onclick="showDeployed(\\''+esc(dev).replace(/\'/g,"\\\\'")+'\\')">'+esc(dev)+'</span>'
+          : '<code>'+esc(dev)+'</code>';
+        h+='<tr><td><code>'+esc(role)+'</code></td><td>'+link+'</td></tr>';
+      });
+      h+='</tbody></table>';
+      box.outerHTML='<div id="instMembersList">'+h+'</div>';
+    })
+    .catch(function(){ var b=document.getElementById('instMembersList'); if(b) b.textContent='Could not load control modules.'; });
+}
+function lazyInstSim(d){
+  var box=document.getElementById('instSimList'); if(!box) return;
+  fetch('/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(d.cls)+'&tag='+encodeURIComponent(d.tag))
     .then(function(r){return r.json();})
     .then(function(j){
       var cmds=(j&&j.commands)||[];
-      if(!cmds.length){ box.outerHTML='<div class="empty" id="emSimList">This EM has no command SFCs to simulate (it may be a monitor or message module).</div>'; return; }
+      if(!cmds.length){ box.outerHTML='<div class="empty" id="instSimList">This EM has no command SFCs to simulate (it may be a monitor or message module).</div>'; return; }
       var h='<div class="chips">';
       cmds.forEach(function(cn){
-        h+='<span class="chip sim-chip" onclick="openEmSim(\\''+esc(name).replace(/'/g,"\\\\'")+'\\',\\''+esc(cn).replace(/'/g,"\\\\'")+'\\')">\\u25b6 '+esc(cn)+'</span>';
+        h+='<span class="chip sim-chip" onclick="openInstSim(\\''+esc(d.cls).replace(/\'/g,"\\\\'")+'\\',\\''+esc(d.tag).replace(/\'/g,"\\\\'")+'\\',\\''+esc(cn).replace(/\'/g,"\\\\'")+'\\')">\\u25b6 '+esc(cn)+'</span>';
       });
       h+='</div>';
-      box.outerHTML='<div id="emSimList">'+h+'</div>';
+      box.outerHTML='<div id="instSimList">'+h+'</div>';
     })
-    .catch(function(){ var b=document.getElementById('emSimList'); if(b) b.textContent='Could not load commands.'; });
+    .catch(function(){ var b=document.getElementById('instSimList'); if(b) b.textContent='Could not load commands.'; });
 }
-function openEmSim(em, cmd){
+function openInstSim(cls, tag, cmd){
   var ov=document.getElementById('emSimOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='emSimOverlay'; ov.className='emsim-overlay'; document.body.appendChild(ov); }
-  ov.innerHTML='<div class="emsim-modal"><div class="emsim-h"><b>'+esc(em)+' \\u2014 '+esc(cmd)+'</b>'
+  ov.innerHTML='<div class="emsim-modal"><div class="emsim-h"><b>'+esc(tag)+' \\u2014 '+esc(cmd)+' <span style="font-weight:400;color:#94a3b8">(instance devices)</span></b>'
     +'<span class="emsim-x" onclick="var o=document.getElementById(\\'emSimOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
-    +'<iframe class="emsim-frame" src="/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(em)+'&c='+encodeURIComponent(cmd)+'"></iframe></div>';
+    +'<iframe class="emsim-frame" src="/em_sim?t='+encodeURIComponent(EXPORT_TOKEN)+'&e='+encodeURIComponent(cls)+'&c='+encodeURIComponent(cmd)+'&tag='+encodeURIComponent(tag)+'"></iframe></div>';
 }
 function lazyEm(name, stateSet){
   var box=document.getElementById('emLazy');
@@ -1379,12 +1409,18 @@ function renderDeployed(tag){
   // logic here so the instance is self-contained (#2).
   if(isEM){
     h+='<div class="card" style="max-width:none" id="instLogic"><h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3><div class="frame-load"><span class="spin"></span> Loading command logic\\u2026</div></div>';
+    // #2/#11: command simulator lives on the INSTANCE — simulation resolves this
+    // instance's actual wired CMs/aliases, which only exist at the instance level.
+    h+='<div class="card" style="max-width:none" id="instSimCard"><h3>Command simulator <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 walk a command with this instance\\'s devices</span></h3><div class="empty" id="instSimList">Loading commands\\u2026</div></div>';
+    h+='<div class="card" id="instMembers"><h3>Control modules <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 this instance\\'s wired devices</span></h3><div class="empty" id="instMembersList">Loading\\u2026</div></div>';
   }
   var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
   // fetch this instance's FBD (falls back to class diagram if the instance has none)
   lazyInstDiagram(d);
   lazyInstParams(tag);
   if(isEM) lazyInstLogic(d);
+  if(isEM) lazyInstSim(d);
+  if(isEM) lazyInstMembers(d);
 }
 function lazyInstLogic(d){
   var box=document.getElementById('instLogic'); if(!box) return;
