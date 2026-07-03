@@ -911,12 +911,51 @@ function initTransClickAll(){{
 function _initExplorerInteractions(){{
   try{{ initPan(); }}catch(e){{}}
   try{{ initTransClickAll(); }}catch(e){{}}
+  try{{ addTransitionRows(); }}catch(e){{}}
+}}
+// #5: the core buildTable() lists step actions but NOT transitions. Append a
+// Transitions section (name -> from/to context, expression) so the bottom table
+// is complete. Uses PAYLOAD (always in scope here) for transition data + from/to.
+function addTransitionRows(){{
+  var tbody=document.getElementById('tbody'); if(!tbody) return;
+  // if our section is already present, nothing to do; if core rebuilt the table
+  // (wiping our rows), the section is gone and we re-add regardless of any flag.
+  if(tbody.querySelector('.trans-sec')) return;
+  if(typeof PAYLOAD==='undefined'||!PAYLOAD.trans) return;
+  var tnames=Object.keys(PAYLOAD.trans);
+  if(!tnames.length){{ return; }}
+  // from-step: first step whose s2t includes this transition; to-step: t2s[tn]
+  function fromOf(tn){{ var o=PAYLOAD.order||[]; for(var i=0;i<o.length;i++){{ if((PAYLOAD.s2t[o[i]]||[]).indexOf(tn)>=0) return o[i]; }} return ''; }}
+  var rows='<tr class="step-row trans-sec"><td colspan="6">\\u25c7 Transitions ('+tnames.length+')</td></tr>';
+  tnames.forEach(function(tn){{
+    var expr=PAYLOAD.trans[tn]||'';
+    var to=(PAYLOAD.t2s&&PAYLOAD.t2s[tn])||'';
+    var from=fromOf(tn);
+    var flow=(from||to)?(esc(from||'?')+' \\u2192 '+esc(to||'?')):'';
+    rows+='<tr class="arow trow"><td>'+esc(tn)+'</td><td>'+flow+'</td><td></td><td>T</td><td class="expr">'+esc(expr||'(state transition \\u2014 no expression)')+'</td><td></td></tr>';
+  }});
+  tbody.insertAdjacentHTML('beforeend', rows);
 }}
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_initExplorerInteractions);
 else _initExplorerInteractions();
+// core populates #tbody in its own init (timing varies); our add is idempotent
+// (skips if already present, re-adds if core wiped it), so retry across a window.
+[60,250,600,1200].forEach(function(ms){{ setTimeout(function(){{ try{{ addTransitionRows(); }}catch(e){{}} }}, ms); }});
+// also observe the tbody so a late/again buildTable re-triggers our append
+(function(){{
+  var tb=document.getElementById('tbody'); if(!tb||!window.MutationObserver) return;
+  var mo=new MutationObserver(function(){{
+    if(!tb.querySelector('.trans-sec')){{ try{{ addTransitionRows(); }}catch(e){{}} }}
+  }});
+  try{{ mo.observe(tb,{{childList:true}}); }}catch(e){{}}
+}})();
 document.addEventListener('click',function(e){{
   if(e.target && (e.target.closest('.blocktab')||e.target.closest('.tab')||e.target.closest('.controls'))){{
-    setTimeout(_initExplorerInteractions, 30);
+    setTimeout(function(){{
+      _initExplorerInteractions();
+      // core rebuilds #tbody on block switch; clear our flag so transitions re-append
+      var tb=document.getElementById('tbody'); if(tb){{ tb.removeAttribute('data-trans-added'); try{{addTransitionRows();}}catch(e){{}} }}
+    }}, 40);
   }}
 }});
 }})();

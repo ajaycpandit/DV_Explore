@@ -145,6 +145,8 @@ button{font-family:inherit}
 .navinst{align-items:center}
 .navinst .inst-tag{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .navinst .inst-cls{color:var(--ink-3);font-size:10.5px;margin-left:auto;padding-left:8px;white-space:nowrap;flex:0 0 auto}
+.own-dot{display:inline-flex;align-items:center;margin-left:5px;flex:0 0 auto}
+.own-dot svg{display:block}
 .bigbtn{margin-top:12px;width:100%;padding:10px 12px;border:0;background:var(--accent);color:#fff;font-weight:600;font-size:13px;border-radius:9px;cursor:pointer;box-shadow:var(--shadow)}
 .bigbtn:hover{filter:brightness(1.06)}
 .navgroup{position:relative}
@@ -216,11 +218,13 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .kv{display:grid;grid-template-columns:170px 1fr;gap:5px 16px;font-size:13px;margin-bottom:6px;max-width:760px}
 .kv .k{color:var(--ink-3)}
 .card{border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px;background:var(--surface);max-width:920px;box-shadow:var(--shadow)}
-.card-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px}
-.card-toggle::before{content:'\\25be';font-size:11px;color:var(--ink-3);transition:transform .15s;flex-shrink:0}
+.card-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin:-4px -6px 8px;padding:4px 6px;border-radius:7px;transition:background .12s}
+.card-toggle:hover{background:var(--surface-2)}
+.card-toggle::before{content:'\\25be';font-size:11px;color:var(--accent);transition:transform .15s;flex-shrink:0}
+.card.collapsed>.card-toggle{margin-bottom:-4px}
 .card.collapsed>.card-toggle::before{transform:rotate(-90deg)}
 .card.collapsed>*:not(.card-toggle){display:none!important}
-.card.collapsed{padding-bottom:15px}
+.card.collapsed{padding-bottom:11px}
 .card h3{margin:0 0 11px;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{padding:4px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;background:var(--surface-2);color:var(--ink-2);font-family:'IBM Plex Mono'}
@@ -428,6 +432,20 @@ _THEME_COLORS['pid'] = _COL_DELTAV
 
 
 
+def _ownership_nav_ico(own):
+    """Small inline indicator for shared/private CM ownership in the nav tree (#4)."""
+    if own == 'SHARED':
+        return ('<span class="own-dot own-shared" title="Shared — usable by multiple EMs">'
+                '<svg width="11" height="11" viewBox="0 0 11 11"><circle cx="5.5" cy="5.5" r="4.2" '
+                'fill="none" stroke="#0891b2" stroke-width="1.4" stroke-dasharray="3 2"/></svg></span>')
+    if own == 'PRIVATE':
+        return ('<span class="own-dot own-private" title="Private — owned by this EM">'
+                '<svg width="11" height="11" viewBox="0 0 11 11"><rect x="2.4" y="4.6" width="6.2" height="4.4" '
+                'rx="1" fill="#6d28d9"/><path d="M3.7 4.6V3.5a1.8 1.8 0 0 1 3.6 0v1.1" fill="none" '
+                'stroke="#6d28d9" stroke-width="1.2"/></svg></span>')
+    return ''
+
+
 def _nav_badge(key):
     if key == 'nset':
         return ('<span class="ic-badge b-nset" title="Named Set">'
@@ -449,7 +467,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-0610"
+_BUILD_ID = "20260703-0643"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1237,10 +1255,34 @@ function renderDeployed(tag){
   // instance diagram (its own FBD) + instance parameter values, both lazy-loaded
   h+='<div class="card" style="max-width:none" id="instDiag"><h3>Diagram</h3><div class="frame-load"><span class="spin"></span> Loading diagram\\u2026</div></div>';
   h+='<div class="card" id="instParams"><h3>Instance parameters</h3><div class="loading-detail"><span class="spin"></span> Loading values\\u2026</div></div>';
+  // For an EM instance, the command/state LOGIC is identical to the class (an instance
+  // reuses the class SFCs, just wired to different devices). Show the class command
+  // logic here so the instance is self-contained (#2).
+  if(isEM){
+    h+='<div class="card" style="max-width:none" id="instLogic"><h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3><div class="frame-load"><span class="spin"></span> Loading command logic\\u2026</div></div>';
+  }
   var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0;
   // fetch this instance's FBD (falls back to class diagram if the instance has none)
   lazyInstDiagram(d);
   lazyInstParams(tag);
+  if(isEM) lazyInstLogic(d);
+}
+function lazyInstLogic(d){
+  var box=document.getElementById('instLogic'); if(!box) return;
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){ box.innerHTML='<h3>Command logic</h3><span class="empty">Unavailable.</span>'; return; }
+  // the class EM view carries the command SFCs (state field of em_view)
+  fetch('/em_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(d.cls))
+    .then(function(r){return r.json();})
+    .then(function(ev){
+      if(ev&&ev.state){
+        box.innerHTML='<h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3>'
+          +'<iframe class="phaseframe" srcdoc="'+ev.state.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
+      } else {
+        box.innerHTML='<h3>Command logic</h3><span class="empty">This EM class has no command SFC logic (it may be a monitor or message module).</span>';
+      }
+    })
+    .catch(function(){ box.innerHTML='<h3>Command logic</h3><span class="empty">Could not load command logic.</span>'; })
+    .finally(function(){ try{ makeCardsCollapsible(); }catch(e){} });
 }
 function lazyInstDiagram(d){
   var box=document.getElementById('instDiag'); if(!box) return;
@@ -1456,11 +1498,13 @@ function wireFbdLinks(){
                 for iid in child_iids:
                     ins = instances.get(iid, {})
                     itag, icls = ins.get('tag', ''), ins.get('cls', '')
+                    own = (ins.get('ownership') or '').upper()
+                    own_ico = _ownership_nav_ico(own)
                     nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
                                f'data-parent="{html.escape(cls)}" data-tag="{html.escape(itag)}" '
                                f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
-                               f'title="{html.escape(itag)} (instance of {html.escape(icls)})">'
-                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>'
+                               f'title="{html.escape(itag)} (instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
+                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>{own_ico}'
                                f'<span class="inst-cls">({html.escape(icls)})</span></div>')
                 nav.append('</div></div>')
             else:
@@ -1507,11 +1551,13 @@ function wireFbdLinks(){
             for iid in iids:
                 inst = instances.get(iid, {})
                 tag, cls = inst.get('tag', ''), inst.get('cls', '')
+                own = (inst.get('ownership') or '').upper()
+                own_ico = _ownership_nav_ico(own)
                 nav.append(f'<div class="navitem navchild navinst" '
                            f'data-parent="{html.escape(ename)}" data-tag="{html.escape(tag)}" '
                            f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
-                           f'title="{html.escape(tag)} (instance of {html.escape(cls)})">'
-                           f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(tag)}</span>'
+                           f'title="{html.escape(tag)} (instance of {html.escape(cls)}){(" · "+own.title()) if own else ""}">'
+                           f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(tag)}</span>{own_ico}'
                            f'<span class="inst-cls">({html.escape(cls)})</span></div>')
             nav.append('</div></div>')
         else:
