@@ -435,10 +435,12 @@ def _render_explore(text, fname):
     recipe_views = {}
     try:
         import recipe_bridge
-        for rec in recipe_bridge.parse_recipes(text):
+        all_recs = recipe_bridge.parse_recipes(text)
+        known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
+        for rec in all_recs:
             nm = rec['meta'].get('name')
             if nm:
-                recipe_views[nm] = recipe_bridge.build_recipe_html(rec)
+                recipe_views[nm] = recipe_bridge.build_recipe_html(rec, known_recipes=known)
     except Exception:
         app.logger.exception('recipe view failed (non-fatal)')
 
@@ -590,10 +592,12 @@ def recipe_view():
         return jsonify({'error': 'expired', 'html': ''})
     try:
         import recipe_bridge
-        for rec in recipe_bridge.parse_recipes(text):
+        all_recs = recipe_bridge.parse_recipes(text)
+        known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
+        for rec in all_recs:
             if rec['meta'].get('name') == name or not name:
                 return jsonify({'name': rec['meta'].get('name'),
-                                'html': recipe_bridge.build_recipe_html(rec)})
+                                'html': recipe_bridge.build_recipe_html(rec, known_recipes=known)})
         return jsonify({'error': 'not found', 'html': ''})
     except Exception as e:
         app.logger.exception('recipe_view failed')

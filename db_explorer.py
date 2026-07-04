@@ -507,7 +507,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260704-0530"
+_BUILD_ID = "20260704-0636"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1286,12 +1286,58 @@ function renderEntry(e){
 // internal sub-sections can each collapse independently. Pure CSS affordance + one
 // delegated handler — works for cards added at any time across ALL object types.
 function makeCardsCollapsible(){ /* no-op: handled by CSS + delegation below */ }
+// #1/#2: recipe PFC diagram pan + zoom (mirrors the phase SFC interactions).
+function pfcZoom(wrap, dir){
+  var layer=wrap.querySelector('.pfc-zoomlayer'); if(!layer) return;
+  var z=parseFloat(wrap.getAttribute('data-zoom')||'1');
+  if(dir==='in') z=Math.min(3, z+0.15);
+  else if(dir==='out') z=Math.max(0.4, z-0.15);
+  else z=1;
+  wrap.setAttribute('data-zoom', z);
+  layer.style.transform='scale('+z+')';
+}
+if(!window._pfcPanWired){
+  window._pfcPanWired=1;
+  var panW=null, psx=0, psy=0, psl=0, pst=0;
+  document.addEventListener('mousedown',function(e){
+    var wrap=e.target.closest && e.target.closest('.pfc-wrap');
+    if(!wrap) return;
+    if(e.target.closest('.pfc-trans,.pfc-zbtn,a,button')) return; // don't pan when clicking a transition
+    panW=wrap; psx=e.clientX; psy=e.clientY; psl=wrap.scrollLeft; pst=wrap.scrollTop;
+    wrap.classList.add('panning'); e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!panW) return;
+    panW.scrollLeft=psl-(e.clientX-psx); panW.scrollTop=pst-(e.clientY-psy);
+  });
+  document.addEventListener('mouseup',function(){ if(panW){ panW.classList.remove('panning'); panW=null; } });
+  // scroll-to-zoom over the diagram
+  document.addEventListener('wheel',function(e){
+    var wrap=e.target.closest && e.target.closest('.pfc-wrap');
+    if(!wrap) return;
+    if(e.ctrlKey||e.metaKey||e.shiftKey){ pfcZoom(wrap, e.deltaY<0?'in':'out'); e.preventDefault(); }
+  },{passive:false});
+}
 if(!window._cardCollapseWired){
   window._cardCollapseWired=1;
   document.addEventListener('click',function(ev){
     var t=ev.target;
     if(!t.closest) return;
-    if(t.closest('a,.link,button,input,select')) return; // let controls work
+    if(t.closest('a,.link,button,input,select') && !t.closest('.pfc-zbtn')) return; // let controls work
+    // PFC (recipe) zoom buttons
+    var zb=t.closest('.pfc-zbtn');
+    if(zb){
+      var card=zb.closest('.card'); var wrap2=card?card.querySelector('.pfc-wrap'):null;
+      if(wrap2) pfcZoom(wrap2, zb.getAttribute('data-pfc-zoom'));
+      return;
+    }
+    // recipe drill-down: step definition references another recipe object
+    var drill=t.closest('.rf-drill');
+    if(drill){
+      var rn=drill.getAttribute('data-recipe');
+      if(rn && DB.objs['recipe:'+rn]){ show('recipe:'+rn); }
+      return;
+    }
     // PFC (recipe) transition click -> show expression in the recipe's panel
     var g=t.closest('.pfc-trans');
     if(g){

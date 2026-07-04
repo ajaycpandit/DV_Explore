@@ -218,9 +218,70 @@ def build_em_command_sim_view(text, em_name, command_name, tag=''):
     payload = build_em_command_payload(text, em_name, command_name, tag=tag)
     try:
         import sim_overlay
-        return sim_overlay.inject(sfc_view, payload)
+        view = sim_overlay.inject(sfc_view, payload)
     except Exception:
         return sfc_view
+    # Stage 3: device feedback panel — show the devices each step drives, animated
+    # from command -> feedback via the device models. Reuses instance member
+    # resolution so roles map to real deployed tags.
+    try:
+        import feedback_sim
+        import device_panel
+        member_map = instance_member_map(text, tag) if tag else {}
+        registry = feedback_sim.build_device_registry(payload, member_map=member_map)
+        has_devices = any(registry['steps'].get(s) for s in registry['steps'])
+        if has_devices:
+            with open(_here('device_sim.js'), 'r', encoding='utf-8') as fh:
+                dev_js = fh.read()
+            panel = device_panel.build_device_panel_html(registry)
+            inject_block = ('<style>' + device_panel.DEVICE_CSS + '</style>'
+                            '<script>' + dev_js + '</script>' + panel
+                            + _DEV_HOOK_JS)
+            if '</body>' in view:
+                view = view.replace('</body>', inject_block + '</body>', 1)
+            else:
+                view = view + inject_block
+    except Exception:
+        pass
+    return view
+
+
+import os as _os
+
+
+def _here(fname):
+    return _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), fname)
+
+
+# Hook the device panel to the simulator's step/reset so glyphs animate as the
+# operator walks the sequence. The sim exposes the current step via the now-line;
+# we observe step changes and call __devStep with the active step name.
+_DEV_HOOK_JS = """
+<script>
+(function(){
+  function currentStep(){
+    var cur=document.querySelector('.sim-tape .row.cur, #tbody tr.cur, .now-line');
+    if(!cur) return '';
+    var m=(cur.textContent||'').match(/\\b(S\\d{2,4}|[A-Z][A-Z0-9_]{2,})\\b/);
+    return m?m[1]:'';
+  }
+  var last='';
+  function tick(){
+    var s=currentStep();
+    if(s && s!==last){ last=s; if(window.__devStep) window.__devStep(s); }
+  }
+  // poll for step changes (the sim re-renders the tape on step/play/back)
+  setInterval(tick, 250);
+  // reset hook
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(t && (t.id==='sim-reset' || (t.textContent||'').trim().toLowerCase()==='reset')){
+      last=''; if(window.__devReset) window.__devReset();
+    }
+  });
+})();
+</script>
+"""
 
 
 def instance_member_map(text, tag):

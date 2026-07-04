@@ -110,19 +110,30 @@ def _parse_pfc(blk):
         sbody = db_parser.extract_block(pfc, sm.end() - 1)
         desc = re.search(r'DESCRIPTION="([^"]*)"', sbody)
         rect = re.search(r'RECTANGLE=\s*\{\s*X=(-?\d+)\s+Y=(-?\d+)\s+H=(\d+)\s+W=(\d+)', sbody)
+        ualias = re.search(r'UNIT_ALIAS="([^"]*)"', sbody)
         sparams = []
+        deferred = []
         for spm in re.finditer(r'STEP_PARAMETER\s+NAME="([^"]+)"\s*\{', sbody):
             spb = db_parser.extract_block(sbody, spm.end() - 1)
             origin = re.search(r'ORIGIN=(\w+)', spb)
             grp = re.search(r'GROUP="([^"]*)"', spb)
-            sparams.append({'name': spm.group(1),
-                           'origin': origin.group(1) if origin else '',
-                           'group': grp.group(1) if grp else ''})
+            dto = re.search(r'DEFERRED_TO="([^"]*)"', spb)
+            val = re.search(r'VALUE="([^"]*)"', spb) or re.search(r'VALUE=([^\s{][^\r\n]*)', spb)
+            entry = {'name': spm.group(1),
+                     'origin': origin.group(1) if origin else '',
+                     'group': grp.group(1) if grp else '',
+                     'deferred_to': dto.group(1) if dto else '',
+                     'value': (val.group(1).strip() if val else '')}
+            sparams.append(entry)
+            if entry['origin'] == 'DEFERRED':
+                deferred.append(entry)
         steps[sname] = {
             'name': sname, 'definition': sdef,
             'desc': desc.group(1) if desc else '',
             'initial': bool(sm.group(1)),
             'params': sparams,
+            'deferred': deferred,
+            'unit_alias': ualias.group(1) if ualias else '',
             'x': int(rect.group(1)) if rect else None,
             'y': int(rect.group(2)) if rect else None,
             'h': int(rect.group(3)) if rect else 40,
@@ -208,20 +219,26 @@ def _render_pfc_svg(proc):
         x, y, w, h = coords[name]
         return sx(x) + w / 2, sy(y) + h / 2
 
+    def ortho(x1, y1, x2, y2, arrow=False):
+        # L-shaped connector: vertical from source, then horizontal to target — matches
+        # the phase SFC's straight-line style (#5) rather than a diagonal.
+        mid = f'{x1:.0f},{y1:.0f} {x1:.0f},{y2:.0f} {x2:.0f},{y2:.0f}'
+        mk = ' marker-end="url(#pfcarr)"' if arrow else ''
+        return (f'<polyline points="{mid}" fill="none" stroke="#94a3b8" '
+                f'stroke-width="1.4"{mk}/>')
+
     for s, t in s2t:
         if s not in coords or t not in tpos:
             continue
         x1, y1 = center(s)
         x2, y2 = tpos[t][0] - minx, tpos[t][1] - miny
-        svg.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" '
-                   f'stroke="#cbd5e1" stroke-width="1.5"/>')
+        svg.append(ortho(x1, y1, x2, y2))
     for t, s in t2s:
         if s not in coords or t not in tpos:
             continue
         x1, y1 = tpos[t][0] - minx, tpos[t][1] - miny
         x2, y2 = center(s)
-        svg.append(f'<line x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}" '
-                   f'stroke="#cbd5e1" stroke-width="1.5" marker-end="url(#pfcarr)"/>')
+        svg.append(ortho(x1, y1, x2, y2, arrow=True))
 
     # step boxes
     for n, (x, y, w, h) in coords.items():
@@ -263,7 +280,8 @@ def _render_pfc_svg(proc):
 
 # ───────────────────────── rendering ─────────────────────────
 
-def build_recipe_html(recipe):
+def build_recipe_html(recipe, known_recipes=None):
+    known_recipes = known_recipes or set()
     """Render a parsed recipe as an HTML view: metadata + parameters + a
     procedure flow (steps and transitions with expressions)."""
     if not recipe:
@@ -285,9 +303,14 @@ def build_recipe_html(recipe):
             import json as _json
             texpr = {tn: td.get('expr', '') for tn, td in proc['transitions'].items()}
             pid = 'pfcPanel_' + _safe_id(recipe['meta']['name'])
+            h.append('<div class="pfc-toolbar">'
+                     '<button class="pfc-zbtn" data-pfc-zoom="out" title="Zoom out">\u2212</button>'
+                     '<button class="pfc-zbtn" data-pfc-zoom="reset" title="Reset">\u25a1</button>'
+                     '<button class="pfc-zbtn" data-pfc-zoom="in" title="Zoom in">+</button>'
+                     '<span class="pfc-hint2">drag to pan \u00b7 scroll to zoom</span></div>')
             h.append('<div class="pfc-wrap" data-pfc-expr="'
                      + html.escape(_json.dumps(texpr), quote=True)
-                     + '" data-pfc-panel="' + pid + '">' + diagram + '</div>')
+                     + '" data-pfc-panel="' + pid + '"><div class="pfc-zoomlayer">' + diagram + '</div></div>')
             h.append('<div class="pfc-panel" id="' + pid
                      + '"><span class="pfc-hint">Click a transition in the diagram to see its expression.</span></div>')
         else:
@@ -296,7 +319,7 @@ def build_recipe_html(recipe):
 
         # textual flow (steps + transitions interleaved)
         h.append('<div class="card" style="max-width:none"><h3>Procedure flow</h3>')
-        h.append(_render_flow(proc))
+        h.append(_render_flow(proc, known_recipes))
         h.append('</div>')
 
     # formula parameters, grouped
@@ -330,8 +353,11 @@ def build_recipe_html(recipe):
     return '\n'.join(h)
 
 
-def _render_flow(proc):
-    """Render the procedure as steps interleaved with their outgoing transitions."""
+def _render_flow(proc, known_recipes=None):
+    """Render the procedure as steps interleaved with their outgoing transitions.
+    known_recipes: set of recipe names present in the export, so a step whose
+    definition references one becomes a drill-down link (#3)."""
+    known_recipes = known_recipes or set()
     steps, trans = proc['steps'], proc['transitions']
     s2t, t2s = proc['s2t'], proc['t2s']
     # index: step -> [transitions]; transition -> [steps]
@@ -379,10 +405,33 @@ def _render_flow(proc):
             label = html.escape(sname)
             defn = html.escape(s['definition'])
             npar = len(s.get('params', []))
+            ndef = len(s.get('deferred', []))
+            ualias = s.get('unit_alias', '')
             init = ' <span class="rf-init">initial</span>' if s.get('initial') else ''
-            rows.append('<div class="rf-step"><div class="rf-name">' + label + init
-                        + '</div><div class="rf-def">unit procedure: <code>' + defn + '</code>'
-                        + (' · ' + str(npar) + ' parameters' if npar else '') + '</div></div>')
+            alias_tag = (' <span class="rf-alias">unit: ' + html.escape(ualias) + '</span>') if ualias else ''
+            # if the definition matches another recipe object, make it a drill-down link
+            base_def = re.sub(r':\d+$', '', s['definition'])
+            if base_def in known_recipes:
+                defn_html = ('<span class="rf-drill" data-recipe="' + html.escape(base_def, quote=True)
+                             + '"><code>' + defn + '</code> \u2197</span>')
+            else:
+                defn_html = '<code>' + defn + '</code>'
+            rows.append('<div class="rf-step"><div class="rf-name">' + label + init + alias_tag
+                        + '</div><div class="rf-def">' + _layer_label(s['definition'])
+                        + ': ' + defn_html
+                        + (' \u00b7 ' + str(npar) + ' parameters' if npar else '')
+                        + (' \u00b7 <span class="rf-defcount">' + str(ndef) + ' deferred</span>' if ndef else '')
+                        + '</div>')
+            # deferred parameters (the values passed down to the next layer)
+            if s.get('deferred'):
+                rows.append('<div class="rf-defers"><div class="rf-defhdr">Deferred parameters (passed to underlying object)</div>')
+                for d in s['deferred']:
+                    rows.append('<div class="rf-defrow"><code>' + html.escape(d['name']) + '</code>'
+                                + ' \u2192 <code>' + html.escape(d['deferred_to'] or d['name']) + '</code>'
+                                + (' <span class="rf-defgrp">' + html.escape(d['group']) + '</span>' if d.get('group') else '')
+                                + '</div>')
+                rows.append('</div>')
+            rows.append('</div>')  # close rf-step
         # outgoing transitions from this step
         for t in step_outs.get(sname, []):
             td = trans.get(t, {})
@@ -395,6 +444,20 @@ def _render_flow(proc):
                         + '</div>')
     rows.append('</div>')
     return '\n'.join(rows)
+
+
+def _layer_label(definition):
+    """Infer the recipe layer of a step's definition from DeltaV naming conventions:
+    _UP = unit procedure, _OP = operation, _PH/PHASE = phase. Falls back to a generic
+    label so the hierarchy Procedure > Unit Procedure > Operation > Phase reads clearly."""
+    d = (definition or '').upper()
+    if d.endswith('_UP') or '_UP' in d:
+        return 'unit procedure'
+    if d.endswith('_OP') or '_OP' in d:
+        return 'operation'
+    if d.endswith('_PH') or 'PHASE' in d:
+        return 'phase'
+    return 'step definition'
 
 
 def _safe_id(s):
@@ -413,7 +476,21 @@ RECIPE_CSS = """
 .rf-tgt{color:var(--ink-3,#64748b)}
 .rf-expr{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#475569;background:#f8fafc;border:1px solid var(--border,#e2e8f0);border-radius:6px;padding:4px 8px;margin:3px 0 3px 0;white-space:pre-wrap;word-break:break-word}
 .rp-group{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin:12px 0 6px}
-.pfc-wrap{overflow:auto;border:1px solid var(--border,#e2e8f0);border-radius:9px;background:#fff;padding:10px;max-height:520px}
+.rf-alias{font-size:10px;font-weight:600;background:#e0f2fe;color:#075985;padding:1px 7px;border-radius:5px;margin-left:6px}
+.rf-defcount{color:#b45309;font-weight:600}
+.rf-drill{cursor:pointer;color:#7c3aed}
+.rf-drill:hover{text-decoration:underline}
+.rf-defers{margin:5px 0 2px 14px;padding:7px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:7px}
+.rf-defhdr{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#b45309;margin-bottom:5px}
+.rf-defrow{font-size:12px;color:#475569;padding:1px 0}
+.rf-defgrp{font-size:10px;color:#94a3b8;margin-left:5px}
+.pfc-wrap{overflow:auto;border:1px solid var(--border,#e2e8f0);border-radius:9px;background:#fff;padding:10px;max-height:520px;cursor:grab;position:relative}
+.pfc-wrap.panning{cursor:grabbing}
+.pfc-zoomlayer{transform-origin:0 0;transition:transform .05s linear;display:inline-block}
+.pfc-toolbar{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.pfc-zbtn{width:26px;height:26px;border:1px solid var(--border,#e2e8f0);background:var(--surface,#fff);border-radius:6px;cursor:pointer;font-size:14px;line-height:1;color:var(--ink,#16202c);display:inline-flex;align-items:center;justify-content:center}
+.pfc-zbtn:hover{border-color:var(--accent,#7c3aed);color:var(--accent,#7c3aed)}
+.pfc-hint2{font-size:11px;color:var(--ink-3,#94a3b8);margin-left:6px}
 .pfc-svg{display:block}
 .pfc-step rect{transition:stroke .12s}
 .pfc-trans:hover rect{fill:#f5f3ff}
