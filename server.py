@@ -273,7 +273,17 @@ def append():
         return "No file uploaded.", 400
     base = _read_stash(token)
     if not base:
-        return "Original import not found or expired — please re-import the base file.", 400
+        # stash expired (the free host may have restarted). Accept an uploaded base
+        # file as a fallback so the user can still merge without losing work.
+        bf = request.files.get('base')
+        if bf:
+            try:
+                base = db_parser.decode_fhx(bf.read())
+            except Exception as e:
+                app.logger.exception('append base decode failed')
+                return _explore_error('Could not decode the base file', e, 'base'), 500
+        else:
+            return "Original import not found or expired — please reimport the base file.", 409
     raw = f.read()
     fname = (f.filename or 'append.fhx').rsplit('.', 1)[0]
     try:
@@ -545,6 +555,27 @@ def em_view():
     except Exception as e:
         app.logger.exception('em_view failed')
         return jsonify({'error': _h.escape(str(e))})
+
+
+@app.route('/recipe_view')
+def recipe_view():
+    """Fallback: build a recipe's procedure view on demand (in case the embedded
+    RECIPE_VIEWS is unavailable). Params: t=token, n=recipe name."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired', 'html': ''})
+    try:
+        import recipe_bridge
+        for rec in recipe_bridge.parse_recipes(text):
+            if rec['meta'].get('name') == name or not name:
+                return jsonify({'name': rec['meta'].get('name'),
+                                'html': recipe_bridge.build_recipe_html(rec)})
+        return jsonify({'error': 'not found', 'html': ''})
+    except Exception as e:
+        app.logger.exception('recipe_view failed')
+        return jsonify({'error': str(e), 'html': ''})
 
 
 @app.route('/em_sim')

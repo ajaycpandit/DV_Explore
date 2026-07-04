@@ -136,6 +136,12 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 #sim-dock.dock-left .sim-tabwrap,#sim-dock.dock-right .sim-tabwrap,#sim-dock.dock-float .sim-tabwrap{overflow:visible}
 .sim-tabpanel{display:none}
 .sim-tabpanel.on{display:block}
+.sim-subtabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid #eef2f7;flex-wrap:wrap}
+.sim-subtab{font:600 11px 'IBM Plex Sans';border:none;background:transparent;color:#7689a0;padding:5px 10px;border-bottom:2px solid transparent;cursor:pointer;border-radius:5px 5px 0 0}
+.sim-subtab:hover{color:#334155;background:#f1f5f9}
+.sim-subtab.on{color:#1d4ed8;border-bottom-color:#2563eb;background:#fff}
+.sim-subpanel{display:none}
+.sim-subpanel.on{display:block}
 .sim-tape-legend{font:11px 'IBM Plex Mono';color:#94a3b8;margin-bottom:8px}
 .sim-phint{font-size:11px;color:#7689a0;margin:0 0 8px;line-height:1.4}
 .pp-in{display:inline-block;font:600 9px 'IBM Plex Sans';background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:4px;vertical-align:middle}
@@ -278,34 +284,30 @@ def inject(phase_html, payload):
         <button class="sim-tab" data-t="watch" onclick="SIM.tab(this,'watch')">Watch</button>
       </div>
       <div class="sim-tabwrap">
-        <!-- Inputs tab -->
+        <!-- Inputs tab: nested sub-tabs (#4) -->
         <div class="sim-tabpanel on" data-t="inputs">
-          <details class="sim-sect" id="sim-rsect" open>
-            <summary>Recipe parameters (R_)</summary>
-            <div class="body">
-              <input id="sim-rfilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin-bottom:7px">
-              <div class="sim-edit" id="sim-rparams"></div>
-            </div>
-          </details>
-          <details class="sim-sect" open>
-            <summary>Device / timer levers</summary>
-            <div class="body"><div class="sim-edit" id="sim-levers"></div></div>
-          </details>
-          <details class="sim-sect" id="sim-psect" open>
-            <summary>Phase parameters (P_ / D_)</summary>
-            <div class="body">
-              <div class="sim-phint">Computed values are shown live from the walk. Inputs the sim can't derive (process/device readings) are editable \u2014 change one to re-drive the sequence.</div>
-              <div class="sim-edit" id="sim-pparams"></div>
-            </div>
-          </details>
-          <details class="sim-sect" id="sim-asect" open>
-            <summary>Alias resolution (devices driven)</summary>
-            <div class="body">
-              <label class="sim-atoggle"><input type="checkbox" onchange="toggleResolveAliases(this)"> Show resolved device tags in place of #aliases# in the walk</label>
-              <input id="sim-afilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin:7px 0">
-              <div class="sim-aliaslist" id="sim-aliases"></div>
-            </div>
-          </details>
+          <div class="sim-subtabs">
+            <button class="sim-subtab on" data-s="recipe" onclick="SIM.subtab(this,'recipe')">Recipe (R_)</button>
+            <button class="sim-subtab" data-s="levers" onclick="SIM.subtab(this,'levers')">Devices &amp; timers</button>
+            <button class="sim-subtab" data-s="phase" onclick="SIM.subtab(this,'phase')">Phase (P_/D_)</button>
+            <button class="sim-subtab" data-s="alias" onclick="SIM.subtab(this,'alias')">Aliases</button>
+          </div>
+          <div class="sim-subpanel on" data-s="recipe" id="sim-rsect">
+            <input id="sim-rfilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin-bottom:7px">
+            <div class="sim-edit" id="sim-rparams"></div>
+          </div>
+          <div class="sim-subpanel" data-s="levers">
+            <div class="sim-edit" id="sim-levers"></div>
+          </div>
+          <div class="sim-subpanel" data-s="phase" id="sim-psect">
+            <div class="sim-phint">Computed values are shown live from the walk. Inputs the sim can't derive (process/device readings) are editable \u2014 change one to re-drive the sequence.</div>
+            <div class="sim-edit" id="sim-pparams"></div>
+          </div>
+          <div class="sim-subpanel" data-s="alias" id="sim-asect">
+            <label class="sim-atoggle"><input type="checkbox" onchange="toggleResolveAliases(this)"> Show resolved device tags in place of #aliases# in the walk</label>
+            <input id="sim-afilter" placeholder="filter\u2026" style="width:100%;box-sizing:border-box;font:12px 'IBM Plex Mono';border:1px solid #c7d2de;border-radius:6px;padding:4px 7px;margin:7px 0">
+            <div class="sim-aliaslist" id="sim-aliases"></div>
+          </div>
         </div>
         <!-- Steps & Actions tab -->
         <div class="sim-tabpanel" data-t="steps">
@@ -826,6 +828,11 @@ function recordAnswer(step,val){{
 }}
 
 window.SIM={{
+  subtab:function(btn,which){{
+    var wrap=btn.closest('.sim-tabpanel'); if(!wrap) return;
+    wrap.querySelectorAll('.sim-subtab').forEach(function(t){{t.classList.toggle('on',t===btn);}});
+    wrap.querySelectorAll('.sim-subpanel').forEach(function(p){{p.classList.toggle('on',p.dataset.s===which);}});
+  }},
   tab:function(btn,which){{
     var col=btn.closest('.sim-tab-col'); if(!col) return;
     col.querySelectorAll('.sim-tab').forEach(function(t){{t.classList.toggle('on',t===btn);}});
@@ -926,6 +933,34 @@ function _initExplorerInteractions(){{
   try{{ initPan(); }}catch(e){{}}
   try{{ initTransClickAll(); }}catch(e){{}}
   try{{ addTransitionRows(); }}catch(e){{}}
+  try{{ addSearchAliasToggle(); }}catch(e){{}}
+}}
+// #6: put an "alias resolution" toggle right next to the table search box, so the
+// operator can see #aliases# in the steps/actions/transitions swapped for their
+// resolved device tags without opening the simulator.
+function addSearchAliasToggle(){{
+  var box=document.getElementById('search'); if(!box) return;
+  if(document.getElementById('aliasToggleWrap')) return;
+  if(typeof PAYLOAD==='undefined'||!PAYLOAD.aliases||!Object.keys(PAYLOAD.aliases).length) return;
+  var wrap=document.createElement('label');
+  wrap.id='aliasToggleWrap';
+  wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;margin-left:12px;font-size:12px;color:#475569;cursor:pointer;white-space:nowrap';
+  wrap.innerHTML='<input type="checkbox" id="tblAliasChk"> Resolve #aliases# to device tags';
+  if(box.parentNode) box.parentNode.insertBefore(wrap, box.nextSibling);
+  document.getElementById('tblAliasChk').addEventListener('change',function(){{
+    TABLE_RESOLVE_ALIASES=this.checked; applyTableAliasResolution();
+  }});
+}}
+var TABLE_RESOLVE_ALIASES=false;
+function applyTableAliasResolution(){{
+  var tbody=document.getElementById('tbody'); if(!tbody) return;
+  tbody.querySelectorAll('td.expr').forEach(function(td){{
+    if(td.getAttribute('data-raw')===null || td.getAttribute('data-raw')===undefined){{
+      td.setAttribute('data-raw', td.textContent);
+    }}
+    var raw=td.getAttribute('data-raw')||td.textContent;
+    td.textContent = TABLE_RESOLVE_ALIASES ? resolveAliasText(raw) : raw;
+  }});
 }}
 // #5: the core buildTable() lists step actions but NOT transitions. Append a
 // Transitions section (name -> from/to context, expression) so the bottom table
@@ -978,7 +1013,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 else _initExplorerInteractions();
 // core populates #tbody in its own init (timing varies); our add is idempotent
 // (skips if already present, re-adds if core wiped it), so retry across a window.
-[60,250,600,1200].forEach(function(ms){{ setTimeout(function(){{ try{{ addTransitionRows(); }}catch(e){{}} }}, ms); }});
+[60,250,600,1200].forEach(function(ms){{ setTimeout(function(){{ try{{ addTransitionRows(); }}catch(e){{}} try{{ addSearchAliasToggle(); if(TABLE_RESOLVE_ALIASES) applyTableAliasResolution(); }}catch(e){{}} }}, ms); }});
 // also observe the tbody so a late/again buildTable re-triggers our append
 (function(){{
   var tb=document.getElementById('tbody'); if(!tb||!window.MutationObserver) return;

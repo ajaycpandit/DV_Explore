@@ -507,7 +507,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-2155"
+_BUILD_ID = "20260704-0419"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -850,24 +850,37 @@ function openAppend(){
     +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="appendMode" value="overwrite"> Overwrite <span style="color:var(--ink-3)">(new wins)</span></label>'
     +'</div>'
     +'<div id="appendStatus" style="font-size:12.5px;color:var(--ink-3);min-height:18px;margin-bottom:10px"></div>'
+    +'<div id="appendBaseWrap" style="display:none;margin-bottom:12px;padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px">'
+    +'<div style="font-size:12.5px;color:#9a3412;margin-bottom:7px">The original import isn\\'t available on the server anymore (the free host may have restarted). Re-select the <b>base</b> FHX so the merge can proceed \\u2014 you won\\'t lose anything.</div>'
+    +'<input type="file" id="appendBaseFile" accept=".fhx" style="display:block;font-size:13px"></div>'
     +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="doAppend()">Merge &amp; reload</button>'
     +'</div></div>';
 }
 function doAppend(){
   var fi=document.getElementById('appendFile');
   var st=document.getElementById('appendStatus');
-  if(!fi.files || !fi.files.length){ st.textContent='Please choose an FHX file first.'; return; }
+  if(!fi.files || !fi.files.length){ st.textContent='Please choose an FHX file to append first.'; return; }
   var mode=(document.querySelector('input[name=appendMode]:checked')||{}).value||'skip';
   var fd=new FormData();
-  fd.append('token', EXPORT_TOKEN);
+  fd.append('token', (typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''));
   fd.append('mode', mode);
   fd.append('file', fi.files[0]);
-  st.textContent='Merging…';
+  var baseFi=document.getElementById('appendBaseFile');
+  if(baseFi && baseFi.files && baseFi.files.length){ fd.append('base', baseFi.files[0]); }
+  st.textContent='Merging\\u2026';
   fetch('/append',{method:'POST',body:fd})
-    .then(function(r){ return r.text().then(function(t){ return {ok:r.ok,t:t}; }); })
+    .then(function(r){ return r.text().then(function(t){ return {ok:r.ok,status:r.status,t:t}; }); })
     .then(function(res){
-      if(!res.ok){ st.textContent='Merge failed: '+res.t.slice(0,200); return; }
-      // replace the whole document with the merged explorer
+      if(!res.ok){
+        // stash expired -> reveal the base-file picker so the user can recover
+        if(res.status===409 || res.t.indexOf('reimport')>=0 || res.t.indexOf('not found')>=0){
+          var w=document.getElementById('appendBaseWrap'); if(w) w.style.display='block';
+          st.textContent='Select the base FHX above, then click Merge again.';
+        } else {
+          st.textContent='Merge failed: '+res.t.slice(0,200);
+        }
+        return;
+      }
       document.open(); document.write(res.t); document.close();
     })
     .catch(function(e){ st.textContent='Merge error: '+e.message; });
@@ -954,14 +967,7 @@ function renderObj(id){
     }
     var als=ui.aliases||[];
     if(als.length){
-      h+='<div class="card"><h3>Alias resolution ('+als.length+') <span style="font-weight:400;color:var(--ink-3);font-size:12px">\u2014 #ALIAS# maps to the module tag used by this unit</span></h3>';
-      h+='<input class="alias-filter" id="aliasFilter" placeholder="Filter aliases\u2026" oninput="filterAliases()">';
-      h+='<table class="fbd-table" id="aliasTable"><thead><tr><th>Alias</th><th>Resolves to</th><th>Description</th></tr></thead><tbody>';
-      als.forEach(function(a){
-        var tgt=a.value?('<span class="link" onclick="showTag(\\''+esc(a.value)+'\\')"><code>'+esc(a.value)+'</code></span>'):'<span style="color:#94a3b8">(unresolved)</span>';
-        h+='<tr'+(a.ignore?' style="opacity:.5"':'')+'><td><code>#'+esc(a.alias)+'#</code></td><td>'+tgt+'</td><td style="font-size:12px;color:var(--ink-2)">'+esc(a.desc||'')+'</td></tr>';
-      });
-      h+='</tbody></table></div>';
+      h+=aliasCardHTML(als);
     }
   }
   if(o._type==='Unit Class' && o.instances){
@@ -1067,7 +1073,7 @@ function renderObj(id){
       h+='<iframe id="phaseFrame" class="phaseframe" srcdoc="'+PHASE_VIEWS[o.name].replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></iframe>';
     } else if(_hasLazy && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
       var _src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(o.name);
-      h+='<div class="frame-wrap"><div class="frame-load" id="phaseLoad"><span class="spin"></span> Loading phase logic\\u2026</div>';
+      h+='<div class="frame-wrap"><div class="frame-load" id="phaseLoad"><span class="dv-dots"><i></i><i></i><i></i></span> Loading phase logic\\u2026</div>';
       h+='<iframe id="phaseFrame" class="phaseframe" src="'+_src+'" onload="var l=document.getElementById(\\'phaseLoad\\');if(l)l.style.display=\\'none\\';"></iframe></div>';
     } else {
       h+='<span class="empty">No parsed logic available for this phase in this export.</span>';
@@ -1129,7 +1135,21 @@ function renderObj(id){
     if(RECIPE_VIEWS[o.name]){
       h+=RECIPE_VIEWS[o.name];
     } else {
-      h+='<div class="card"><h3>Detail</h3><span class="empty">No procedure detail parsed for this recipe.</span></div>';
+      // fallback: fetch the recipe view on demand (covers cases where the embedded
+      // RECIPE_VIEWS map is unavailable, e.g. after certain merge/reload paths).
+      h+='<div class="card" id="recipeLazy"><h3>Procedure</h3><div class="dv-loader"><span class="dv-dots"><i></i><i></i><i></i></span> Loading procedure\\u2026</div></div>';
+      if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+        (function(nm){ setTimeout(function(){
+          fetch('/recipe_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(nm))
+            .then(function(r){return r.json();})
+            .then(function(x){ var b=document.getElementById('recipeLazy');
+              if(b && x && x.html){ b.outerHTML=x.html; try{makeCardsCollapsible();}catch(e){} }
+              else if(b){ b.innerHTML='<h3>Procedure</h3><span class="empty">No procedure detail parsed for this recipe.</span>'; } })
+            .catch(function(){ var b=document.getElementById('recipeLazy'); if(b) b.innerHTML='<h3>Procedure</h3><span class="empty">Could not load procedure detail.</span>'; });
+        },0); })(o.name);
+      } else {
+        h+='<div class="card"><span class="empty">No procedure detail parsed for this recipe.</span></div>';
+      }
     }
   }
   if(o._type==='FB Type'){
@@ -1151,8 +1171,63 @@ let VIEW_STACK=[];
 let _emCurrent='';
 // #1/#3: open an EM's control-module MEMBER in an instance-style view (diagram +
 // role context), matching the richer CM-under-unit view rather than the bare class.
-function showEmMember(emName, memberName, cls){
+// #6/#7: reusable alias-resolution card (used both inline in the unit view and as
+// the standalone "Aliases" child object under a unit).
+function aliasCardHTML(als){
+  if(!als||!als.length) return '';
+  var h='<div class="card"><h3>Alias resolution ('+als.length+') <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 #ALIAS# maps to the module tag used by this unit</span></h3>';
+  h+='<input class="alias-filter" id="aliasFilter" placeholder="Filter aliases\\u2026" oninput="filterAliases()">';
+  h+='<table class="fbd-table" id="aliasTable"><thead><tr><th>Alias</th><th>Resolves to</th><th>Description</th></tr></thead><tbody>';
+  als.forEach(function(a){
+    var tgt=a.value?('<span class="link" onclick="showTag(\\''+esc(a.value)+'\\')"><code>'+esc(a.value)+'</code></span>'):'<span style="color:#94a3b8">(unresolved)</span>';
+    h+='<tr'+(a.ignore?' style="opacity:.5"':'')+'><td><code>#'+esc(a.alias)+'#</code></td><td>'+tgt+'</td><td style="font-size:12px;color:var(--ink-2)">'+esc(a.desc||'')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function showAliases(unitName){ navTo({k:'aliases', unit:unitName}); }
+function renderAliases(unitName){
+  var d=document.getElementById('detail'); if(!d) return;
+  var ui=DB.unit_instances[unitName]||{};
+  var als=ui.aliases||[];
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
+  var h='<h2 class="dt">Aliases <span class="dt-type b-nset">'+esc(unitName)+'</span></h2>';
+  h+='<p class="dt-desc">Alias resolution for unit '
+    +(DB.objs['unit:'+unitName]?'<span class="link" onclick="show(\\'unit:'+esc(unitName)+'\\')">'+esc(unitName)+'</span>':esc(unitName))
+    +'.'+back+'</p>';
+  h+=als.length?aliasCardHTML(als):'<div class="card"><span class="empty">No aliases defined for this unit.</span></div>';
+  d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
+}
+function showEmMember(emName, memberName, cls){  // #3: resolve the member role (e.g. FRAME_INLET_VLV) to the actual deployed module
+  // (e.g. FP005_HV_004) so we open the real INSTANCE template, not the class. DeltaV
+  // shows this as "FP005_HV_004 (FRAME_INLET_VLV)".
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+    // find an EM instance of this class to resolve against (the wiring lives on the instance)
+    var emTag=_emInstanceTagFor(emName);
+    if(emTag){
+      fetch('/em_members?t='+encodeURIComponent(EXPORT_TOKEN)+'&tag='+encodeURIComponent(emTag))
+        .then(function(r){return r.json();})
+        .then(function(j){
+          var real=(j&&j.members&&j.members[memberName])||'';
+          if(real && DB.deployed_modules && DB.deployed_modules[real]){
+            showDeployed(real, memberName);  // open the actual module instance
+          } else {
+            navTo({k:'emmember', em:emName, member:memberName, cls:cls, tag:real});
+          }
+        })
+        .catch(function(){ navTo({k:'emmember', em:emName, member:memberName, cls:cls}); });
+      return;
+    }
+  }
   navTo({k:'emmember', em:emName, member:memberName, cls:cls});
+}
+// find a deployed EM instance tag for a given EM class (to resolve member wiring)
+function _emInstanceTagFor(emClass){
+  if(!DB.deployed_modules) return '';
+  for(var tag in DB.deployed_modules){
+    if(DB.deployed_modules[tag] && DB.deployed_modules[tag].cls===emClass) return tag;
+  }
+  return '';
 }
 function renderEmMember(emName, memberName, cls){
   var d=document.getElementById('detail'); if(!d) return;
@@ -1161,7 +1236,7 @@ function renderEmMember(emName, memberName, cls){
   h+='<p class="dt-desc">Control module <b>'+esc(memberName)+'</b> within EM '
     +(DB.objs['em:'+emName]?'<span class="link" onclick="show(\\'em:'+esc(emName)+'\\')">'+esc(emName)+'</span>':esc(emName))
     +' \\u00b7 instance of '+modLink(cls)+'.'+back+'</p>';
-  h+='<div class="card" style="max-width:none" id="emmDiag"><h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(cls)+'</span></h3><div class="frame-load"><span class="spin"></span> Loading diagram\\u2026</div></div>';
+  h+='<div class="card" style="max-width:none" id="emmDiag"><h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(cls)+'</span></h3><div class="frame-load"><span class="dv-dots"><i></i><i></i><i></i></span> Loading diagram\\u2026</div></div>';
   h+=paramsCard(cls);
   d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
   // load the class FBD as the member's diagram (member reuses class logic, wired per EM)
@@ -1191,8 +1266,9 @@ function renderEntry(e){
     else if(e.k==='fbd') renderFbd(e.def,e.label);
     else if(e.k==='param') renderParam(e.name);
     else if(e.k==='inst') renderInstance(e.iid);
-    else if(e.k==='dep') renderDeployed(e.tag);
+    else if(e.k==='dep') renderDeployed(e.tag, e.role);
     else if(e.k==='emmember') renderEmMember(e.em,e.member,e.cls);
+    else if(e.k==='aliases') renderAliases(e.unit);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
   });
@@ -1373,7 +1449,7 @@ function lazyFbd(name){
 }
 function showParam(name){ if(PARAM_INDEX[name]) navTo({k:'param',name:name}); }
 function showInst(parent,tag){ var iid=parent+'\\u0001'+tag; if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); }
-function showDeployed(tag){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag}); }
+function showDeployed(tag, roleAlias){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag,role:roleAlias||''}); }
 // jump to whatever a resolved alias points at: a deployed module tag, an instance,
 // or a class object — whichever exists. Falls back to a no-op if not in the export.
 function showTag(tag){
@@ -1404,7 +1480,7 @@ function modLink(name){
 function renderParam(name){
   if(!SEARCH_IDX_LOADED){
     var dd=document.getElementById('detail');
-    if(dd) dd.innerHTML='<h2 class="dt">'+esc(name)+'</h2><div class="loading-detail"><span class="spin"></span> Loading parameter…</div>';
+    if(dd) dd.innerHTML='<h2 class="dt">'+esc(name)+'</h2><div class="loading-detail"><span class="dv-dots"><i></i><i></i><i></i></span> Loading parameter…</div>';
     ensureSearchIndex(function(){ renderParam(name); }); return;
   }
   var v=PARAM_INDEX[name];
@@ -1482,13 +1558,15 @@ function renderInstance(iid){
 }
 
 // ── deployed module instance (a real tag in a unit) ──
-function renderDeployed(tag){
+function renderDeployed(tag, roleAlias){
   var d=DB.deployed_modules&&DB.deployed_modules[tag]; if(!d){return;}
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   document.querySelectorAll('.navinst').forEach(function(n){n.classList.toggle('sel',n.dataset.tag===tag&&n.dataset.dep==='1');});
   var isEM=!!DB.objs['em:'+d.cls];
   var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
-  var h='<h2 class="dt">'+esc(d.tag)+' <span class="dt-type" style="background:'+(isEM?'#0f766e':'#6d28d9')+'">'+(isEM?'EM':'CM')+' instance</span></h2>';
+  // DeltaV convention: when reached as an EM member, show "TAG (ROLE)"
+  var titleTag=esc(d.tag)+(roleAlias?' <span style="color:var(--ink-3);font-weight:400">('+esc(roleAlias)+')</span>':'');
+  var h='<h2 class="dt">'+titleTag+' <span class="dt-type" style="background:'+(isEM?'#0f766e':'#6d28d9')+'">'+(isEM?'EM':'CM')+' instance</span></h2>';
   // small inline class link (per request: click the class name to open the class)
   h+='<p class="dt-desc">Instance of '+modLink(d.cls)+' \\u00b7 unit '
     +(DB.objs['unit:'+d.unit]?'<span class="link" onclick="show(\\'unit:'+esc(d.unit)+'\\')">'+esc(d.unit)+'</span>':esc(d.unit))+'.'+back+'</p>';
@@ -1500,13 +1578,13 @@ function renderDeployed(tag){
   h+='<div class="k">Location</div><div><code>'+esc(d.path)+'</code></div>';
   h+='</div></details>';
   // instance diagram (its own FBD) + instance parameter values, both lazy-loaded
-  h+='<div class="card" style="max-width:none" id="instDiag"><h3>Diagram</h3><div class="frame-load"><span class="spin"></span> Loading diagram\\u2026</div></div>';
-  h+='<div class="card" id="instParams"><h3>Instance parameters</h3><div class="loading-detail"><span class="spin"></span> Loading values\\u2026</div></div>';
+  h+='<div class="card" style="max-width:none" id="instDiag"><h3>Diagram</h3><div class="frame-load"><span class="dv-dots"><i></i><i></i><i></i></span> Loading diagram\\u2026</div></div>';
+  h+='<div class="card" id="instParams"><h3>Instance parameters</h3><div class="loading-detail"><span class="dv-dots"><i></i><i></i><i></i></span> Loading values\\u2026</div></div>';
   // For an EM instance, the command/state LOGIC is identical to the class (an instance
   // reuses the class SFCs, just wired to different devices). Show the class command
   // logic here so the instance is self-contained (#2).
   if(isEM){
-    h+='<div class="card" style="max-width:none" id="instLogic"><h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3><div class="frame-load"><span class="spin"></span> Loading command logic\\u2026</div></div>';
+    h+='<div class="card" style="max-width:none" id="instLogic"><h3>Command logic <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+' (shared by all instances)</span></h3><div class="frame-load"><span class="dv-dots"><i></i><i></i><i></i></span> Loading command logic\\u2026</div></div>';
     // #2/#11: command simulator lives on the INSTANCE — simulation resolves this
     // instance's actual wired CMs/aliases, which only exist at the instance level.
     h+='<div class="card" style="max-width:none" id="instSimCard"><h3>Command simulator <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 walk a command with this instance\\'s devices</span></h3><div class="empty" id="instSimList">Loading commands\\u2026</div></div>';
@@ -1735,6 +1813,13 @@ function wireFbdLinks(){
                    f'{_nav_badge("unit")}<span class="inst-tag">{html.escape(un)}</span>'
                    f'<span class="inst-cls">({html.escape(ucls)})</span></div>')
         nav.append('<div class="navchildren" style="display:none">')
+        # #7: an "Aliases" child object under the unit (mirrors the unit's alias card)
+        _ui = (catalog.get('unit_instances', {}) or {}).get(un, {})
+        if _ui.get('aliases'):
+            nav.append(f'<div class="navitem {_ncls(lvl + 1)}" data-id="aliases:{html.escape(un)}" '
+                       f'onclick="showAliases(\'{html.escape(un)}\')">'
+                       f'{_nav_badge("nset")}Aliases '
+                       f'<span class="inst-cls">({len(_ui["aliases"])})</span></div>')
         for tag in mods:
             d = deployed.get(tag, {})
             cls = d.get('cls', '')
