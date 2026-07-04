@@ -507,7 +507,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260704-0419"
+_BUILD_ID = "20260704-0530"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -881,7 +881,15 @@ function doAppend(){
         }
         return;
       }
-      document.open(); document.write(res.t); document.close();
+      // success: server returns {token,name}. Navigate to a normal GET render so the
+      // merged explorer loads exactly like a fresh page (no document.write quirks).
+      var j={}; try{ j=JSON.parse(res.t); }catch(e){}
+      if(j && j.token){
+        window.location.href='/explore_stashed?t='+encodeURIComponent(j.token)+'&name='+encodeURIComponent(j.name||'merged');
+      } else {
+        // fallback for older server: write the returned HTML
+        document.open(); document.write(res.t); document.close();
+      }
     })
     .catch(function(e){ st.textContent='Merge error: '+e.message; });
 }

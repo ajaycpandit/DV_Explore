@@ -296,7 +296,29 @@ def append():
     except Exception as e:
         app.logger.exception('merge failed')
         return _explore_error('Could not merge the files', e, fname), 500
-    return _render_explore(merged, fname + ' (merged)')
+    # Stash the merged text and hand back a token. The browser then does a REAL GET
+    # navigation to /explore_stashed?t=..., which renders exactly like a fresh page
+    # load. This avoids document.write(), whose post-load script execution is quirky
+    # across browsers and was leaving async-embedded views (e.g. recipes) blank.
+    try:
+        merged_token = _stash_fhx(merged)
+    except Exception as e:
+        app.logger.exception('merged stash failed')
+        return _explore_error('Could not stash the merged file', e, fname), 500
+    return jsonify({'ok': True, 'token': merged_token,
+                    'name': fname + ' (merged)'})
+
+
+@app.route('/explore_stashed')
+def explore_stashed():
+    """Render the explorer from an already-stashed FHX (used after /append so the
+    merged view loads via a normal navigation rather than document.write)."""
+    token = request.args.get('t', '')
+    name = request.args.get('name', 'export') or 'export'
+    text = _read_stash(token)
+    if not text:
+        return "That import has expired — please import the base file again.", 410
+    return _render_explore(text, name)
 
 
 def _merge_fhx(base, add, mode='skip'):
