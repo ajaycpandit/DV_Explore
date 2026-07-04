@@ -94,13 +94,13 @@ button{font-family:inherit}
 .main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;
   background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/26px 26px,
     linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/26px 26px,var(--canvas)}
-.panes{flex:1;display:grid;grid-template-columns:var(--navw,316px) 8px 1fr;overflow:hidden}
-.pane-divider{cursor:col-resize;background:transparent;position:relative;z-index:6}
+.panes{flex:1;display:grid;grid-template-columns:var(--navw,316px) 10px 1fr;overflow:hidden}
+.pane-divider{cursor:col-resize;background:var(--surface-2);position:relative;z-index:6;border-left:1px solid var(--border);border-right:1px solid var(--border)}
 .pane-divider:hover,.pane-divider.dragging{background:var(--accent-soft)}
-.pane-divider::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--border)}
-.pane-divider:hover::after,.pane-divider.dragging::after{background:var(--accent);width:2px}
-.pane-divider::before{content:'';position:absolute;left:1px;top:50%;transform:translateY(-50%);width:6px;height:34px;border-radius:4px;background:var(--border);opacity:.6}
-.pane-divider:hover::before{background:var(--accent);opacity:1}
+.pane-divider::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%);background:var(--border)}
+.pane-divider:hover::after,.pane-divider.dragging::after{background:var(--accent)}
+.pane-divider::before{content:'⋮';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:14px;line-height:1;color:var(--ink-3);letter-spacing:-1px}
+.pane-divider:hover::before{color:var(--accent)}
 
 /* tree */
 .nav{overflow:auto;background:color-mix(in srgb,var(--surface) 55%,transparent);padding:6px 8px}
@@ -154,6 +154,15 @@ button{font-family:inherit}
 .navinst .inst-cls{color:var(--ink-3);font-size:10.5px;margin-left:auto;padding-left:8px;white-space:nowrap;flex:0 0 auto}
 .own-dot{display:inline-flex;align-items:center;margin-left:5px;flex:0 0 auto}
 .own-dot svg{display:block}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border)}
+.set-row:last-of-type{border-bottom:0}
+.set-lbl{font-size:13.5px;font-weight:600;color:var(--ink)}
+.set-hint{font-size:12px;color:var(--ink-3);margin-top:2px}
+.set-row select{background:var(--surface-2);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;min-width:170px}
+.set-note{margin-top:14px;font-size:11.5px;color:var(--ink-3)}
+body[data-density="compact"] .fbd-table td,body[data-density="compact"] .fbd-table th{padding:3px 8px}
+body[data-density="compact"] .card{padding:11px 13px;margin-bottom:10px}
+body[data-density="compact"] .kv{gap:3px 12px}
 .sim-chip{background:var(--accent-soft);border-color:var(--accent)!important;color:var(--accent);font-weight:600}
 .sim-chip:hover{background:var(--accent);color:#fff}
 .emsim-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -227,6 +236,16 @@ button{font-family:inherit}
 .loading-detail{display:flex;align-items:center;gap:10px;color:var(--ink-2);font-size:14px;margin-top:20px}
 .spin{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;display:inline-block;animation:dvspin .7s linear infinite}
 @keyframes dvspin{to{transform:rotate(360deg)}}
+/* attractive shimmer skeleton for lazy content */
+.dv-skel{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.dv-skel .ln{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:dvsheen 1.3s ease infinite}
+.dv-skel .ln.w1{width:70%}.dv-skel .ln.w2{width:90%}.dv-skel .ln.w3{width:55%}
+@keyframes dvsheen{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.dv-loader{display:inline-flex;align-items:center;gap:9px;color:var(--ink-2);font-size:13px}
+.dv-dots{display:inline-flex;gap:3px}
+.dv-dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:dvbounce 1s ease-in-out infinite}
+.dv-dots i:nth-child(2){animation-delay:.15s}.dv-dots i:nth-child(3){animation-delay:.3s}
+@keyframes dvbounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
 h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:'IBM Plex Mono'}
 .dt-type{display:inline-block;font-size:11px;color:#fff;padding:3px 10px;border-radius:8px;margin:8px 0 14px;font-weight:600;letter-spacing:.02em}
 .dt-desc{color:var(--ink-2);margin:0 0 18px;font-size:13.5px}
@@ -488,7 +507,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260703-1706"
+_BUILD_ID = "20260703-2155"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -720,21 +739,31 @@ function navSearchKey(ev){
     else navPick(r.id);
   }
 }
-// ── resizable left nav pane (drag the divider) ──
+// ── resizable left nav pane (drag the divider) — fully delegated so it works
+// regardless of when the divider element is added to the DOM ──
 (function(){
-  var div=document.getElementById('paneDivider'), panes=document.querySelector('.panes');
-  if(!div||!panes) return;
+  function panesEl(){ return document.querySelector('.panes'); }
+  function setW(px){ var p=panesEl(); if(!p) return; px=Math.max(180,Math.min(720,px)); p.style.setProperty('--navw', px+'px'); }
   var dragging=false;
-  // restore saved width (in-memory only; localStorage is unavailable in some sandboxes)
-  function setW(px){ px=Math.max(180,Math.min(680,px)); panes.style.setProperty('--navw', px+'px'); }
-  div.addEventListener('mousedown',function(e){ dragging=true; div.classList.add('dragging');
-    document.body.style.userSelect='none'; document.body.style.cursor='col-resize'; e.preventDefault(); });
-  window.addEventListener('mousemove',function(e){ if(!dragging)return;
-    var left=panes.getBoundingClientRect().left; setW(e.clientX-left); });
-  window.addEventListener('mouseup',function(){ if(dragging){ dragging=false; div.classList.remove('dragging');
-    document.body.style.userSelect=''; document.body.style.cursor=''; } });
-  // double-click to reset
-  div.addEventListener('dblclick',function(){ panes.style.setProperty('--navw','316px'); });
+  document.addEventListener('mousedown',function(e){
+    var div=e.target.closest && e.target.closest('#paneDivider, .pane-divider');
+    if(!div) return;
+    dragging=true; div.classList.add('dragging');
+    document.body.style.userSelect='none'; document.body.style.cursor='col-resize'; e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging) return;
+    var p=panesEl(); if(!p) return;
+    setW(e.clientX - p.getBoundingClientRect().left);
+  });
+  document.addEventListener('mouseup',function(){
+    if(!dragging) return; dragging=false;
+    document.querySelectorAll('.pane-divider.dragging').forEach(function(d){d.classList.remove('dragging');});
+    document.body.style.userSelect=''; document.body.style.cursor='';
+  });
+  document.addEventListener('dblclick',function(e){
+    if(e.target.closest && e.target.closest('#paneDivider, .pane-divider')){ var p=panesEl(); if(p) p.style.setProperty('--navw','316px'); }
+  });
 })();
 document.addEventListener('keydown',function(e){
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();var q=document.getElementById('navq');if(q){q.focus();q.select();}}
@@ -762,6 +791,47 @@ function paramsCard(name){
     h+='</tbody></table></div>';
   });
   return h+'</div>';
+}
+// ── app settings (in-memory; applied live) ──
+var APP_SETTINGS={ cardsDefault:'expanded', sfcWheel:'zoom', density:'comfortable', transExpr:'inline' };
+function applySettings(){
+  document.body.setAttribute('data-density', APP_SETTINGS.density);
+  document.body.setAttribute('data-sfcwheel', APP_SETTINGS.sfcWheel);
+  // default-collapse all current cards if requested
+  if(APP_SETTINGS.cardsDefault==='collapsed'){
+    document.querySelectorAll('#detail .card').forEach(function(c){ c.classList.add('collapsed'); });
+  }
+}
+function openSettings(){
+  var ov=document.getElementById('settingsOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='settingsOverlay'; ov.className='ip-pop-overlay'; document.body.appendChild(ov); }
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  function row(label,hint,id,opts,cur){
+    var o=opts.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===cur?' selected':'')+'>'+x[1]+'</option>';}).join('');
+    return '<div class="set-row"><div><div class="set-lbl">'+label+'</div><div class="set-hint">'+hint+'</div></div>'
+      +'<select id="'+id+'">'+o+'</select></div>';
+  }
+  ov.innerHTML='<div class="ip-pop" style="max-width:560px"><div class="ip-pop-h"><b>&#9881; Settings</b>'
+    +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'settingsOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<div style="padding:8px 18px 18px">'
+    +row('Cards default state','How cards appear when you open an object','set-cards',[['expanded','Expanded'],['collapsed','Collapsed']],APP_SETTINGS.cardsDefault)
+    +row('SFC mouse wheel','What the wheel does over an SFC diagram','set-sfcwheel',[['zoom','Zoom the diagram'],['pan','Scroll the diagram'],['page','Scroll the page']],APP_SETTINGS.sfcWheel)
+    +row('Transitions in tables','Show transitions after each step, or grouped','set-transexpr',[['inline','After each step'],['grouped','Grouped at bottom']],APP_SETTINGS.transExpr)
+    +row('Density','Spacing of lists and tables','set-density',[['comfortable','Comfortable'],['compact','Compact']],APP_SETTINGS.density)
+    +'<div style="display:flex;gap:8px;margin-top:16px">'
+    +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="saveSettings()">Apply</button>'
+    +'<button class="exp-btn" onclick="var o=document.getElementById(\\'settingsOverlay\\');if(o)o.remove();">Cancel</button>'
+    +'</div>'
+    +'<div class="set-note">Settings apply to this session. (Persistent storage isn\\'t available in this environment.)</div>'
+    +'</div></div>';
+}
+function saveSettings(){
+  APP_SETTINGS.cardsDefault=(document.getElementById('set-cards')||{}).value||'expanded';
+  APP_SETTINGS.sfcWheel=(document.getElementById('set-sfcwheel')||{}).value||'zoom';
+  APP_SETTINGS.transExpr=(document.getElementById('set-transexpr')||{}).value||'inline';
+  APP_SETTINGS.density=(document.getElementById('set-density')||{}).value||'comfortable';
+  applySettings();
+  var o=document.getElementById('settingsOverlay'); if(o) o.remove();
 }
 // #4: append another FHX (e.g. a recipe) onto the current import without losing it.
 function openAppend(){
@@ -1112,7 +1182,8 @@ function renderEntry(e){
             : e.k==='param' ? e.name : (e.tag||'');
   if(d){
     d.innerHTML='<h2 class="dt">'+esc(label)+'</h2>'+
-      '<div class="loading-detail"><span class="spin"></span> Loading…</div>';
+      '<div class="dv-loader"><span class="dv-dots"><i></i><i></i><i></i></span> Loading '+esc(label)+'\\u2026</div>'+
+      '<div class="dv-skel"><div class="ln w2"></div><div class="ln w1"></div><div class="ln w3"></div></div>';
     d.scrollTop=0;
   }
   requestAnimationFrame(function(){
@@ -1137,12 +1208,39 @@ if(!window._cardCollapseWired){
     var t=ev.target;
     if(!t.closest) return;
     if(t.closest('a,.link,button,input,select')) return; // let controls work
-    // a header is a direct h3/h4 child of a .card or .subcard container
-    var h=t.closest('.card > h3, .card > h4, .subcard > h4, .subcard > h3');
-    if(!h) return;
-    if(!h.closest('#detail')) return;
-    var box=h.parentElement;
-    box.classList.toggle('collapsed');
+    // PFC (recipe) transition click -> show expression in the recipe's panel
+    var g=t.closest('.pfc-trans');
+    if(g){
+      var wrap=g.closest('.pfc-wrap');
+      if(wrap){
+        var tn=g.getAttribute('data-trans');
+        var E={}; try{ E=JSON.parse(wrap.getAttribute('data-pfc-expr')||'{}'); }catch(e){}
+        var panelId=wrap.getAttribute('data-pfc-panel');
+        var panel=panelId?document.getElementById(panelId):wrap.parentElement.querySelector('.pfc-panel');
+        if(panel){
+          var e=(E[tn]!==undefined?E[tn]:'')||'(no expression \\u2014 state transition)';
+          panel.innerHTML='<div class="pfc-tname">'+esc(tn)+'</div><div class="pfc-texpr">'+esc(e)+'</div>';
+        }
+        wrap.querySelectorAll('.pfc-trans.sel').forEach(function(x){x.classList.remove('sel');});
+        g.classList.add('sel');
+      }
+      return;
+    }
+    // a header is a direct h3/h4 child of a .card or .subcard container.
+    // Walk up from the click target to find an h3/h4 whose parent is a card/subcard —
+    // more robust than closest('.card > h3') (child-combinator in closest is finicky).
+    var node=t, hdr=null;
+    for(var k=0;k<4 && node && node!==document;k++){
+      var tag=(node.tagName||'').toLowerCase();
+      if((tag==='h3'||tag==='h4') && node.parentElement){
+        var pc=node.parentElement.classList;
+        if(pc && (pc.contains('card')||pc.contains('subcard'))){ hdr=node; break; }
+      }
+      node=node.parentElement;
+    }
+    if(!hdr) return;
+    if(!hdr.closest('#detail')) return;
+    hdr.parentElement.classList.toggle('collapsed');
     ev.stopPropagation();
   });
 }
@@ -1894,6 +1992,7 @@ function wireFbdLinks(){
             f'title="Download a Word DDS document generated from this database">{_WORD_ICON}Word DDS</a>'
             f'<a class="exp-btn" href="javascript:void 0" title="Open the FHX Converter wizard" onclick="switchView(\'converter\')">&#9881; Converter</a>'
             f'<a class="exp-btn" href="javascript:void 0" title="Append another FHX such as a recipe without losing this import" onclick="openAppend()">&#43; Append FHX</a>'
+            f'<a class="exp-btn" href="javascript:void 0" title="Settings" onclick="openSettings()">&#9881; Settings</a>'
             f'</div>')
 
     theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)

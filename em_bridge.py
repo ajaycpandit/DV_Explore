@@ -156,7 +156,15 @@ def command_state_html(text, em_name):
                 view = _fix_sfc(sfc.build_sfc_html({cname: block}, f"{em_name} — {cname}"))
                 try:
                     import sfc_interact
-                    view = sfc_interact.inject_interactions(view)
+                    # extract expression per transition for the interleaved table
+                    tr = {tn: {'expr': (td.get('expression', '') or ''),
+                               'desc': td.get('description', '')}
+                          for tn, td in c.get('transitions', {}).items()}
+                    view = sfc_interact.inject_interactions(
+                        view,
+                        s2t=c.get('step_to_trans', {}),
+                        t2s=c.get('trans_to_step', {}),
+                        trans=tr)
                 except Exception:
                     pass
                 cmd_views.append((cname, view))

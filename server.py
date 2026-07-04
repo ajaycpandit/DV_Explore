@@ -114,10 +114,11 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .fn{margin-top:14px;color:var(--link);font-size:13px;text-align:center;word-break:break-all;font-family:'IBM Plex Mono'}
 .prog{margin-top:16px;display:none}
 .prog.on{display:block}
-.prog .bar{height:8px;border-radius:6px;background:var(--border);overflow:hidden;position:relative}
-.prog .fill{height:100%;width:0;background:var(--accent);border-radius:6px;transition:width .15s ease}
-.prog.indet .fill{width:40%;border-radius:6px;animation:dvslide 1.1s ease-in-out infinite}
+.prog .bar{height:10px;border-radius:6px;background:var(--border);overflow:hidden;position:relative}
+.prog .fill{height:100%;width:0;border-radius:6px;transition:width .2s ease;background:linear-gradient(90deg,var(--accent),#7c9cff,var(--accent));background-size:200% 100%;animation:dvshimmer 1.6s linear infinite}
+.prog.indet .fill{width:40%;border-radius:6px;animation:dvslide 1.1s ease-in-out infinite,dvshimmer 1.6s linear infinite}
 @keyframes dvslide{0%{margin-left:-40%}100%{margin-left:100%}}
+@keyframes dvshimmer{to{background-position:-200% 0}}
 .prog .lbl{margin-top:8px;font-size:12px;color:var(--ink-2);text-align:center;font-family:'IBM Plex Mono'}
 .prog .lbl .pct{color:var(--ink);font-weight:600}
 .note{margin-top:18px;color:var(--ink-3);font-size:12px;text-align:center;line-height:1.5}

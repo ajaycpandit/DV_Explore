@@ -279,20 +279,17 @@ def build_recipe_html(recipe):
                  + str(len(proc['steps'])) + ' steps, '
                  + str(len(proc['transitions'])) + ' transitions)</h3>')
         if diagram:
-            # embed transition expressions as JSON for click-to-view
+            # embed transition expressions as data attributes for click-to-view
+            # (handled by the explorer's delegated handler — inline <script> injected
+            # via innerHTML would never execute).
             import json as _json
             texpr = {tn: td.get('expr', '') for tn, td in proc['transitions'].items()}
-            h.append('<div class="pfc-wrap">' + diagram + '</div>')
-            h.append('<div class="pfc-panel" id="pfcPanel_' + _safe_id(recipe['meta']['name'])
+            pid = 'pfcPanel_' + _safe_id(recipe['meta']['name'])
+            h.append('<div class="pfc-wrap" data-pfc-expr="'
+                     + html.escape(_json.dumps(texpr), quote=True)
+                     + '" data-pfc-panel="' + pid + '">' + diagram + '</div>')
+            h.append('<div class="pfc-panel" id="' + pid
                      + '"><span class="pfc-hint">Click a transition in the diagram to see its expression.</span></div>')
-            h.append('<script>(function(){var E=' + _json.dumps(texpr)
-                     + ';var root=document.currentScript.parentElement;'
-                     'var panel=root.querySelector(".pfc-panel");'
-                     'root.querySelectorAll(".pfc-trans").forEach(function(g){'
-                     'g.addEventListener("click",function(){'
-                     'var tn=g.getAttribute("data-trans");var e=E[tn]||"(no expression)";'
-                     'panel.innerHTML="<div class=\\"pfc-tname\\">"+tn+"</div><div class=\\"pfc-texpr\\">"+'
-                     '(e.replace(/&/g,"&amp;").replace(/</g,"&lt;"))+"</div>";});});})();</script>')
         else:
             h.append('<span class="empty">Diagram coordinates unavailable; see the flow below.</span>')
         h.append('</div>')

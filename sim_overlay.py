@@ -797,6 +797,20 @@ function initPan(){{
   }});
   window.addEventListener('mouseup',function(){{ if(panning){{ panning=false; dia.style.cursor='grab'; }} }});
   window.addEventListener('resize',syncSvgWidth);
+  // #3 (SFC scrolling): Shift+wheel = horizontal; Ctrl/Cmd+wheel = zoom; plain wheel
+  // scrolls the diagram vertically only while there's room, else falls through to page.
+  dia.addEventListener('wheel',function(e){{
+    if(e.ctrlKey||e.metaKey){{
+      if(typeof window.zoomIn==='function' && typeof window.zoomOut==='function'){{
+        e.preventDefault(); (e.deltaY<0?window.zoomIn:window.zoomOut)(); setTimeout(syncSvgWidth,0);
+      }}
+      return;
+    }}
+    if(e.shiftKey){{ dia.scrollLeft += (e.deltaY||e.deltaX); e.preventDefault(); return; }}
+    var canDown=dia.scrollTop < (dia.scrollHeight-dia.clientHeight-1) && e.deltaY>0;
+    var canUp=dia.scrollTop>0 && e.deltaY<0;
+    if(canDown||canUp){{ dia.scrollTop += e.deltaY; e.preventDefault(); }}
+  }},{{passive:false}});
 }}
 
 // record an operator answer for the SPECIFIC entry the walk is currently paused at,
@@ -968,8 +982,10 @@ else _initExplorerInteractions();
 // also observe the tbody so a late/again buildTable re-triggers our append
 (function(){{
   var tb=document.getElementById('tbody'); if(!tb||!window.MutationObserver) return;
+  var busy=false;
   var mo=new MutationObserver(function(){{
-    if(!tb.querySelector('.trans-sec')){{ try{{ addTransitionRows(); }}catch(e){{}} }}
+    if(busy) return;
+    if(!tb.querySelector('.trow')){{ busy=true; try{{ addTransitionRows(); }}catch(e){{}} busy=false; }}
   }});
   try{{ mo.observe(tb,{{childList:true}}); }}catch(e){{}}
 }})();
