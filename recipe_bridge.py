@@ -745,7 +745,7 @@ def build_deferrals_html(recipe, rows=None):
     h = ['<div class="card" style="max-width:none"><h3>Deferrals']
     h.append('<a class="link def-xl" style="font-weight:600;margin-left:10px;font-size:11px" '
              'href="javascript:void 0" onclick="downloadDeferrals(\'' + html.escape(recipe['meta']['name'], quote=True)
-             + '\')">\u2b07 export .xlsx</a></h3>')
+             + '\',this)">\u2b07 export .xlsx</a></h3>')
     h.append('<div class="def-summary">'
              '<span class="def-chip">' + str(len(steps)) + ' steps</span>'
              '<span class="def-chip">' + str(n_params) + ' parameters</span>'
@@ -805,6 +805,146 @@ def build_deferrals_xlsx(recipe_name, rows):
     for i, w in enumerate((32, 30, 30), start=1):
         ws.column_dimensions[chr(64 + i)].width = w
     ws.freeze_panes = 'A2'
+
+    import io as _io
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+def build_pfc_report_xlsx(recipe, formulas=None):
+    """Converter-style structured report for one recipe object. Four sheets:
+      Overview   — identity, batch sizing, and the formulas present in the export
+      Parameters — the full grid, with ONE COLUMN PER FORMULA so value sets read
+                   side-by-side (e.g. MEDIA AND 20 vs MEDIA AND 25) instead of
+                   flipping a selector
+      Procedure  — the PFC as an ordered walk: each step (definition, layer, unit
+                   alias, param/deferral counts) followed by its outgoing
+                   transitions with expressions
+      Deferrals  — the per-step deferral audit (same layout as the single export)
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    formulas = formulas or []
+    hdr_font = Font(bold=True)
+    hdr_fill = PatternFill('solid', start_color='EEF2F7')
+    step_fill = PatternFill('solid', start_color='F1F5F9')
+    defer_font = Font(color='B45309', bold=True)
+
+    def _head(ws, cols):
+        ws.append(cols)
+        for c in ws[1]:
+            c.font = hdr_font
+            c.fill = hdr_fill
+        ws.freeze_panes = 'A2'
+
+    wb = Workbook()
+
+    # ── Overview ──
+    ws = wb.active
+    ws.title = 'Overview'
+    meta = recipe['meta']
+    ws.append(['Recipe', meta.get('name', '')])
+    ws['A1'].font = hdr_font
+    for k, label in [('type', 'Type'), ('description', 'Description'),
+                     ('author', 'Author'), ('version', 'Version'),
+                     ('product_code', 'Product code'), ('product_name', 'Product name'),
+                     ('batch_units', 'Batch units'), ('default_batch_size', 'Default batch size'),
+                     ('min_batch_size', 'Minimum batch size'), ('max_batch_size', 'Maximum batch size')]:
+        v = meta.get(k, '')
+        if v:
+            ws.append([label, v])
+    proc = recipe.get('procedure') or {}
+    ws.append([])
+    ws.append(['Steps', len([s for s in (proc.get('steps') or {}) if s not in ('START', 'END')])])
+    ws.append(['Transitions', len(proc.get('transitions') or {})])
+    ws.append(['Formula parameters', len(recipe.get('params', []))])
+    if formulas:
+        ws.append([])
+        ws.append(['Formulas in export'])
+        ws['A' + str(ws.max_row)].font = hdr_font
+        ws.append(['Name', 'Released', 'Values', 'Description'])
+        for c in ws[ws.max_row]:
+            c.font = hdr_font
+            c.fill = hdr_fill
+        for f in formulas:
+            ws.append([f['name'], 'Yes' if f.get('released') else '',
+                      len(f.get('values', {})), f.get('description', '')])
+    ws.column_dimensions['A'].width = 24
+    ws.column_dimensions['B'].width = 46
+
+    # ── Parameters (formulas side-by-side) ──
+    ws = wb.create_sheet('Parameters')
+    base_cols = ['Name', 'Type', 'Description', 'Parameter Type', 'Filtering', 'Group', 'Locked']
+    fcols = [f['name'] for f in formulas]
+    _head(ws, base_cols + fcols)
+    fvals = {f['name']: f.get('values', {}) for f in formulas}
+    for p in recipe.get('params', []):
+        row = [p['name'], _fhx_type_label(p.get('connection', '')), p.get('description', ''),
+               p.get('param_type', ''), p.get('filtering', ''), p.get('group', ''),
+               'Yes' if p.get('locked') else '']
+        for fn in fcols:
+            row.append(fvals.get(fn, {}).get(p['name'], ''))
+        ws.append(row)
+    widths = [30, 16, 44, 14, 10, 12, 8] + [16] * len(fcols)
+    for i, w in enumerate(widths, start=1):
+        col = ws.cell(row=1, column=i).column_letter
+        ws.column_dimensions[col].width = w
+
+    # ── Procedure (PFC walk) ──
+    ws = wb.create_sheet('Procedure')
+    _head(ws, ['Kind', 'Name', 'Definition / To-step', 'Layer', 'Unit alias',
+               'Params', 'Deferred', 'Expression'])
+    steps = proc.get('steps') or {}
+    trans = proc.get('transitions') or {}
+    step_outs = {}
+    for s, t in (proc.get('s2t') or []):
+        step_outs.setdefault(s, []).append(t)
+    t2s = {}
+    for t, s in (proc.get('t2s') or []):
+        t2s.setdefault(t, []).append(s)
+    for sn, s in steps.items():
+        if sn in ('START', 'END'):
+            r = ws.max_row + 1
+            ws.append(['STEP', sn, '', '', '', '', '', ''])
+            for c in ws[r]:
+                c.fill = step_fill
+                c.font = hdr_font
+        else:
+            r = ws.max_row + 1
+            ws.append(['STEP', sn, s.get('definition', ''), _layer_label(s.get('definition', '')),
+                      s.get('unit_alias', ''), len(s.get('params', [])),
+                      len(s.get('deferred', [])), ''])
+            for c in ws[r]:
+                c.fill = step_fill
+            ws.cell(row=r, column=2).font = hdr_font
+            if s.get('deferred'):
+                ws.cell(row=r, column=7).font = defer_font
+        for tn in step_outs.get(sn, []):
+            td = trans.get(tn, {})
+            to = ', '.join(t2s.get(tn, [])) or '?'
+            rr = ws.max_row + 1
+            ws.append(['  transition', tn, '\u2192 ' + to, '', '', '', '',
+                      td.get('expr', '') or '(state transition)'])
+            ws.cell(row=rr, column=8).alignment = Alignment(wrap_text=True)
+    for i, w in enumerate((12, 30, 30, 14, 16, 8, 9, 70), start=1):
+        col = ws.cell(row=1, column=i).column_letter
+        ws.column_dimensions[col].width = w
+
+    # ── Deferrals ──
+    ws = wb.create_sheet('Deferrals')
+    _head(ws, ['Step', 'Instantiates', 'Parameter Name', 'Deferred Parameter'])
+    last_step = None
+    for r in build_deferrals_rows(recipe):
+        ws.append([r['step'] if r['step'] != last_step else None,
+                  r['definition'] if r['step'] != last_step else None,
+                  r['param'], r['deferred_to'] or None])
+        last_step = r['step']
+    for i, w in enumerate((30, 30, 30, 30), start=1):
+        col = ws.cell(row=1, column=i).column_letter
+        ws.column_dimensions[col].width = w
 
     import io as _io
     buf = _io.BytesIO()

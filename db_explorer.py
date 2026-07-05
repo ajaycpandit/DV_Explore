@@ -57,6 +57,37 @@ button{font-family:inherit}
 /* shell */
 .app{display:grid;grid-template-columns:60px 1fr;grid-template-rows:56px 1fr;height:100vh}
 #view-converter{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
+#view-studio{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
+#view-studio.on{display:block}
+.stu-shell{display:grid;grid-template-columns:260px 1fr;height:100%;overflow:hidden}
+.stu-side{border-right:1px solid var(--border);padding:14px 12px;overflow:auto;background:var(--surface)}
+.stu-side-h{font-size:15px;font-weight:700;color:var(--ink)}
+.stu-side-sub{font-size:11px;color:var(--ink-3);line-height:1.5;margin-top:4px}
+.stu-litem{padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:7px}
+.stu-litem:hover{background:var(--surface-2)}
+.stu-litem.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.stu-main{overflow:hidden;display:flex;flex-direction:column}
+.stu-welcome{padding:26px}
+.stu-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.stu-head h2{margin:0;font-size:17px}
+.stu-kind{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:20px}
+.stu-chip{font-size:11px;font-weight:600;background:var(--surface-2);color:var(--ink-2);padding:3px 9px;border-radius:20px}
+.stu-body{flex:1;display:grid;grid-template-columns:1.35fr 1fr;grid-template-rows:1fr;overflow:hidden}
+.stu-pane{overflow:auto;padding:0}
+.stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff}
+.stu-diagram iframe{width:100%;height:100%;border:0;display:block}
+.stu-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--canvas);z-index:2}
+.stu-tab{padding:7px 13px;font-size:12.5px;cursor:pointer;border-radius:7px 7px 0 0;color:var(--ink-2)}
+.stu-tab.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.stu-tabpanel{padding:12px 14px;display:none}
+.stu-tabpanel.on{display:block}
+.stu-grid{width:100%;border-collapse:collapse;font-size:12px}
+.stu-grid th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:6px 8px;font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap}
+.stu-grid td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.stu-grid .stu-desc{color:var(--ink-2);max-width:280px}
+.stu-empty{color:var(--ink-3);font-size:12.5px;padding:14px 4px}
+.stu-split{cursor:col-resize;width:5px;background:transparent}
+@media(max-width:1100px){.stu-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
 #view-converter.on{display:block}
 #convFrame{width:100%;height:100%;border:0;display:block}
 #view-recipes{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
@@ -68,7 +99,17 @@ button{font-family:inherit}
 .rec-hint{font-size:11px;color:var(--ink-3)}
 .rec-cat{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:14px 4px 6px}
 .rec-item.sel{background:var(--accent-soft)}
+.ctx-menu{position:fixed;z-index:60;min-width:210px;background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:9px;box-shadow:0 8px 28px rgba(15,23,42,.18);padding:5px;font-size:13px;user-select:none}
+.ctx-it{padding:7px 12px;border-radius:6px;cursor:pointer;color:var(--ink,#16202c);white-space:nowrap}
+.ctx-it:hover{background:var(--accent-soft,#f5f3ff);color:var(--accent,#7c3aed)}
+.ctx-it.ctx-dis{opacity:.4;cursor:default}
+.ctx-it.ctx-dis:hover{background:none;color:var(--ink,#16202c)}
+.ctx-it.ctx-danger:hover{background:#fef2f2;color:#dc2626}
+.ctx-sep{height:1px;background:var(--border,#e2e8f0);margin:4px 6px}
+.ctx-target{outline:2px solid var(--accent,#7c3aed);outline-offset:-2px;border-radius:4px}
 .rec-empty{color:var(--ink-3);font-size:13px;padding:16px 8px;line-height:1.6}
+.rec-src{font-size:11px;color:var(--ink-3);margin:0 4px 10px;line-height:1.5}
+.rec-xl{font-size:11.5px;font-weight:600;margin-left:10px;vertical-align:middle}
 .rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -258,6 +299,27 @@ body[data-density="compact"] .kv{gap:3px 12px}
 .dv-dots{display:inline-flex;gap:3px}
 .dv-dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;animation:dvbounce 1s ease-in-out infinite}
 .dv-dots i:nth-child(2){animation-delay:.15s}.dv-dots i:nth-child(3){animation-delay:.3s}
+/* selectable loader styles (#4). The active one is chosen by data-loader on <body>;
+   the generic .dvload picks up whichever variant is active. */
+.dvload{display:inline-flex;align-items:center;gap:7px;color:var(--ink-3);font-size:12px}
+.dvload .lv{display:none}
+body[data-loader="dots"] .dvload .lv-dots{display:inline-flex;gap:3px}
+body[data-loader="dots"] .dvload .lv-dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:dvbounce 1s ease-in-out infinite}
+body[data-loader="dots"] .dvload .lv-dots i:nth-child(2){animation-delay:.15s}
+body[data-loader="dots"] .dvload .lv-dots i:nth-child(3){animation-delay:.3s}
+body[data-loader="ring"] .dvload .lv-ring{display:inline-block;width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:dvspin .7s linear infinite}
+body[data-loader="bars"] .dvload .lv-bars{display:inline-flex;gap:2px;align-items:flex-end;height:14px}
+body[data-loader="bars"] .dvload .lv-bars i{width:3px;background:var(--accent);animation:dvbar 1s ease-in-out infinite}
+body[data-loader="bars"] .dvload .lv-bars i:nth-child(1){animation-delay:0s}
+body[data-loader="bars"] .dvload .lv-bars i:nth-child(2){animation-delay:.2s}
+body[data-loader="bars"] .dvload .lv-bars i:nth-child(3){animation-delay:.4s}
+body[data-loader="bars"] .dvload .lv-bars i:nth-child(4){animation-delay:.6s}
+body[data-loader="pulse"] .dvload .lv-pulse{display:inline-block;width:13px;height:13px;border-radius:50%;background:var(--accent);animation:dvpulse 1s ease-in-out infinite}
+body:not([data-loader]) .dvload .lv-dots,body[data-loader=""] .dvload .lv-dots{display:inline-flex;gap:3px}
+body:not([data-loader]) .dvload .lv-dots i,body[data-loader=""] .dvload .lv-dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:dvbounce 1s ease-in-out infinite}
+@keyframes dvspin{to{transform:rotate(360deg)}}
+@keyframes dvbar{0%,100%{height:5px}50%{height:14px}}
+@keyframes dvpulse{0%,100%{transform:scale(.5);opacity:.5}50%{transform:scale(1);opacity:1}}
 @keyframes dvbounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
 h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:'IBM Plex Mono'}
 .dt-type{display:inline-block;font-size:11px;color:#fff;padding:3px 10px;border-radius:8px;margin:8px 0 14px;font-weight:600;letter-spacing:.02em}
@@ -520,7 +582,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260705-0651"
+_BUILD_ID = "20260705-2016"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -807,10 +869,20 @@ function paramsCard(name){
   return h+'</div>';
 }
 // ── app settings (in-memory; applied live) ──
-var APP_SETTINGS={ cardsDefault:'expanded', sfcWheel:'zoom', density:'comfortable', transExpr:'inline' };
+var APP_SETTINGS={ cardsDefault:'expanded', sfcWheel:'zoom', density:'comfortable', transExpr:'inline', loader:'dots' };
+// emits a loader that renders whichever style is active (data-loader on <body>).
+// All variants are present; CSS shows only the selected one.
+function dvLoader(label){
+  return '<span class="dvload"><span class="lv lv-dots"><i></i><i></i><i></i></span>'
+    +'<span class="lv lv-ring"></span>'
+    +'<span class="lv lv-bars"><i></i><i></i><i></i><i></i></span>'
+    +'<span class="lv lv-pulse"></span>'
+    +(label?('<span>'+label+'</span>'):'')+'</span>';
+}
 function applySettings(){
   document.body.setAttribute('data-density', APP_SETTINGS.density);
   document.body.setAttribute('data-sfcwheel', APP_SETTINGS.sfcWheel);
+  document.body.setAttribute('data-loader', APP_SETTINGS.loader||'dots');
   // default-collapse all current cards if requested
   if(APP_SETTINGS.cardsDefault==='collapsed'){
     document.querySelectorAll('#detail .card').forEach(function(c){ c.classList.add('collapsed'); });
@@ -832,6 +904,12 @@ function openSettings(){
     +row('SFC mouse wheel','What the wheel does over an SFC diagram','set-sfcwheel',[['zoom','Zoom the diagram'],['pan','Scroll the diagram'],['page','Scroll the page']],APP_SETTINGS.sfcWheel)
     +row('Transitions in tables','Show transitions after each step, or grouped','set-transexpr',[['inline','After each step'],['grouped','Grouped at bottom']],APP_SETTINGS.transExpr)
     +row('Density','Spacing of lists and tables','set-density',[['comfortable','Comfortable'],['compact','Compact']],APP_SETTINGS.density)
+    +'<div class="set-row"><div><div class="set-lbl">Loading animation</div><div class="set-hint">Shown while diagrams and data load</div></div>'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +'<span id="loaderPreview" style="min-width:70px">'+dvLoader('')+'</span>'
+    +'<select id="set-loader" onchange="document.body.setAttribute(\\'data-loader\\',this.value)">'
+    +['dots','ring','bars','pulse'].map(function(x){return '<option value="'+x+'"'+(x===APP_SETTINGS.loader?' selected':'')+'>'+x.charAt(0).toUpperCase()+x.slice(1)+'</option>';}).join('')
+    +'</select></div></div>'
     +'<div style="display:flex;gap:8px;margin-top:16px">'
     +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="saveSettings()">Apply</button>'
     +'<button class="exp-btn" onclick="var o=document.getElementById(\\'settingsOverlay\\');if(o)o.remove();">Cancel</button>'
@@ -844,6 +922,7 @@ function saveSettings(){
   APP_SETTINGS.sfcWheel=(document.getElementById('set-sfcwheel')||{}).value||'zoom';
   APP_SETTINGS.transExpr=(document.getElementById('set-transexpr')||{}).value||'inline';
   APP_SETTINGS.density=(document.getElementById('set-density')||{}).value||'comfortable';
+  APP_SETTINGS.loader=(document.getElementById('set-loader')||{}).value||'dots';
   applySettings();
   var o=document.getElementById('settingsOverlay'); if(o) o.remove();
 }
@@ -908,27 +987,132 @@ function doAppend(){
     .catch(function(e){ st.textContent='Merge error: '+e.message; });
 }
 function switchView(v){
-  var conv=document.getElementById('view-converter'), recs=document.getElementById('view-recipes');
-  var re=document.getElementById('rb-explorer'), rc=document.getElementById('rb-converter'), rr=document.getElementById('rb-recipes');
-  conv.classList.remove('on'); if(recs) recs.classList.remove('on');
-  re.classList.remove('active'); rc.classList.remove('active'); if(rr) rr.classList.remove('active');
+  var conv=document.getElementById('view-converter'), recs=document.getElementById('view-recipes'), stu=document.getElementById('view-studio');
+  var re=document.getElementById('rb-explorer'), rc=document.getElementById('rb-converter'), rr=document.getElementById('rb-recipes'), rs=document.getElementById('rb-studio');
+  conv.classList.remove('on'); if(recs) recs.classList.remove('on'); if(stu) stu.classList.remove('on');
+  re.classList.remove('active'); rc.classList.remove('active'); if(rr) rr.classList.remove('active'); if(rs) rs.classList.remove('active');
   if(v==='converter'){
     var fr=document.getElementById('convFrame');
     if(!fr.getAttribute('src')) fr.setAttribute('src','/tool/?embed=1');
     conv.classList.add('on'); rc.classList.add('active');
   } else if(v==='recipes'){
     if(recs) recs.classList.add('on'); if(rr) rr.classList.add('active');
+  } else if(v==='studio'){
+    if(stu) stu.classList.add('on'); if(rs) rs.classList.add('active');
+    stuBuildList();
   } else {
     re.classList.add('active');
   }
 }
+// ── Studio: single-object deep view ──────────────────────────────────────────
+function stuBuildList(){
+  var box=document.getElementById('stuList'); if(!box || box._built) return;
+  var names=(typeof PHASE_NAMES!=='undefined'?PHASE_NAMES:[]).slice().sort();
+  if(!names.length){ box.innerHTML='<div class="stu-empty">No phases in this import.</div>'; return; }
+  box.innerHTML=names.map(function(n){
+    return '<div class="stu-litem" data-ph="'+esc(n)+'" onclick="stuOpen(\\''+esc(n).replace(/'/g,"\\\\'")+'\\')">'
+      +'<span class="ic-badge ic-phase"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5 7.5h5M7.5 5v5" stroke="currentColor" stroke-width="1.4"/></svg></span>'
+      +esc(n)+'</div>';
+  }).join('');
+  box._built=1;
+}
+function stuFilterList(inp){
+  var q=(inp.value||'').toLowerCase();
+  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){
+    it.style.display=(!q || it.textContent.toLowerCase().indexOf(q)>=0)?'':'none';
+  });
+}
+function stuOpen(name){
+  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){ it.classList.toggle('sel', it.dataset.ph===name); });
+  var main=document.getElementById('stuMain');
+  main.innerHTML='<div class="stu-welcome">'+dvLoader('Opening '+esc(name)+'\u2026')+'</div>';
+  fetch('/studio_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(name))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){ main.innerHTML='<div class="stu-welcome"><p class="stu-empty">'+esc(d.error)+'</p></div>'; return; }
+      stuRender(d);
+    })
+    .catch(function(e){ main.innerHTML='<div class="stu-welcome"><p class="stu-empty">Could not open: '+esc(e.message)+'</p></div>'; });
+}
+function stuRender(d){
+  var c=d.counts||{};
+  var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(d.name);
+  var h=''
+    +'<div class="stu-head"><h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'
+    +'<span class="stu-chip">'+(c.params||0)+' parameters</span>'
+    +'<span class="stu-chip">'+(c.attrs||0)+' attributes</span></div>'
+    +'<div class="stu-body">'
+    +'<div class="stu-pane stu-diagram"><iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram"></iframe></div>'
+    +'<div class="stu-pane">'
+    +'<div class="stu-tabs">'
+    +'<div class="stu-tab on" data-t="params" onclick="stuTab(this,\\'params\\')">Parameters</div>'
+    +'<div class="stu-tab" data-t="attrs" onclick="stuTab(this,\\'attrs\\')">Attributes</div>'
+    +'<div class="stu-tab" data-t="mon" onclick="stuTab(this,\\'mon\\')">Monitors</div>'
+    +'</div>'
+    +'<div class="stu-tabpanel on" data-t="params">'+(d.params||'')+'</div>'
+    +'<div class="stu-tabpanel" data-t="attrs">'+(d.attrs||'')+'</div>'
+    +'<div class="stu-tabpanel" data-t="mon">'+(d.monitors||'')+'</div>'
+    +'</div></div>';
+  document.getElementById('stuMain').innerHTML=h;
+}
+function stuTab(el,t){
+  var main=document.getElementById('stuMain');
+  main.querySelectorAll('.stu-tab').forEach(function(x){x.classList.toggle('on',x===el);});
+  main.querySelectorAll('.stu-tabpanel').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-t')===t);});
+}
 // ── standalone Recipes workspace (rail view) ──
+// RECWS holds the workspace's data source: by default the Explorer import, replaced
+// wholesale when a recipe FHX is imported directly here (Explorer untouched).
+var RECWS={token:(typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''),
+           views:(typeof RECIPE_VIEWS!=='undefined'?RECIPE_VIEWS:{}),
+           stepViews:(typeof RECIPE_STEP_VIEWS!=='undefined'?RECIPE_STEP_VIEWS:{})};
+var _REC_BADGE='<span class="ic-badge ic-recipe"><svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true"><path d="M4 2.4h4.6l2.6 2.6v7.6h-7.2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.4 2.4v2.8h2.8M5.5 8h6M5.5 10h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span>';
+function recImportFile(inp){
+  if(!inp.files||!inp.files.length) return;
+  var src=document.getElementById('recSrc');
+  src.innerHTML='<span class="dv-dots"><i></i><i></i><i></i></span> Importing '+esc(inp.files[0].name)+'\u2026';
+  var fd=new FormData(); fd.append('file', inp.files[0]);
+  fetch('/recipe_import',{method:'POST',body:fd})
+    .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    .then(function(res){
+      if(!res.ok||res.j.error){ src.innerHTML='<span style="color:#dc2626">'+esc(res.j.error||'Import failed')+'</span>'; return; }
+      RECWS={token:res.j.token, views:res.j.views||{}, stepViews:res.j.step_views||{}};
+      recBuildList(res.j.tree||[]);
+      src.textContent='Showing recipes from '+res.j.name+' (imported here \u2014 Explorer untouched).';
+      var first=(res.j.tree[0]&&res.j.tree[0].items[0])?res.j.tree[0].items[0].name:'';
+      if(first) recShow(first);
+    })
+    .catch(function(e){ src.innerHTML='<span style="color:#dc2626">Import error: '+esc(e.message)+'</span>'; });
+  inp.value='';
+}
+function recBuildList(tree){
+  var h='';
+  tree.forEach(function(cat){
+    h+='<div class="rec-cat">'+esc(cat.cat)+' ('+cat.items.length+')</div>';
+    cat.items.forEach(function(it){
+      var bases={}; (it.children||[]).forEach(function(k){ bases[k.name]=bases[k.name]||k.loaded; });
+      var nb=Object.keys(bases).length, nl=0; for(var b in bases){ if(bases[b]) nl++; }
+      var sub=nb?(' <span class="inst-cls">('+nl+'/'+nb+' children imported)</span>'):'';
+      h+='<div class="navitem rec-item" data-rec="'+esc(it.name)+'" onclick="recShow(\\''+esc(it.name)+'\\')">'+_REC_BADGE+esc(it.name)+sub+'</div>';
+      (it.children||[]).forEach(function(k){
+        if(k.loaded){
+          h+='<div class="navitem navchild rec-item" onclick="recShow(\\''+esc(k.name)+'\\')">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
+        } else if(k.has_params){
+          h+='<div class="navitem navchild navghost rec-item" onclick="recShowStep(\\''+esc(it.name)+'\\',\\''+esc(k.step)+'\\',\\''+esc(k.layer)+'\\')">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
+        }
+      });
+    });
+  });
+  document.getElementById('recListBody').innerHTML=h||'<div class="rec-empty">No recipe objects found.</div>';
+}
 function recShow(name){
   var d=document.getElementById('rdetail'); if(!d) return;
   document.querySelectorAll('.rec-item').forEach(function(n){n.classList.toggle('sel',n.dataset.rec===name);});
-  var v=(typeof RECIPE_VIEWS!=='undefined' && RECIPE_VIEWS[name])||'';
-  var o=DB.objs['recipe:'+name]||{};
-  var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span></h2>';
+  var v=RECWS.views[name]||'';
+  var o=(typeof DB!=='undefined'&&DB.objs['recipe:'+name])||{};
+  var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span>'
+    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadPfc(\\''+esc(name)+'\\')">\u2b07 PFC report (.xlsx)</a>'
+    +' <a class="link rec-xl" href="javascript:void 0" onclick="downloadDeferrals(\\''+esc(name)+'\\',this)">\u2b07 Deferrals (.xlsx)</a></h2>';
   if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
   h+=v||'<div class="card"><span class="empty">No detail parsed for this recipe.</span></div>';
   d.innerHTML=h; d.scrollTop=0;
@@ -936,15 +1120,19 @@ function recShow(name){
 function recShowStep(parent, step, layer){
   var d=document.getElementById('rdetail'); if(!d) return;
   document.querySelectorAll('.rec-item').forEach(function(n){n.classList.remove('sel');});
-  var v=(typeof RECIPE_STEP_VIEWS!=='undefined' && RECIPE_STEP_VIEWS[parent+'||'+step])||'';
+  var v=RECWS.stepViews[parent+'||'+step]||'';
   var h='<h2 class="dt">'+esc(step)+' <span class="dt-type b-recipe">'+esc(layer||'recipe step')+'</span></h2>';
   h+='<p class="dt-desc">Instance under '+esc(parent)+' \u2014 parameters derived from the parent step.</p>';
   h+=v||'<div class="card"><span class="empty">No parameters found on this step.</span></div>';
   d.innerHTML=h; d.scrollTop=0;
 }
+function recDownloadPfc(name){
+  if(!RECWS.token) return;
+  window.location.href='/recipe_pfc_xlsx?t='+encodeURIComponent(RECWS.token)+'&n='+encodeURIComponent(name);
+}
 function downloadAllDeferrals(){
-  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN) return;
-  window.location.href='/recipe_deferrals_all_xlsx?t='+encodeURIComponent(EXPORT_TOKEN);
+  if(!RECWS.token) return;
+  window.location.href='/recipe_deferrals_all_xlsx?t='+encodeURIComponent(RECWS.token);
 }
 function renderObj(id){
   const o=DB.objs[id]; if(!o)return;
@@ -1269,9 +1457,13 @@ function defSetAll(expand){
     card.classList.toggle('collapsed', !expand);
   });
 }
-function downloadDeferrals(recipeName){
-  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN) return;
-  window.location.href='/recipe_deferrals_xlsx?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(recipeName);
+function downloadDeferrals(recipeName, el){
+  // workspace exports use the workspace's own token (a recipe imported directly
+  // here has a different stash than the Explorer session)
+  var tok=(el && el.closest && el.closest('#rdetail')) ? RECWS.token
+          : (typeof EXPORT_TOKEN!=='undefined' ? EXPORT_TOKEN : '');
+  if(!tok) return;
+  window.location.href='/recipe_deferrals_xlsx?t='+encodeURIComponent(tok)+'&n='+encodeURIComponent(recipeName);
 }
 // clicking a not-yet-imported child in the recipe tree opens the append dialog with
 // a hint of exactly which object to bring in next.
@@ -1404,7 +1596,30 @@ function renderEntry(e){
 // .card > h3 and nested sub-cards / h4 headers, so a master card (e.g. Diagram) with
 // internal sub-sections can each collapse independently. Pure CSS affordance + one
 // delegated handler — works for cards added at any time across ALL object types.
-function makeCardsCollapsible(){ /* no-op: handled by CSS + delegation below */ }
+function makeCardsCollapsible(){
+  // The click delegation + CSS already handle .card and .subcard headers. This pass
+  // ensures nested sections that were rendered as a bare <h4> inside a .card (without
+  // an explicit .subcard wrapper) also collapse: we wrap each such <h4> and its
+  // following siblings up to the next <h4> in a .subcard so the same rules apply.
+  try{
+    var scope=document.getElementById('detail'); var scope2=document.getElementById('rdetail');
+    [scope,scope2].forEach(function(root){
+      if(!root) return;
+      root.querySelectorAll('.card').forEach(function(card){
+        // only when a card has 2+ inner h4 sections and none are already wrapped
+        var h4s=[]; for(var i=0;i<card.children.length;i++){ if(card.children[i].tagName==='H4') h4s.push(card.children[i]); }
+        if(h4s.length<1) return;
+        h4s.forEach(function(h){
+          if(h.parentElement.classList.contains('subcard')) return; // already
+          var sub=document.createElement('div'); sub.className='subcard';
+          h.parentNode.insertBefore(sub, h);
+          var n=h;
+          while(n){ var nx=n.nextSibling; sub.appendChild(n); if(nx && nx.nodeType===1 && nx.tagName==='H4') break; n=nx; }
+        });
+      });
+    });
+  }catch(e){}
+}
 // #1/#2: recipe PFC diagram pan + zoom (mirrors the phase SFC interactions).
 function pfcZoom(wrap, dir){
   var layer=wrap.querySelector('.pfc-zoomlayer'); if(!layer) return;
@@ -1436,6 +1651,94 @@ if(!window._pfcPanWired){
     if(!wrap) return;
     if(e.ctrlKey||e.metaKey||e.shiftKey){ pfcZoom(wrap, e.deltaY<0?'in':'out'); e.preventDefault(); }
   },{passive:false});
+}
+// ── right-click context menu (prototype) ──────────────────────────────────────
+// A single delegated handler reads the object under the cursor from its data-id /
+// data-rec and offers the actions that already exist for that object type. It
+// shortcuts what would otherwise be a click-then-hunt: exports live right on the
+// object, navigation between the Explorer and Recipes views is one step.
+if(!window._ctxWired){
+  window._ctxWired=1;
+  function ctxClose(){ var m=document.getElementById('ctxMenu'); if(m) m.remove(); }
+  function ctxItem(label, fn, opts){
+    opts=opts||{};
+    return {label:label, fn:fn, disabled:opts.disabled, sep:opts.sep, danger:opts.danger};
+  }
+  // Build the action list for a given object. Returns [] when there's nothing useful.
+  function ctxActionsFor(el){
+    var acts=[];
+    // recipe workspace item
+    var recName=el.getAttribute && el.getAttribute('data-rec');
+    // explorer nav item id like "recipe:NAME" / "phase:NAME" / "em:NAME" / "cm:..."
+    var id=el.getAttribute && el.getAttribute('data-id');
+    var kind='', name='';
+    if(id && id.indexOf(':')>=0){ kind=id.slice(0,id.indexOf(':')); name=id.slice(id.indexOf(':')+1); }
+    var tag=el.getAttribute && el.getAttribute('data-tag');
+
+    if(recName || kind==='recipe'){
+      var rn=recName||name;
+      acts.push(ctxItem('Open recipe', function(){ if(typeof recShow==='function' && document.getElementById('view-recipes').classList.contains('on')){recShow(rn);} else {show('recipe:'+rn);} }));
+      acts.push(ctxItem('Open in Recipes workspace', function(){ switchView('recipes'); if(typeof recShow==='function') recShow(rn); }));
+      acts.push(ctxItem('Export PFC report (.xlsx)', function(){ RECWS.token=RECWS.token||EXPORT_TOKEN; recDownloadPfc(rn); }, {sep:true}));
+      acts.push(ctxItem('Export deferrals (.xlsx)', function(){ var t=RECWS.token||EXPORT_TOKEN; window.location.href='/recipe_deferrals_xlsx?t='+encodeURIComponent(t)+'&n='+encodeURIComponent(rn); }));
+      acts.push(ctxItem('Copy name', function(){ ctxCopy(rn); }, {sep:true}));
+      return acts;
+    }
+    if(kind==='phase'){
+      acts.push(ctxItem('Open phase', function(){ show(id); }));
+      if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN)
+        acts.push(ctxItem('Export (.xlsx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=excel&obj='+encodeURIComponent(id); }, {sep:true}));
+      acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
+      return acts;
+    }
+    if(kind==='em' || kind==='cm' || kind==='fbtype' || kind==='composite'){
+      acts.push(ctxItem('Open', function(){ show(id); }));
+      acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
+      return acts;
+    }
+    if(tag){
+      acts.push(ctxItem('Open instance', function(){ if(typeof showDeployed==='function') showDeployed(tag); }));
+      acts.push(ctxItem('Copy tag', function(){ ctxCopy(tag); }, {sep:true}));
+      return acts;
+    }
+    if(id){
+      acts.push(ctxItem('Open', function(){ show(id); }));
+      acts.push(ctxItem('Copy name', function(){ ctxCopy(name||id); }, {sep:true}));
+    }
+    return acts;
+  }
+  function ctxCopy(t){ try{ navigator.clipboard.writeText(t); }catch(e){
+    var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');}catch(e2){} ta.remove(); } }
+
+  document.addEventListener('contextmenu', function(ev){
+    var el=ev.target.closest && ev.target.closest('.navitem[data-id], .rec-item[data-rec], .navinst[data-tag]');
+    if(!el) return;  // fall through to the browser's native menu elsewhere
+    var acts=ctxActionsFor(el);
+    if(!acts.length) return;
+    ev.preventDefault();
+    ctxClose();
+    var m=document.createElement('div'); m.id='ctxMenu'; m.className='ctx-menu';
+    acts.forEach(function(a){
+      if(a.sep){ var s=document.createElement('div'); s.className='ctx-sep'; m.appendChild(s); }
+      var it=document.createElement('div');
+      it.className='ctx-it'+(a.disabled?' ctx-dis':'')+(a.danger?' ctx-danger':'');
+      it.textContent=a.label;
+      if(!a.disabled) it.onclick=function(){ ctxClose(); a.fn(); };
+      m.appendChild(it);
+    });
+    document.body.appendChild(m);
+    // position within viewport
+    var vw=window.innerWidth, vh=window.innerHeight, mw=m.offsetWidth, mh=m.offsetHeight;
+    var x=Math.min(ev.clientX, vw-mw-6), y=Math.min(ev.clientY, vh-mh-6);
+    m.style.left=x+'px'; m.style.top=y+'px';
+    // highlight the target row briefly
+    el.classList.add('ctx-target');
+    m._target=el;
+  });
+  document.addEventListener('click', function(e){ if(!e.target.closest('#ctxMenu')){ var m=document.getElementById('ctxMenu'); if(m&&m._target)m._target.classList.remove('ctx-target'); ctxClose(); } });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ var m=document.getElementById('ctxMenu'); if(m&&m._target)m._target.classList.remove('ctx-target'); ctxClose(); } });
+  window.addEventListener('scroll', function(){ ctxClose(); }, true);
 }
 if(!window._cardCollapseWired){
   window._cardCollapseWired=1;
@@ -2309,10 +2612,6 @@ function wireFbdLinks(){
         _rp_by_type.setdefault(t if t in _rp_by_type else 'PROCEDURE', []).append(r)
     _rp_links = catalog.get('recipe_children', {})
     if catalog.get('recipes'):
-        rp.append('<div class="rec-toolbar">'
-                  '<button class="exp-btn" onclick="downloadAllDeferrals()" '
-                  'title="One workbook, one sheet per recipe object">\u2b07 Export all deferrals (.xlsx)</button>'
-                  '<span class="rec-hint">or open a recipe and export just its own</span></div>')
         for _t in ('PROCEDURE', 'UNIT_PROCEDURE', 'OPERATION'):
             grp = _rp_by_type.get(_t, [])
             if not grp:
@@ -2388,6 +2687,9 @@ function wireFbdLinks(){
   <a class="rail-btn active" id="rb-explorer" href="javascript:void 0" title="Explorer" onclick="switchView('explorer')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     <span class="tip">Explorer</span></a>
+  <a class="rail-btn" id="rb-studio" href="javascript:void 0" title="Studio" onclick="switchView('studio')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/></svg>
+    <span class="tip">Studio</span></a>
   <a class="rail-btn" id="rb-recipes" href="javascript:void 0" title="Recipes" onclick="switchView('recipes')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14.5 2.5V7H19M8.5 12h7M8.5 16h5"/></svg>
     <span class="tip">Recipes</span></a>
@@ -2411,11 +2713,34 @@ function wireFbdLinks(){
   </div>
 </main>
 <div id="view-converter"><iframe id="convFrame" title="FHX Converter"></iframe></div>
+<div id="view-studio">
+  <div class="stu-shell">
+    <div class="stu-side">
+      <div class="stu-side-h">Studio</div>
+      <div class="stu-side-sub">Open one object in a focused, multi-panel workspace \u2014 diagram, parameters and algorithm side by side. Phases first.</div>
+      <input class="alias-filter" id="stuFilter" placeholder="Filter phases\u2026" oninput="stuFilterList(this)" style="margin:8px 0">
+      <div id="stuList"></div>
+    </div>
+    <div class="stu-main" id="stuMain">
+      <div class="stu-welcome"><h2>Studio</h2><p>Select a phase on the left to open it here. The diagram is fully interactive \u2014 the simulator runs inside the Studio too.</p></div>
+    </div>
+  </div>
+</div>
 <div id="view-recipes">
   <div class="rec-panes">
-    <div class="rec-list">{recipes_pane}</div>
+    <div class="rec-list">
+      <div class="rec-toolbar">
+        <button class="exp-btn" onclick="document.getElementById('recFile').click()"
+          title="Import a recipe FHX here without touching the Explorer session">\u2b06 Import recipe FHX\u2026</button>
+        <input type="file" id="recFile" accept=".fhx" style="display:none" onchange="recImportFile(this)">
+        <button class="exp-btn" onclick="downloadAllDeferrals()"
+          title="One workbook, one sheet per recipe object">\u2b07 All deferrals (.xlsx)</button>
+      </div>
+      <div class="rec-src" id="recSrc">Showing recipes from the Explorer import.</div>
+      <div id="recListBody">{recipes_pane}</div>
+    </div>
     <div class="rec-detail" id="rdetail"><div class="welcome"><h2>Recipes</h2>
-      <p>A focused view of the recipe objects in this import \u2014 Procedures, Unit Procedures and Operations \u2014 with their parameter grids, deferrals and Excel exports. Select one on the left.</p></div></div>
+      <p>A focused view of recipe objects \u2014 Procedures, Unit Procedures and Operations \u2014 with parameter grids, deferrals and Excel exports. Select one on the left, or import a recipe FHX directly (the Explorer session is untouched).</p></div></div>
   </div>
 </div>
 </div>
@@ -2451,6 +2776,7 @@ function applyMode(m){{document.documentElement.dataset.theme=m;
 function toggleMode(){{var m=document.documentElement.dataset.theme==='dark'?'light':'dark';
   applyMode(m); try{{localStorage.setItem('dvexp_mode',m);}}catch(e){{}}}}
 (function(){{ try{{ var m=localStorage.getItem('dvexp_mode'); if(m) applyMode(m); }}catch(e){{}} }})();
+(function(){{ try{{ applySettings(); }}catch(e){{}} }})();
 </script>
 <script>const S88_SVG={s88_svg_json};
 {s88_model.S88_JS}</script>

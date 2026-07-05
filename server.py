@@ -386,6 +386,37 @@ def _merge_fhx(base, add, mode='skip'):
     return merged
 
 
+
+def _recipe_views_bundle(text):
+    """Everything the UI needs about the recipes in an export, computed once and
+    shared by the explorer render and the Recipes workspace's standalone import:
+    (views, step_views, children, recs). Views carry formulas + cross-layer
+    deferral maps exactly as before."""
+    import recipe_bridge
+    all_recs = recipe_bridge.parse_recipes(text)
+    known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
+    children = recipe_bridge.all_step_children(all_recs)
+    step_views = recipe_bridge.build_step_views(all_recs)
+    by_name = {r['meta']['name']: r for r in all_recs}
+    formulas_by_recipe = recipe_bridge.parse_formulas(text)
+    deferral_maps = {}
+    for parent in all_recs:
+        proc = parent.get('procedure') or {}
+        for _sn, s in (proc.get('steps') or {}).items():
+            child = re.sub(r':\d+$', '', s.get('definition', ''))
+            if child in by_name and child != parent['meta']['name']:
+                dm = deferral_maps.setdefault(child, {})
+                for d in s.get('deferred', []):
+                    dm[d['name']] = d.get('deferred_to') or d['name']
+    views = {}
+    for rec in all_recs:
+        nm = rec['meta'].get('name')
+        if nm:
+            views[nm] = recipe_bridge.build_recipe_html(
+                rec, known_recipes=known, deferral_map=deferral_maps.get(nm, {}),
+                formulas=formulas_by_recipe.get(nm, []))
+    return views, step_views, children, all_recs
+
 def _render_explore(text, fname):
     """Shared explorer render used by both /explore and /append."""
     import time
@@ -435,36 +466,8 @@ def _render_explore(text, fname):
     recipe_views = {}
     recipe_step_views = {}
     try:
-        import recipe_bridge
-        all_recs = recipe_bridge.parse_recipes(text)
-        known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
-        # child links for the nav tree: every referenced child, loaded or not, so the
-        # hierarchy is visible as soon as the parent is imported (#1 fix — previously
-        # only nested a child when it happened to already be present in the export).
-        catalog['recipe_children'] = recipe_bridge.all_step_children(all_recs)
-        recipe_step_views = recipe_bridge.build_step_views(all_recs)
-        # Build a deferral map for each child object: {child_param: parent_param}.
-        # A parent step that instantiates a child recipe carries STEP_PARAMETER
-        # DEFERRED entries whose DEFERRED_TO names the parent parameter supplying the
-        # value — this reconstructs the child's "Parameter Value" up-reference column.
-        by_name = {r['meta']['name']: r for r in all_recs}
-        formulas_by_recipe = recipe_bridge.parse_formulas(text)
-        deferral_maps = {}
-        for parent in all_recs:
-            proc = parent.get('procedure') or {}
-            for _sn, s in (proc.get('steps') or {}).items():
-                import re as _re
-                child = _re.sub(r':\d+$', '', s.get('definition', ''))
-                if child in by_name and child != parent['meta']['name']:
-                    dm = deferral_maps.setdefault(child, {})
-                    for d in s.get('deferred', []):
-                        dm[d['name']] = d.get('deferred_to') or d['name']
-        for rec in all_recs:
-            nm = rec['meta'].get('name')
-            if nm:
-                recipe_views[nm] = recipe_bridge.build_recipe_html(
-                    rec, known_recipes=known, deferral_map=deferral_maps.get(nm, {}),
-                    formulas=formulas_by_recipe.get(nm, []))
+        recipe_views, recipe_step_views, children, _recs = _recipe_views_bundle(text)
+        catalog['recipe_children'] = children
     except Exception:
         app.logger.exception('recipe view failed (non-fatal)')
 
@@ -606,6 +609,71 @@ def em_view():
         return jsonify({'error': _h.escape(str(e))})
 
 
+@app.route('/recipe_import', methods=['POST'])
+def recipe_import():
+    """Standalone recipe import for the Recipes workspace (like the Converter's own
+    upload): parses the file in isolation — the explorer session is untouched — and
+    returns the views plus a tree the client renders into the workspace list. The
+    file is stashed under its own token so the workspace's Excel exports work."""
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'No file uploaded.'}), 400
+    try:
+        text = db_parser.decode_fhx(f.read())
+    except Exception as e:
+        app.logger.exception('recipe import decode failed')
+        return jsonify({'error': f'Could not decode the file: {e}'}), 400
+    try:
+        views, step_views, children, recs = _recipe_views_bundle(text)
+        if not recs:
+            return jsonify({'error': 'No BATCH_RECIPE objects found in this file.'}), 422
+        token = _stash_fhx(text)
+        tree = []
+        by_type = {'PROCEDURE': [], 'UNIT_PROCEDURE': [], 'OPERATION': []}
+        for r in recs:
+            t = (r['meta'].get('type') or 'PROCEDURE').upper()
+            by_type.setdefault(t if t in by_type else 'PROCEDURE', []).append(r)
+        labels = {'PROCEDURE': 'Procedures', 'UNIT_PROCEDURE': 'Unit Procedures',
+                  'OPERATION': 'Operations'}
+        for t in ('PROCEDURE', 'UNIT_PROCEDURE', 'OPERATION'):
+            grp = by_type.get(t, [])
+            if grp:
+                tree.append({'cat': labels[t],
+                             'items': [{'name': r['meta']['name'],
+                                        'children': children.get(r['meta']['name'], [])}
+                                       for r in grp]})
+        return jsonify({'token': token, 'name': f.filename or 'recipes.fhx',
+                        'views': views, 'step_views': step_views, 'tree': tree})
+    except Exception as e:
+        app.logger.exception('recipe import failed')
+        return jsonify({'error': f'Could not parse recipes: {e}'}), 500
+
+
+@app.route('/recipe_pfc_xlsx')
+def recipe_pfc_xlsx():
+    """Download the converter-style PFC report for one recipe object: Overview,
+    Parameters (formulas side-by-side), Procedure walk with transitions, Deferrals."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'That import has expired — please reimport the base file.')
+    try:
+        import recipe_bridge
+        formulas_by_recipe = recipe_bridge.parse_formulas(text)
+        for rec in recipe_bridge.parse_recipes(text):
+            if rec['meta'].get('name') == name:
+                buf = recipe_bridge.build_pfc_report_xlsx(
+                    rec, formulas_by_recipe.get(name, []))
+                fname = re.sub(r'[^A-Za-z0-9_.-]', '_', name) + '_PFC_Report.xlsx'
+                return send_file(buf, as_attachment=True, download_name=fname,
+                                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        abort(404, 'Recipe object not found.')
+    except Exception as e:
+        app.logger.exception('pfc report failed')
+        abort(500, f'Could not build PFC report: {e}')
+
+
 @app.route('/recipe_deferrals_all_xlsx')
 def recipe_deferrals_all_xlsx():
     """Download the deferrals audit for EVERY recipe object in the import as one
@@ -701,6 +769,22 @@ def em_sim():
     except Exception as e:
         app.logger.exception('em_sim failed')
         return Response(f'<p>Could not build EM simulation: {_h.escape(str(e))}</p>', mimetype='text/html')
+
+
+@app.route('/studio_view')
+def studio_view():
+    """Build the Studio deep-view payload for one object (phase to start)."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import studio_bridge
+        return jsonify(studio_bridge.build_phase_studio(text, name))
+    except Exception as e:
+        app.logger.exception('studio_view failed')
+        return jsonify({'error': str(e)})
 
 
 @app.route('/phase_view')
