@@ -433,14 +433,38 @@ def _render_explore(text, fname):
     # recipe procedure views (batch recipes) — parsed and rendered eagerly since
     # they're small and there are usually only a few per export.
     recipe_views = {}
+    recipe_step_views = {}
     try:
         import recipe_bridge
         all_recs = recipe_bridge.parse_recipes(text)
         known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
+        # child links for the nav tree: every referenced child, loaded or not, so the
+        # hierarchy is visible as soon as the parent is imported (#1 fix — previously
+        # only nested a child when it happened to already be present in the export).
+        catalog['recipe_children'] = recipe_bridge.all_step_children(all_recs)
+        recipe_step_views = recipe_bridge.build_step_views(all_recs)
+        # Build a deferral map for each child object: {child_param: parent_param}.
+        # A parent step that instantiates a child recipe carries STEP_PARAMETER
+        # DEFERRED entries whose DEFERRED_TO names the parent parameter supplying the
+        # value — this reconstructs the child's "Parameter Value" up-reference column.
+        by_name = {r['meta']['name']: r for r in all_recs}
+        formulas_by_recipe = recipe_bridge.parse_formulas(text)
+        deferral_maps = {}
+        for parent in all_recs:
+            proc = parent.get('procedure') or {}
+            for _sn, s in (proc.get('steps') or {}).items():
+                import re as _re
+                child = _re.sub(r':\d+$', '', s.get('definition', ''))
+                if child in by_name and child != parent['meta']['name']:
+                    dm = deferral_maps.setdefault(child, {})
+                    for d in s.get('deferred', []):
+                        dm[d['name']] = d.get('deferred_to') or d['name']
         for rec in all_recs:
             nm = rec['meta'].get('name')
             if nm:
-                recipe_views[nm] = recipe_bridge.build_recipe_html(rec, known_recipes=known)
+                recipe_views[nm] = recipe_bridge.build_recipe_html(
+                    rec, known_recipes=known, deferral_map=deferral_maps.get(nm, {}),
+                    formulas=formulas_by_recipe.get(nm, []))
     except Exception:
         app.logger.exception('recipe view failed (non-fatal)')
 
@@ -449,7 +473,8 @@ def _render_explore(text, fname):
                                                fbd_names=fbd_names, em_names=em_names,
                                                param_index=param_index, expr_index=expr_index,
                                                export_token=export_token,
-                                               recipe_views=recipe_views)
+                                               recipe_views=recipe_views,
+                                               recipe_step_views=recipe_step_views)
     except Exception as e:
         app.logger.exception('build_explorer_html failed')
         return _explore_error('Could not render the explorer', e, fname), 500
@@ -581,6 +606,50 @@ def em_view():
         return jsonify({'error': _h.escape(str(e))})
 
 
+@app.route('/recipe_deferrals_all_xlsx')
+def recipe_deferrals_all_xlsx():
+    """Download the deferrals audit for EVERY recipe object in the import as one
+    workbook (one sheet per object) — the Recipes workspace's bulk export."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'That import has expired — please reimport the base file.')
+    try:
+        import recipe_bridge
+        recs = recipe_bridge.parse_recipes(text)
+        buf = recipe_bridge.build_deferrals_all_xlsx(recs)
+        return send_file(buf, as_attachment=True, download_name='Recipe_Deferrals_All.xlsx',
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        app.logger.exception('deferrals all xlsx failed')
+        abort(500, f'Could not build deferrals workbook: {e}')
+
+
+@app.route('/recipe_deferrals_xlsx')
+def recipe_deferrals_xlsx():
+    """Download the deferrals audit for one recipe object as .xlsx, matching the
+    manual DeltaV Recipe Studio audit format (Step / Parameter Name / Deferred
+    Parameter), but generated automatically and covering every step."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'That import has expired — please reimport the base file.')
+    try:
+        import recipe_bridge
+        for rec in recipe_bridge.parse_recipes(text):
+            if rec['meta'].get('name') == name:
+                rows = recipe_bridge.build_deferrals_rows(rec)
+                buf = recipe_bridge.build_deferrals_xlsx(name, rows)
+                fname = re.sub(r'[^A-Za-z0-9_.-]', '_', name) + '_Deferrals.xlsx'
+                return send_file(buf, as_attachment=True, download_name=fname,
+                                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        abort(404, 'Recipe object not found.')
+    except Exception as e:
+        app.logger.exception('deferrals xlsx failed')
+        abort(500, f'Could not build deferrals report: {e}')
+
+
 @app.route('/recipe_view')
 def recipe_view():
     """Fallback: build a recipe's procedure view on demand (in case the embedded
@@ -594,10 +663,13 @@ def recipe_view():
         import recipe_bridge
         all_recs = recipe_bridge.parse_recipes(text)
         known = set(r['meta'].get('name') for r in all_recs if r['meta'].get('name'))
+        formulas_by_recipe = recipe_bridge.parse_formulas(text)
         for rec in all_recs:
             if rec['meta'].get('name') == name or not name:
                 return jsonify({'name': rec['meta'].get('name'),
-                                'html': recipe_bridge.build_recipe_html(rec, known_recipes=known)})
+                                'html': recipe_bridge.build_recipe_html(
+                                    rec, known_recipes=known,
+                                    formulas=formulas_by_recipe.get(rec['meta'].get('name'), []))})
         return jsonify({'error': 'not found', 'html': ''})
     except Exception as e:
         app.logger.exception('recipe_view failed')

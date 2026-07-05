@@ -59,6 +59,16 @@ button{font-family:inherit}
 #view-converter{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
 #view-converter.on{display:block}
 #convFrame{width:100%;height:100%;border:0;display:block}
+#view-recipes{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
+#view-recipes.on{display:block}
+.rec-panes{display:grid;grid-template-columns:340px 1fr;height:100%;overflow:hidden}
+.rec-list{overflow:auto;border-right:1px solid var(--border);padding:14px 10px;background:var(--surface)}
+.rec-detail{overflow:auto;padding:20px 26px}
+.rec-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.rec-hint{font-size:11px;color:var(--ink-3)}
+.rec-cat{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:14px 4px 6px}
+.rec-item.sel{background:var(--accent-soft)}
+.rec-empty{color:var(--ink-3);font-size:13px;padding:16px 8px;line-height:1.6}
 .rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -146,6 +156,9 @@ button{font-family:inherit}
 .ic-em{color:var(--b-em)}.ic-cm{color:var(--b-cm)}.ic-phase{color:var(--b-phase)}.ic-recipe{color:var(--b-recipe)}
 .ic-composite{color:var(--b-composite)}.ic-fbtype{color:var(--b-fbtype)}
 .navchild{padding-left:34px}
+.navghost{opacity:.55;cursor:pointer;border:1px dashed transparent}
+.navghost:hover{opacity:.9;background:var(--surface-2)}
+.navghost .inst-cls{font-style:italic}
 .navchild2{padding-left:50px}
 .navchild3{padding-left:66px}
 .navchild4{padding-left:82px}
@@ -507,13 +520,13 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260704-0636"
+_BUILD_ID = "20260705-0651"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
                         fbd_names=None, em_views=None, em_names=None,
                         param_index=None, expr_index=None, export_token=None,
-                        recipe_views=None):
+                        recipe_views=None, recipe_step_views=None):
     """phase_names/fbd_names/em_names: lists of objects available for lazy drill-down
     (built on click via /phase_view, /fbd_view, /em_view). The *_views maps are the
     legacy eager form, still accepted as a fallback."""
@@ -604,6 +617,7 @@ const FBD_NAMES = __FBD_NAMES__;
 const EM_NAMES = __EM_NAMES__;
 const EM_VIEWS = __EM_VIEWS__;
 const RECIPE_VIEWS = __RECIPE_VIEWS__;
+const RECIPE_STEP_VIEWS = __RECIPE_STEP_VIEWS__;
 let PARAM_INDEX = __PARAM_INDEX__;
 let EXPR_INDEX = __EXPR_INDEX__;
 var SEARCH_IDX_LOADED = (Object.keys(PARAM_INDEX).length>0 || EXPR_INDEX.length>0);
@@ -894,17 +908,43 @@ function doAppend(){
     .catch(function(e){ st.textContent='Merge error: '+e.message; });
 }
 function switchView(v){
-  var conv=document.getElementById('view-converter');
-  var re=document.getElementById('rb-explorer'), rc=document.getElementById('rb-converter');
+  var conv=document.getElementById('view-converter'), recs=document.getElementById('view-recipes');
+  var re=document.getElementById('rb-explorer'), rc=document.getElementById('rb-converter'), rr=document.getElementById('rb-recipes');
+  conv.classList.remove('on'); if(recs) recs.classList.remove('on');
+  re.classList.remove('active'); rc.classList.remove('active'); if(rr) rr.classList.remove('active');
   if(v==='converter'){
     var fr=document.getElementById('convFrame');
     if(!fr.getAttribute('src')) fr.setAttribute('src','/tool/?embed=1');
-    conv.classList.add('on');
-    re.classList.remove('active'); rc.classList.add('active');
+    conv.classList.add('on'); rc.classList.add('active');
+  } else if(v==='recipes'){
+    if(recs) recs.classList.add('on'); if(rr) rr.classList.add('active');
   } else {
-    conv.classList.remove('on');
-    rc.classList.remove('active'); re.classList.add('active');
+    re.classList.add('active');
   }
+}
+// ── standalone Recipes workspace (rail view) ──
+function recShow(name){
+  var d=document.getElementById('rdetail'); if(!d) return;
+  document.querySelectorAll('.rec-item').forEach(function(n){n.classList.toggle('sel',n.dataset.rec===name);});
+  var v=(typeof RECIPE_VIEWS!=='undefined' && RECIPE_VIEWS[name])||'';
+  var o=DB.objs['recipe:'+name]||{};
+  var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span></h2>';
+  if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
+  h+=v||'<div class="card"><span class="empty">No detail parsed for this recipe.</span></div>';
+  d.innerHTML=h; d.scrollTop=0;
+}
+function recShowStep(parent, step, layer){
+  var d=document.getElementById('rdetail'); if(!d) return;
+  document.querySelectorAll('.rec-item').forEach(function(n){n.classList.remove('sel');});
+  var v=(typeof RECIPE_STEP_VIEWS!=='undefined' && RECIPE_STEP_VIEWS[parent+'||'+step])||'';
+  var h='<h2 class="dt">'+esc(step)+' <span class="dt-type b-recipe">'+esc(layer||'recipe step')+'</span></h2>';
+  h+='<p class="dt-desc">Instance under '+esc(parent)+' \u2014 parameters derived from the parent step.</p>';
+  h+=v||'<div class="card"><span class="empty">No parameters found on this step.</span></div>';
+  d.innerHTML=h; d.scrollTop=0;
+}
+function downloadAllDeferrals(){
+  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN) return;
+  window.location.href='/recipe_deferrals_all_xlsx?t='+encodeURIComponent(EXPORT_TOKEN);
 }
 function renderObj(id){
   const o=DB.objs[id]; if(!o)return;
@@ -1193,6 +1233,84 @@ function aliasCardHTML(als){
   h+='</tbody></table></div>';
   return h;
 }
+function rpFilterGrid(inp){
+  var q=(inp.value||'').toLowerCase();
+  var scope=inp.closest('.card')||document;
+  scope.querySelectorAll('.rp-grid tbody .rp-row').forEach(function(r){ r.style.display = (!q || r.textContent.toLowerCase().indexOf(q)>=0) ? '' : 'none'; });
+}
+function defFilterGrid(inp){
+  var q=(inp.value||'').toLowerCase();
+  var scope=inp.closest('.card')||document;
+  var chk=scope.querySelector('#defOnlyDeferred')||{};
+  var onlyDeferred=chk.checked;
+  scope.querySelectorAll('.def-step-card').forEach(function(card){
+    var anyVisible=false;
+    card.querySelectorAll('.def-prow').forEach(function(row){
+      var isDeferred=row.classList.contains('def-prow-deferred');
+      var matchesText=!q || row.textContent.toLowerCase().indexOf(q)>=0;
+      var matchesFilter=!onlyDeferred || isDeferred;
+      var show=matchesText && matchesFilter;
+      row.classList.toggle('def-hide', !show);
+      if(show) anyVisible=true;
+    });
+    // a step also matches if its own name/definition text matches, even with no
+    // matching param rows (e.g. searching a step name should still show it collapsed)
+    var stepText=card.querySelector('h4').textContent.toLowerCase();
+    var stepNameMatches=!q || stepText.indexOf(q)>=0;
+    var stepHasDeferred=!onlyDeferred || parseInt(card.getAttribute('data-defcount')||'0')>0;
+    var show=(anyVisible || (stepNameMatches && !q)) && stepHasDeferred && (anyVisible || stepNameMatches);
+    card.classList.toggle('def-hide', !show);
+    // auto-expand groups that match a live search so results aren't hidden behind a collapse
+    if(q && show){ card.classList.remove('collapsed'); }
+  });
+}
+function defSetAll(expand){
+  document.querySelectorAll('.def-step-card').forEach(function(card){
+    card.classList.toggle('collapsed', !expand);
+  });
+}
+function downloadDeferrals(recipeName){
+  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN) return;
+  window.location.href='/recipe_deferrals_xlsx?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(recipeName);
+}
+// clicking a not-yet-imported child in the recipe tree opens the append dialog with
+// a hint of exactly which object to bring in next.
+function promptImportChild(name, layer){
+  openAppend();
+  setTimeout(function(){
+    var st=document.getElementById('appendStatus');
+    if(st) st.innerHTML='Looking for <b>'+esc(name)+'</b> ('+esc(layer)+') \u2014 choose its FHX export below.';
+  },0);
+}
+// a child instance whose own FHX isn't imported, but whose parameters are derivable
+// from the parent step (e.g. CENT_HC_INIT_UP:1 -> CENT1_SELECTED \u2191 G007_SELECTED).
+function showRecipeStep(parent, step, layer){ navTo({k:'rstep', parent:parent, step:step, layer:layer||''}); }
+function renderRecipeStep(parent, step, layer){
+  var d=document.getElementById('detail'); if(!d) return;
+  var v=(typeof RECIPE_STEP_VIEWS!=='undefined' && RECIPE_STEP_VIEWS[parent+'||'+step])||'';
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">\u2190 back</span>':'';
+  var base=step.replace(/:\\d+$/,'');
+  var h='<h2 class="dt">'+esc(step)+' <span class="dt-type b-recipe">'+esc(layer||'recipe step')+'</span></h2>';
+  h+='<p class="dt-desc">Instance under <span class="link" onclick="show(\\'recipe:'+esc(parent)+'\\')">'+esc(parent)+'</span>. '
+    +'The object\\'s own FHX isn\\'t imported \u2014 this view is derived from the parent step. '
+    +'<span class="link" onclick="promptImportChild(\\''+esc(base)+'\\',\\''+esc(layer)+'\\')">Append its export</span> for full detail.'+back+'</p>';
+  h+=v||'<div class="card"><span class="empty">No parameters found on this step.</span></div>';
+  d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
+}
+function rpApplyFormula(sel){
+  var fvals={}; try{ fvals=JSON.parse(sel.getAttribute('data-fvals')||'{}'); }catch(e){}
+  var vals=fvals[sel.value]||{};
+  var scope=sel.closest('.card')||document;
+  scope.querySelectorAll('.rp-grid tbody .rp-row').forEach(function(r){
+    var pn=r.getAttribute('data-pname'); var cell=r.querySelector('.rp-valcell'); if(!cell) return;
+    if(vals[pn]!==undefined){
+      cell.innerHTML='<code class="rp-val">'+esc(String(vals[pn]))+'</code>';
+    } else {
+      var up=r.getAttribute('data-upref');
+      cell.innerHTML=up?('<code class="rp-upref">'+esc(up)+'</code> <span class="rp-uparrow">\\u2191 parent</span>'):'<span class="rp-none">\\u2014</span>';
+    }
+  });
+}
 function showAliases(unitName){ navTo({k:'aliases', unit:unitName}); }
 function renderAliases(unitName){
   var d=document.getElementById('detail'); if(!d) return;
@@ -1277,6 +1395,7 @@ function renderEntry(e){
     else if(e.k==='dep') renderDeployed(e.tag, e.role);
     else if(e.k==='emmember') renderEmMember(e.em,e.member,e.cls);
     else if(e.k==='aliases') renderAliases(e.unit);
+    else if(e.k==='rstep') renderRecipeStep(e.parent, e.step, e.layer);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
   });
@@ -1338,6 +1457,12 @@ if(!window._cardCollapseWired){
       if(rn && DB.objs['recipe:'+rn]){ show('recipe:'+rn); }
       return;
     }
+    // #6: clicking a drillable step box in the PFC opens that referenced object
+    var stepG=t.closest('.pfc-drillable');
+    if(stepG){
+      var dr=stepG.getAttribute('data-drill');
+      if(dr && DB.objs['recipe:'+dr]){ show('recipe:'+dr); return; }
+    }
     // PFC (recipe) transition click -> show expression in the recipe's panel
     var g=t.closest('.pfc-trans');
     if(g){
@@ -1369,7 +1494,7 @@ if(!window._cardCollapseWired){
       node=node.parentElement;
     }
     if(!hdr) return;
-    if(!hdr.closest('#detail')) return;
+    if(!hdr.closest('#detail') && !hdr.closest('#rdetail')) return;
     hdr.parentElement.classList.toggle('collapsed');
     ev.stopPropagation();
   });
@@ -1804,6 +1929,7 @@ function wireFbdLinks(){
             .replace('__FBD_VIEWS__', _script_safe(fbd_views_json))
             .replace('__EM_VIEWS__', _script_safe(em_views_json))
             .replace('__RECIPE_VIEWS__', _script_safe(recipe_views_json))
+            .replace('__RECIPE_STEP_VIEWS__', _script_safe(json.dumps(recipe_step_views or {})))
             .replace('__PARAM_INDEX__', _script_safe(param_index_json))
             .replace('__EXPR_INDEX__', _script_safe(expr_index_json)))
 
@@ -2022,8 +2148,66 @@ function wireFbdLinks(){
     # ================ SYSTEM CONFIGURATION ================
     _fold('System Configuration', collapsed=False)
     if catalog['recipes']:
+        # #2: split recipes into Procedure / Unit Procedure / Operation categories,
+        # nesting referenced children under their parent (a Procedure lists its Unit
+        # Procedures, a Unit Procedure lists its Operations, an Operation its Phases).
+        _recipe_cat_labels = {'PROCEDURE': 'Procedures', 'UNIT_PROCEDURE': 'Unit Procedures',
+                              'OPERATION': 'Operations'}
+        _by_type = {'PROCEDURE': [], 'UNIT_PROCEDURE': [], 'OPERATION': []}
+        for r in catalog['recipes']:
+            t = (r.get('type') or 'PROCEDURE').upper()
+            _by_type.setdefault(t if t in _by_type else 'PROCEDURE', []).append(r)
+        # child links: parent recipe name -> [{'name','layer','loaded'}] for every
+        # step definition it references — even ones not (yet) imported, so the full
+        # hierarchy is visible as soon as the parent loads (see #1 fix above).
+        _rlinks = catalog.get('recipe_children', {})
         _fold('Recipes', collapsed=True, count=len(catalog['recipes']))
-        _items(catalog['recipes'], 'recipe'); _endfold()
+        for _t in ('PROCEDURE', 'UNIT_PROCEDURE', 'OPERATION'):
+            group = _by_type.get(_t, [])
+            if not group:
+                continue
+            _fold(_recipe_cat_labels[_t], collapsed=True, count=len(group))
+            for r in group:
+                kids = _rlinks.get(r['name'], [])
+                if kids:
+                    _bases = {}
+                    for k in kids:
+                        _bases[k['name']] = _bases.get(k['name'], False) or k['loaded']
+                    n_loaded = sum(1 for v in _bases.values() if v)
+                    nav.append('<div class="navgroup">')
+                    nav.append(f'<div class="navitem" data-id="recipe:{html.escape(r["name"])}" '
+                               f'onclick="show(\'recipe:{html.escape(r["name"])}\')">'
+                               f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
+                               f'{_nav_badge("recipe")}{html.escape(r["name"])}'
+                               f'<span class="inst-cls">({n_loaded}/{len(_bases)} imported)</span></div>')
+                    nav.append('<div class="navchildren" style="display:none">')
+                    for kid in kids:
+                        if kid['loaded']:
+                            nav.append(f'<div class="navitem navchild" data-id="recipe:{html.escape(kid["name"])}" '
+                                       f'onclick="show(\'recipe:{html.escape(kid["name"])}\')">'
+                                       f'{_nav_badge("recipe")}{html.escape(kid["step"])} '
+                                       f'<span class="inst-cls">({html.escape(kid["layer"])})</span></div>')
+                        elif kid.get('has_params'):
+                            # not imported, but its parameters are derivable from the
+                            # parent step — clicking shows that derived parameter view.
+                            nav.append(f'<div class="navitem navchild navghost" '
+                                       f'title="Parameters derived from the parent step; import its FHX for full detail" '
+                                       f'onclick="showRecipeStep(\'{html.escape(r["name"], quote=True)}\',\'{html.escape(kid["step"], quote=True)}\',\'{html.escape(kid["layer"], quote=True)}\')">'
+                                       f'{_nav_badge("recipe")}{html.escape(kid["step"])} '
+                                       f'<span class="inst-cls">({html.escape(kid["layer"])})</span></div>')
+                        else:
+                            nav.append(f'<div class="navitem navchild navghost" '
+                                       f'title="Not imported yet \\u2014 append its FHX export to explore it" '
+                                       f'onclick="promptImportChild(\'{html.escape(kid["name"], quote=True)}\',\'{html.escape(kid["layer"], quote=True)}\')">'
+                                       f'{_nav_badge("recipe")}{html.escape(kid["step"])} '
+                                       f'<span class="inst-cls">({html.escape(kid["layer"])} \u2014 not imported)</span></div>')
+                    nav.append('</div></div>')
+                else:
+                    nav.append(f'<div class="navitem" data-id="recipe:{html.escape(r["name"])}" '
+                               f'onclick="show(\'recipe:{html.escape(r["name"])}\')">'
+                               f'{_nav_badge("recipe")}{html.escape(r["name"])}</div>')
+            _endfold()
+        _endfold()
     else:
         _ph('Recipes')
     nsets = catalog.get('named_sets', [])
@@ -2113,6 +2297,54 @@ function wireFbdLinks(){
         _ph('Physical Network')
     _endfold()  # System Configuration
 
+    # ── standalone Recipes workspace (rail view, like the Converter) ──
+    # A focused recipe browser: category-grouped list on the left, the same recipe
+    # views on the right, with Excel exports front and center.
+    rp = []
+    _rp_cats = {'PROCEDURE': 'Procedures', 'UNIT_PROCEDURE': 'Unit Procedures',
+                'OPERATION': 'Operations'}
+    _rp_by_type = {'PROCEDURE': [], 'UNIT_PROCEDURE': [], 'OPERATION': []}
+    for r in catalog.get('recipes', []):
+        t = (r.get('type') or 'PROCEDURE').upper()
+        _rp_by_type.setdefault(t if t in _rp_by_type else 'PROCEDURE', []).append(r)
+    _rp_links = catalog.get('recipe_children', {})
+    if catalog.get('recipes'):
+        rp.append('<div class="rec-toolbar">'
+                  '<button class="exp-btn" onclick="downloadAllDeferrals()" '
+                  'title="One workbook, one sheet per recipe object">\u2b07 Export all deferrals (.xlsx)</button>'
+                  '<span class="rec-hint">or open a recipe and export just its own</span></div>')
+        for _t in ('PROCEDURE', 'UNIT_PROCEDURE', 'OPERATION'):
+            grp = _rp_by_type.get(_t, [])
+            if not grp:
+                continue
+            rp.append('<div class="rec-cat">' + _rp_cats[_t] + ' (' + str(len(grp)) + ')</div>')
+            for r in grp:
+                kids = _rp_links.get(r['name'], [])
+                _bases = {}
+                for k in kids:
+                    _bases[k['name']] = _bases.get(k['name'], False) or k['loaded']
+                sub = (' <span class="inst-cls">(' + str(sum(1 for v in _bases.values() if v))
+                       + '/' + str(len(_bases)) + ' children imported)</span>') if _bases else ''
+                rp.append('<div class="navitem rec-item" data-rec="' + html.escape(r['name'], quote=True) + '" '
+                          'onclick="recShow(\'' + html.escape(r['name'], quote=True) + '\')">'
+                          + _nav_badge('recipe') + html.escape(r['name']) + sub + '</div>')
+                for k in kids:
+                    if k.get('has_params') and not k['loaded']:
+                        rp.append('<div class="navitem navchild navghost rec-item" '
+                                  'onclick="recShowStep(\'' + html.escape(r['name'], quote=True) + '\',\''
+                                  + html.escape(k['step'], quote=True) + '\',\'' + html.escape(k['layer'], quote=True) + '\')">'
+                                  + _nav_badge('recipe') + html.escape(k['step'])
+                                  + ' <span class="inst-cls">(' + html.escape(k['layer']) + ')</span></div>')
+                    elif k['loaded']:
+                        rp.append('<div class="navitem navchild rec-item" '
+                                  'onclick="recShow(\'' + html.escape(k['name'], quote=True) + '\')">'
+                                  + _nav_badge('recipe') + html.escape(k['step'])
+                                  + ' <span class="inst-cls">(' + html.escape(k['layer']) + ')</span></div>')
+    else:
+        rp.append('<div class="rec-empty">No recipe objects in this import.<br>'
+                  'Append a recipe FHX (\u002b Append FHX in the header) to browse it here.</div>')
+    recipes_pane = ''.join(rp)
+
     welcome = '<div class="welcome"><h2>' + html.escape(fname) + '</h2>'
     welcome += '<p>DeltaV database explorer. Select an object from the navigation tree to view its details and references.</p>'
     for k, v in summary.items():
@@ -2156,6 +2388,9 @@ function wireFbdLinks(){
   <a class="rail-btn active" id="rb-explorer" href="javascript:void 0" title="Explorer" onclick="switchView('explorer')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
     <span class="tip">Explorer</span></a>
+  <a class="rail-btn" id="rb-recipes" href="javascript:void 0" title="Recipes" onclick="switchView('recipes')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14.5 2.5V7H19M8.5 12h7M8.5 16h5"/></svg>
+    <span class="tip">Recipes</span></a>
   <a class="rail-btn" id="rb-converter" href="javascript:void 0" title="FHX Converter" onclick="switchView('converter')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>
     <span class="tip">FHX Converter</span></a>
@@ -2176,6 +2411,13 @@ function wireFbdLinks(){
   </div>
 </main>
 <div id="view-converter"><iframe id="convFrame" title="FHX Converter"></iframe></div>
+<div id="view-recipes">
+  <div class="rec-panes">
+    <div class="rec-list">{recipes_pane}</div>
+    <div class="rec-detail" id="rdetail"><div class="welcome"><h2>Recipes</h2>
+      <p>A focused view of the recipe objects in this import \u2014 Procedures, Unit Procedures and Operations \u2014 with their parameter grids, deferrals and Excel exports. Select one on the left.</p></div></div>
+  </div>
+</div>
 </div>
 <script>
 const ICON_THEMES={themes_json};
