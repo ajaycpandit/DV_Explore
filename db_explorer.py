@@ -79,10 +79,27 @@ button{font-family:inherit}
 .stu-head h2{margin:0;font-size:17px}
 .stu-kind{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:20px}
 .stu-chip{font-size:11px;font-weight:600;background:var(--surface-2);color:var(--ink-2);padding:3px 9px;border-radius:20px}
-.stu-body{flex:1 1 auto;display:grid;grid-template-columns:1.35fr 1fr;grid-template-rows:minmax(0,1fr);overflow:hidden;min-height:0}
+.stu-body{flex:1 1 auto;display:grid;overflow:hidden;min-height:0}
+.stu-body.stu-dock-right{grid-template-columns:1.35fr 5px 1fr;grid-template-rows:minmax(0,1fr)}
+.stu-body.stu-dock-bottom{grid-template-rows:1.3fr 5px 1fr;grid-template-columns:minmax(0,1fr)}
 .stu-pane{overflow:auto;padding:0;min-height:0;min-width:0}
-.stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff;overflow:hidden;display:flex}
+.stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff;overflow:hidden;display:flex;position:relative}
+.stu-body.stu-dock-bottom .stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}
 .stu-diagram iframe{flex:1 1 auto;width:100%;height:100%;border:0;display:block;min-height:0}
+.stu-embed-wrap{width:100%;height:100%;overflow:auto;padding:14px}
+.stu-side-panel{overflow:auto;min-height:0;min-width:0;display:flex;flex-direction:column}
+.stu-split{background:var(--border);cursor:col-resize}
+.stu-body.stu-dock-right .stu-split{cursor:col-resize}
+.stu-body.stu-dock-bottom .stu-split{cursor:row-resize}
+.stu-split:hover{background:var(--accent)}
+.stu-dock-btns{margin-left:auto;display:flex;gap:2px;align-items:center;padding-right:6px}
+.stu-dockb{background:none;border:1px solid var(--border);border-radius:5px;width:24px;height:22px;cursor:pointer;color:var(--ink-3);font-size:12px;line-height:1}
+.stu-dockb:hover{background:var(--accent-soft);color:var(--accent)}
+.stu-head-sp{flex:1}
+.stu-grp{margin-bottom:10px}
+.stu-grp-h{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);padding:4px 4px 5px}
+.stu-grp-n{color:var(--ink-3);font-weight:500}
+.stu-embed{margin-bottom:14px}
 .stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff}
 .stu-diagram iframe{width:100%;height:100%;border:0;display:block}
 .stu-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--canvas);z-index:2}
@@ -96,7 +113,7 @@ button{font-family:inherit}
 .stu-grid .stu-desc{color:var(--ink-2);max-width:280px}
 .stu-empty{color:var(--ink-3);font-size:12.5px;padding:14px 4px}
 .stu-split{cursor:col-resize;width:5px;background:transparent}
-@media(max-width:1100px){.stu-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}.stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
+@media(max-width:1100px){.stu-body.stu-dock-right{grid-template-columns:minmax(0,1fr);grid-template-rows:1.2fr 5px 1fr}.stu-body.stu-dock-right .stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
 #view-converter.on{display:block}
 #convFrame{width:100%;height:100%;border:0;display:block}
 #view-recipes{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
@@ -134,6 +151,40 @@ button{font-family:inherit}
 .rail .spacer{flex:1}
 
 .topbar{grid-column:2;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--border);z-index:5}
+/* export picker (#7) */
+.exp-pick-body{overflow:auto;padding:4px 18px 8px;flex:1}
+.exp-search-wrap{padding:10px 18px 4px}
+.exp-group{margin-bottom:10px}
+.exp-group-h{font-weight:600;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}
+.exp-cnt{color:var(--ink-3);font-weight:400;font-size:11px}
+.exp-items{display:grid;grid-template-columns:1fr 1fr;gap:1px 14px;padding:6px 0 2px 6px}
+.exp-ck{display:flex;align-items:center;gap:7px;cursor:pointer}
+.exp-item{font-size:12.5px;color:var(--ink-2);padding:2px 0}
+.exp-item:hover{color:var(--accent)}
+.exp-foot{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--border)}
+.exp-selcount{font-size:12px;color:var(--ink-3);font-weight:600}
+/* append redesign (#6) */
+.ap-pop{max-width:500px}
+.ap-body{padding:16px 20px 20px}
+.ap-lead{margin:0 0 16px;color:var(--ink-2);font-size:13px;line-height:1.55}
+.ap-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:26px 18px;border:2px dashed var(--border-strong,#cbd5e1);border-radius:12px;cursor:pointer;transition:all .15s;text-align:center;color:var(--ink-3)}
+.ap-drop:hover,.ap-drop.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.ap-drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.ap-drop-ico{opacity:.7}
+.ap-drop-t{font-size:13px}.ap-drop-t b{color:var(--ink)}
+.ap-drop-file{min-height:0}
+.ap-chip{display:inline-block;margin-top:4px;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:12px;padding:3px 10px;border-radius:20px}
+.ap-modes{margin-top:16px}
+.ap-modes-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);margin-bottom:7px}
+.ap-mode{display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1px solid var(--border);border-radius:9px;margin-right:8px}
+.ap-mode span{display:flex;flex-direction:column;line-height:1.2}
+.ap-mode span b{font-size:13px}.ap-mode span small{font-size:10.5px;color:var(--ink-3)}
+.ap-mode:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.ap-recover{margin-top:14px;padding:11px 13px;background:#fff7ed;border:1px solid #fdba74;border-radius:9px}
+.ap-recover-t{font-size:12px;color:#9a3412;margin-bottom:8px;line-height:1.5}
+.ap-status{font-size:12.5px;color:var(--ink-3);min-height:18px;margin-top:12px}
+.ap-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.ap-go{background:var(--accent);color:#fff;border:none}
 .topbar h1{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
 .topbar .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px}
@@ -401,6 +452,11 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh;background:#fcfcfd}
 .fbd-info-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
 .fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-3)}
+.fbd-collapse>h4,.fbd-collapse>.fbd-head{cursor:pointer;user-select:none}
+.fbd-collapse>h4::before,.fbd-collapse>.fbd-head::before{content:"\\25be";display:inline-block;margin-right:6px;font-size:10px;transition:transform .12s;color:var(--ink-3)}
+.fbd-collapse.collapsed>h4::before,.fbd-collapse.collapsed>.fbd-head::before{transform:rotate(-90deg)}
+.fbd-info-card.fbd-collapse.collapsed>*:not(h4){display:none!important}
+.fbd-diagram-card.fbd-collapse.collapsed>*:not(.fbd-head){display:none!important}
 .fbd-comp-link{border-color:var(--border-strong)}
 .fbd-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
 .fbd-table th{text-align:left;padding:7px 12px;color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);font-weight:600}
@@ -612,7 +668,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260706-0358"
+_BUILD_ID = "20260706-2028"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -938,6 +994,10 @@ function openSettings(){
     +row('SFC mouse wheel','What the wheel does over an SFC diagram','set-sfcwheel',[['zoom','Zoom the diagram'],['pan','Scroll the diagram'],['page','Scroll the page']],APP_SETTINGS.sfcWheel)
     +row('Transitions in tables','Show transitions after each step, or grouped','set-transexpr',[['inline','After each step'],['grouped','Grouped at bottom']],APP_SETTINGS.transExpr)
     +row('Density','Spacing of lists and tables','set-density',[['comfortable','Comfortable'],['compact','Compact']],APP_SETTINGS.density)
+    +'<div class="set-row"><div><div class="set-lbl">Icon theme</div><div class="set-hint">Style of the icons in the navigation tree</div></div>'
+    +'<select id="set-icontheme" onchange="skinTree(this.value)">'
+    + _ICON_THEME_OPTS
+    +'</select></div>'
     +'<div class="set-row"><div><div class="set-lbl">Loading animation</div><div class="set-hint">Shown while diagrams and data load</div></div>'
     +'<div style="display:flex;align-items:center;gap:12px">'
     +'<span id="loaderPreview" style="min-width:70px">'+dvLoader('')+'</span>'
@@ -960,28 +1020,122 @@ function saveSettings(){
   applySettings();
   var o=document.getElementById('settingsOverlay'); if(o) o.remove();
 }
-// #4: append another FHX (e.g. a recipe) onto the current import without losing it.
+// #7: multi-object export picker — pick any set of objects and export them together
+// to one Excel or Word file, instead of the old whole-database dump.
+function openExportPicker(){
+  if(typeof EXPORT_TOKEN==='undefined' || !EXPORT_TOKEN) return;
+  var ov=document.getElementById('expPickOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='expPickOverlay'; ov.className='ip-pop-overlay'; document.body.appendChild(ov); }
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  // group selectable objects by type
+  var groups={}, labels={phase:'Phases',em:'Equipment Modules',cm:'Control Module Classes',
+    recipe:'Recipes',uclass:'Unit Classes',fbtype:'Function Block Types'};
+  for(var id in DB.objs){
+    var t=id.slice(0,id.indexOf(':')); var o=DB.objs[id];
+    if(!labels[t]) continue;
+    (groups[t]=groups[t]||[]).push({id:id,name:o.name||id});
+  }
+  var body='';
+  Object.keys(labels).forEach(function(t){
+    var list=(groups[t]||[]).sort(function(a,b){return a.name<b.name?-1:1;});
+    if(!list.length) return;
+    body+='<div class="exp-group"><div class="exp-group-h">'
+      +'<label class="exp-ck"><input type="checkbox" onchange="expToggleGroup(this,\\''+t+'\\')"> '
+      +esc(labels[t])+' <span class="exp-cnt">'+list.length+'</span></label></div>'
+      +'<div class="exp-items" data-group="'+t+'">';
+    list.forEach(function(it){
+      body+='<label class="exp-ck exp-item"><input type="checkbox" class="exp-obj" value="'+esc(it.id)+'" onchange="expUpdateCount()"> '+esc(it.name)+'</label>';
+    });
+    body+='</div></div>';
+  });
+  if(!body) body='<div class="set-note">No exportable objects in this import.</div>';
+  ov.innerHTML='<div class="ip-pop" style="max-width:640px;max-height:86vh;display:flex;flex-direction:column">'
+    +'<div class="ip-pop-h"><b>'+_EXCEL_ICON_RAW+' Export objects</b>'
+    +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'expPickOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<div class="exp-search-wrap"><input class="alias-filter" id="expSearch" placeholder="Filter objects\\u2026" oninput="expFilter(this)"></div>'
+    +'<div class="exp-pick-body">'+body+'</div>'
+    +'<div class="exp-foot">'
+    +'<span class="exp-selcount" id="expSelCount">0 selected</span>'
+    +'<div style="flex:1"></div>'
+    +'<button class="exp-btn" onclick="expClear()">Clear</button>'
+    +'<button class="exp-btn" id="expWordBtn" style="opacity:.5;pointer-events:none" onclick="expDoExport(\\'word\\')">'+_WORD_ICON_RAW+' Word</button>'
+    +'<button class="exp-btn" id="expExcelBtn" style="opacity:.5;pointer-events:none;background:var(--accent);color:#fff;border:none" onclick="expDoExport(\\'excel\\')">'+_EXCEL_ICON_RAW+' Excel</button>'
+    +'</div></div>';
+}
+function expToggleGroup(ck,t){
+  document.querySelectorAll('.exp-items[data-group="'+t+'"] .exp-obj').forEach(function(c){
+    if(c.closest('.exp-item').style.display!=='none') c.checked=ck.checked;
+  });
+  expUpdateCount();
+}
+function expFilter(inp){
+  var q=(inp.value||'').toLowerCase();
+  document.querySelectorAll('#expPickOverlay .exp-item').forEach(function(it){
+    it.style.display=(!q || it.textContent.toLowerCase().indexOf(q)>=0)?'':'none';
+  });
+}
+function expUpdateCount(){
+  var n=document.querySelectorAll('#expPickOverlay .exp-obj:checked').length;
+  document.getElementById('expSelCount').textContent=n+' selected';
+  ['expExcelBtn','expWordBtn'].forEach(function(id){
+    var b=document.getElementById(id); if(!b) return;
+    b.style.opacity=n?'1':'.5'; b.style.pointerEvents=n?'auto':'none';
+  });
+}
+function expClear(){
+  document.querySelectorAll('#expPickOverlay input[type=checkbox]').forEach(function(c){c.checked=false;});
+  expUpdateCount();
+}
+function expDoExport(fmt){
+  var objs=Array.from(document.querySelectorAll('#expPickOverlay .exp-obj:checked')).map(function(c){return c.value;});
+  if(!objs.length) return;
+  var url='/export_multi?token='+encodeURIComponent(EXPORT_TOKEN)+'&fmt='+fmt+'&name=selected_export&objs='+encodeURIComponent(objs.join(','));
+  window.location.href=url;
+  var o=document.getElementById('expPickOverlay'); if(o) o.remove();
+}
+// #4/#6: append another FHX (recipe, another unit, etc.) onto the current import,
+// redesigned as a polished drag-and-drop card.
 function openAppend(){
   var tok=(typeof EXPORT_TOKEN!=='undefined')?EXPORT_TOKEN:'';
   if(!tok){ alert('Append needs the current import token, which is unavailable. Re-import the base file and try again.'); return; }
   var ov=document.getElementById('appendOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='appendOverlay'; ov.className='ip-pop-overlay'; document.body.appendChild(ov); }
   ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
-  ov.innerHTML='<div class="ip-pop" style="max-width:520px"><div class="ip-pop-h"><b>Append another FHX</b>'
+  ov.innerHTML='<div class="ip-pop ap-pop"><div class="ip-pop-h"><b>'
+    +'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:-3px;margin-right:5px"><path d="M12 5v14M5 12h14"/></svg>'
+    +'Append another FHX</b>'
     +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'appendOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
-    +'<div style="padding:16px 18px">'
-    +'<p style="margin:0 0 12px;color:var(--ink-2);font-size:13px;line-height:1.5">Merge a second export (for example a recipe) into this one. The current import is kept; the new file is added on top. If an object with the same name already exists, choose what to do with the duplicate.</p>'
-    +'<input type="file" id="appendFile" accept=".fhx" style="display:block;margin-bottom:12px;font-size:13px">'
-    +'<div style="display:flex;gap:14px;margin-bottom:14px;font-size:13px">'
-    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="appendMode" value="skip" checked> Skip duplicates <span style="color:var(--ink-3)">(keep original)</span></label>'
-    +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="appendMode" value="overwrite"> Overwrite <span style="color:var(--ink-3)">(new wins)</span></label>'
+    +'<div class="ap-body">'
+    +'<p class="ap-lead">Merge a second export \\u2014 a recipe, another unit, anything \\u2014 into this session. Your current import is kept; the new objects are added on top.</p>'
+    +'<label class="ap-drop" id="apDrop">'
+    +'<input type="file" id="appendFile" accept=".fhx" onchange="apPicked(this)">'
+    +'<svg class="ap-drop-ico" viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>'
+    +'<div class="ap-drop-t"><b>Choose an FHX file</b> or drop it here</div>'
+    +'<div class="ap-drop-file" id="apDropFile"></div>'
+    +'</label>'
+    +'<div class="ap-modes">'
+    +'<div class="ap-modes-lbl">If an object already exists</div>'
+    +'<label class="ap-mode"><input type="radio" name="appendMode" value="skip" checked><span><b>Skip</b><small>keep the original</small></span></label>'
+    +'<label class="ap-mode"><input type="radio" name="appendMode" value="overwrite"><span><b>Overwrite</b><small>the new one wins</small></span></label>'
     +'</div>'
-    +'<div id="appendStatus" style="font-size:12.5px;color:var(--ink-3);min-height:18px;margin-bottom:10px"></div>'
-    +'<div id="appendBaseWrap" style="display:none;margin-bottom:12px;padding:10px 12px;background:#fff7ed;border:1px solid #fdba74;border-radius:8px">'
-    +'<div style="font-size:12.5px;color:#9a3412;margin-bottom:7px">The original import isn\\'t available on the server anymore (the free host may have restarted). Re-select the <b>base</b> FHX so the merge can proceed \\u2014 you won\\'t lose anything.</div>'
-    +'<input type="file" id="appendBaseFile" accept=".fhx" style="display:block;font-size:13px"></div>'
-    +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="doAppend()">Merge &amp; reload</button>'
+    +'<div id="appendBaseWrap" class="ap-recover" style="display:none">'
+    +'<div class="ap-recover-t">The original import isn\\'t on the server anymore (the free host may have restarted). Re-select the <b>base</b> FHX so the merge can proceed \\u2014 nothing is lost.</div>'
+    +'<input type="file" id="appendBaseFile" accept=".fhx"></div>'
+    +'<div id="appendStatus" class="ap-status"></div>'
+    +'<div class="ap-foot">'
+    +'<button class="exp-btn" onclick="var o=document.getElementById(\\'appendOverlay\\');if(o)o.remove();">Cancel</button>'
+    +'<button class="exp-btn ap-go" onclick="doAppend()">Merge &amp; reload</button>'
+    +'</div>'
     +'</div></div>';
+  var drop=document.getElementById('apDrop');
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('drag');}); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('drag');}); });
+  drop.addEventListener('drop',function(e){ var f=e.dataTransfer.files; if(f&&f.length){ document.getElementById('appendFile').files=f; apPicked(document.getElementById('appendFile')); } });
+}
+function apPicked(inp){
+  var el=document.getElementById('apDropFile');
+  if(inp.files&&inp.files.length){ el.innerHTML='<span class="ap-chip">\\u2713 '+esc(inp.files[0].name)+'</span>'; }
+  else el.textContent='';
 }
 function doAppend(){
   var fi=document.getElementById('appendFile');
@@ -1039,66 +1193,134 @@ function switchView(v){
   }
 }
 // ── Studio: single-object deep view ──────────────────────────────────────────
+// ── Studio: multi-object deep view (phases, EMs, CMs) ──
+var STU={open:null, dock:'right'};  // dock: right | bottom | float
 function stuBuildList(){
   var box=document.getElementById('stuList'); if(!box || box._built) return;
-  var names=(typeof PHASE_NAMES!=='undefined'?PHASE_NAMES:[]).slice().sort();
-  if(!names.length){ box.innerHTML='<div class="stu-empty">No phases in this import.</div>'; return; }
-  box.innerHTML=names.map(function(n){
-    return '<div class="stu-litem" data-ph="'+esc(n)+'" onclick="stuOpen(\\''+esc(n).replace(/'/g,"\\\\'")+'\\')">'
-      +'<span class="ic-badge ic-phase"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5 7.5h5M7.5 5v5" stroke="currentColor" stroke-width="1.4"/></svg></span>'
-      +esc(n)+'</div>';
-  }).join('');
-  box._built=1;
+  box.innerHTML='<div class="stu-empty">'+dvLoader('Loading objects\u2026')+'</div>';
+  fetch('/studio_list?t='+encodeURIComponent(EXPORT_TOKEN))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var groups=d.groups||[];
+      if(!groups.length){ box.innerHTML='<div class="stu-empty">No objects in this import.</div>'; return; }
+      var icons={Phases:'ic-phase','Equipment Modules':'ic-em','Control Modules':'ic-cm'};
+      var h='';
+      groups.forEach(function(g){
+        h+='<div class="stu-grp"><div class="stu-grp-h">'+esc(g.group)+' <span class="stu-grp-n">'+g.items.length+'</span></div>';
+        g.items.forEach(function(it){
+          h+='<div class="stu-litem" data-id="'+esc(it.id)+'" onclick="stuOpen(\\''+esc(it.id).replace(/'/g,"\\\\'")+'\\')">'
+            +'<span class="ic-badge '+(icons[g.group]||'')+'"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>'
+            +esc(it.name)+'</div>';
+        });
+        h+='</div>';
+      });
+      box.innerHTML=h; box._built=1;
+      if(STU.open){ document.querySelectorAll('#stuList .stu-litem').forEach(function(it){ it.classList.toggle('sel', it.dataset.id===STU.open); }); }
+    })
+    .catch(function(e){ box.innerHTML='<div class="stu-empty">Could not load: '+esc(e.message)+'</div>'; });
 }
 function stuFilterList(inp){
   var q=(inp.value||'').toLowerCase();
   document.querySelectorAll('#stuList .stu-litem').forEach(function(it){
-    it.style.display=(!q || it.textContent.toLowerCase().indexOf(q)>=0)?'':'none';
+    var show=(!q || it.textContent.toLowerCase().indexOf(q)>=0);
+    it.style.display=show?'':'none';
+  });
+  document.querySelectorAll('#stuList .stu-grp').forEach(function(g){
+    var any=Array.from(g.querySelectorAll('.stu-litem')).some(function(i){return i.style.display!=='none';});
+    g.style.display=any?'':'none';
   });
 }
-function stuOpen(name){
-  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){ it.classList.toggle('sel', it.dataset.ph===name); });
+function stuOpen(id){
+  STU.open=id;
+  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){ it.classList.toggle('sel', it.dataset.id===id); });
   var main=document.getElementById('stuMain');
-  main.innerHTML='<div class="stu-welcome">'+dvLoader('Opening '+esc(name)+'\u2026')+'</div>';
-  fetch('/studio_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(name))
+  main.innerHTML='<div class="stu-welcome">'+dvLoader('Opening\u2026')+'</div>';
+  fetch('/studio_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(id))
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.error){ main.innerHTML='<div class="stu-welcome"><p class="stu-empty">'+esc(d.error)+'</p></div>'; return; }
-      stuRender(d);
+      d._id=id; stuRender(d);
     })
     .catch(function(e){ main.innerHTML='<div class="stu-welcome"><p class="stu-empty">Could not open: '+esc(e.message)+'</p></div>'; });
 }
 function stuRender(d){
   var c=d.counts||{};
-  var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(d.name);
-  var h=''
-    +'<div class="stu-head"><button class="stu-toggle" onclick="stuToggleSide()" title="Show/hide the phase list">\\u2630</button>'
-    +'<h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'
-    +'<span class="stu-chip">'+(c.params||0)+' parameters</span>'
-    +'<span class="stu-chip">'+(c.attrs||0)+' attributes</span></div>'
-    +'<div class="stu-body">'
-    +'<div class="stu-pane stu-diagram">'
-    +'<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering SFC diagram\u2026')+'</div>'
-    +'<iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe></div>'
-    +'<div class="stu-pane">'
-    +'<div class="stu-tabs">'
-    +'<div class="stu-tab on" data-t="params" onclick="stuTab(this,\\'params\\')">Parameters</div>'
-    +'<div class="stu-tab" data-t="attrs" onclick="stuTab(this,\\'attrs\\')">Attributes</div>'
-    +'<div class="stu-tab" data-t="mon" onclick="stuTab(this,\\'mon\\')">Monitors</div>'
+  var chips=Object.keys(c).map(function(k){return '<span class="stu-chip">'+c[k]+' '+esc(k.toLowerCase())+'</span>';}).join('');
+  // main panel content: phases stream the interactive diagram via iframe; EM/CM embed
+  // their rendered HTML directly.
+  var mainInner;
+  if(d.diagram_url===true){
+    var pn=d._id.indexOf(':')>=0?d._id.split(':')[1]:d._id;
+    var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(pn);
+    mainInner='<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering diagram\u2026')+'</div>'
+      +'<iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
+  } else if(d.diagram_url==='em' || d.diagram_url==='cm'){
+    var dUrl='/studio_diagram?t='+encodeURIComponent(EXPORT_TOKEN)+'&kind='+d.diagram_url+'&n='+encodeURIComponent(d.obj||d.name);
+    mainInner='<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering diagram\u2026')+'</div>'
+      +'<iframe src="'+dUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
+  } else {
+    mainInner='<div class="stu-embed-wrap">'+(d.main||'<div class="stu-empty">No diagram.</div>')+'</div>';
+  }
+  var panels=d.panels||[];
+  var tabs=panels.map(function(p,i){return '<div class="stu-tab'+(i===0?' on':'')+'" data-t="'+esc(p.key)+'" onclick="stuTab(this,\\''+esc(p.key)+'\\')">'+esc(p.label)+'</div>';}).join('');
+  var tabpanels=panels.map(function(p,i){return '<div class="stu-tabpanel'+(i===0?' on':'')+'" data-t="'+esc(p.key)+'">'+(p.html||'')+'</div>';}).join('');
+  var sidePanel = panels.length
+    ? '<div class="stu-side-panel"><div class="stu-tabs">'+tabs
+      +'<span class="stu-dock-btns">'
+      +'<button class="stu-dockb" title="Dock right" onclick="stuDock(\\'right\\')">\\u25e8</button>'
+      +'<button class="stu-dockb" title="Dock bottom" onclick="stuDock(\\'bottom\\')">\\u25e7</button>'
+      +'</span></div>'+tabpanels+'</div>'
+    : '';
+  var h='<div class="stu-head"><button class="stu-toggle" onclick="stuToggleSide()" title="Show / hide the object list">\\u2630</button>'
+    +'<h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'+chips
+    +'<div class="stu-head-sp"></div>'
+    + stuOpenInExplorerBtn(d._id)
     +'</div>'
-    +'<div class="stu-tabpanel on" data-t="params">'+(d.params||'')+'</div>'
-    +'<div class="stu-tabpanel" data-t="attrs">'+(d.attrs||'')+'</div>'
-    +'<div class="stu-tabpanel" data-t="mon">'+(d.monitors||'')+'</div>'
-    +'</div></div>';
+    +'<div class="stu-body stu-dock-'+STU.dock+'">'
+    +'<div class="stu-pane stu-diagram">'+mainInner+'</div>'
+    + (sidePanel ? '<div class="stu-split" id="stuSplit"></div>'+sidePanel : '')
+    +'</div>';
   document.getElementById('stuMain').innerHTML=h;
+  stuWireSplit();
+}
+function stuOpenInExplorerBtn(id){
+  return '<button class="exp-btn" style="padding:5px 10px" onclick="switchView(\\'explorer\\');show(\\''+esc(id)+'\\')" title="Show this object in the Explorer">Open in Explorer</button>';
+}
+function stuTab(el,t){
+  var sp=el.closest('.stu-side-panel');
+  sp.querySelectorAll('.stu-tab').forEach(function(x){x.classList.toggle('on',x===el);});
+  sp.querySelectorAll('.stu-tabpanel').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-t')===t);});
 }
 function stuToggleSide(){
   var shell=document.querySelector('.stu-shell'); if(shell) shell.classList.toggle('side-hidden');
 }
-function stuTab(el,t){
-  var main=document.getElementById('stuMain');
-  main.querySelectorAll('.stu-tab').forEach(function(x){x.classList.toggle('on',x===el);});
-  main.querySelectorAll('.stu-tabpanel').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-t')===t);});
+// dockable side panel: right (default) or bottom
+function stuDock(where){
+  STU.dock=where;
+  var body=document.querySelector('#stuMain .stu-body'); if(!body) return;
+  body.classList.remove('stu-dock-right','stu-dock-bottom');
+  body.classList.add('stu-dock-'+where);
+}
+// draggable splitter between diagram and side panel
+function stuWireSplit(){
+  var split=document.getElementById('stuSplit'); if(!split) return;
+  var body=split.parentElement;
+  split.onmousedown=function(e){
+    e.preventDefault();
+    var horiz=body.classList.contains('stu-dock-right');
+    var rect=body.getBoundingClientRect();
+    function mv(ev){
+      if(horiz){
+        var w=ev.clientX-rect.left; var pct=Math.max(25,Math.min(80,100*w/rect.width));
+        body.style.gridTemplateColumns=pct+'% 5px 1fr';
+      } else {
+        var hh=ev.clientY-rect.top; var pctv=Math.max(25,Math.min(80,100*hh/rect.height));
+        body.style.gridTemplateRows=pctv+'% 5px 1fr';
+      }
+    }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  };
 }
 // ── standalone Recipes workspace (rail view) ──
 // RECWS holds the workspace's data source: by default the Explorer import, replaced
@@ -1533,6 +1755,7 @@ function rpApplyFormula(sel){
   var fvals={}; try{ fvals=JSON.parse(sel.getAttribute('data-fvals')||'{}'); }catch(e){}
   var vals=fvals[sel.value]||{};
   var scope=sel.closest('.card')||document;
+  if(scope.querySelector('.rp-grid.rp-editing')){ return; } // don't stomp an active edit
   scope.querySelectorAll('.rp-grid tbody .rp-row').forEach(function(r){
     var pn=r.getAttribute('data-pname'); var cell=r.querySelector('.rp-valcell'); if(!cell) return;
     if(vals[pn]!==undefined){
@@ -1542,6 +1765,79 @@ function rpApplyFormula(sel){
       cell.innerHTML=up?('<code class="rp-upref">'+esc(up)+'</code> <span class="rp-uparrow">\\u2191 parent</span>'):'<span class="rp-none">\\u2014</span>';
     }
   });
+}
+// ── editing slice: edit the selected formula's values in place, then export a
+// minimal-diff FHX that re-imports into DeltaV (only CV= tokens change). ──
+function rpToggleEdit(btn){
+  var card=btn.closest('.card'); if(!card) return;
+  var grid=card.querySelector('.rp-grid');
+  var sel=card.querySelector('#rpFormula');
+  if(!grid || !sel) return;
+  var editing=grid.classList.toggle('rp-editing');
+  if(editing){
+    btn.innerHTML='\\u2715 Cancel'; btn.classList.add('rp-editbtn-on');
+    // add an Export button next to it
+    if(!card.querySelector('.rp-exportbtn')){
+      var xb=document.createElement('button'); xb.className='exp-btn rp-exportbtn';
+      xb.style.cssText='margin-left:8px;background:var(--accent);color:#fff;border:none';
+      xb.innerHTML='\\u2b07 Export edited FHX'; xb.onclick=function(){ rpExportEdited(card); };
+      btn.parentNode.insertBefore(xb, btn.nextSibling);
+    }
+    // turn each formula-value cell into an input holding the current formula value
+    var fvals={}; try{ fvals=JSON.parse(sel.getAttribute('data-fvals')||'{}'); }catch(e){}
+    var vals=fvals[sel.value]||{};
+    grid.querySelectorAll('tbody .rp-row').forEach(function(r){
+      var pn=r.getAttribute('data-pname'); var cell=r.querySelector('.rp-valcell'); if(!cell) return;
+      // only formula literals are editable (up-refs/deferred values live upstream)
+      if(vals[pn]!==undefined){
+        var cur=String(vals[pn]);
+        cell.innerHTML='<input class="rp-editin" data-orig="'+esc(cur)+'" value="'+esc(cur)+'">';
+      } else {
+        cell.classList.add('rp-noedit');
+      }
+    });
+    // lock the formula selector while editing so values stay consistent
+    sel.disabled=true;
+  } else {
+    rpEndEdit(card, btn, sel);
+  }
+}
+function rpEndEdit(card, btn, sel){
+  var grid=card.querySelector('.rp-grid');
+  grid.classList.remove('rp-editing');
+  btn.innerHTML='\\u270e Edit values'; btn.classList.remove('rp-editbtn-on');
+  var xb=card.querySelector('.rp-exportbtn'); if(xb) xb.remove();
+  card.querySelectorAll('.rp-noedit').forEach(function(c){c.classList.remove('rp-noedit');});
+  sel.disabled=false;
+  rpApplyFormula(sel); // restore the display cells
+}
+function rpExportEdited(card){
+  var sel=card.querySelector('#rpFormula'); if(!sel) return;
+  var recipe=sel.getAttribute('data-recipe')||'';
+  var formula=sel.value;
+  var changes={};
+  card.querySelectorAll('.rp-grid tbody .rp-row').forEach(function(r){
+    var inp=r.querySelector('.rp-editin'); if(!inp) return;
+    var pn=r.getAttribute('data-pname');
+    var orig=inp.getAttribute('data-orig'); var now=inp.value;
+    if(now!==orig) changes[pn]=now;
+  });
+  var n=Object.keys(changes).length;
+  var st=card.querySelector('.rp-editstatus');
+  if(!st){ st=document.createElement('div'); st.className='rp-editstatus'; card.querySelector('.rp-formula-bar').appendChild(st); }
+  if(!n){ st.textContent='No values changed yet.'; return; }
+  st.innerHTML=dvLoader('Building minimal-diff FHX\\u2026');
+  fetch('/recipe_formula_edit',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:(typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''),recipe:recipe,formula:formula,changes:changes})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j.error){ st.textContent='Edit failed: '+j.error; return; }
+      var msg='Applied '+j.applied.length+' change'+(j.applied.length===1?'':'s')
+        +' \\u00b7 '+j.diff_lines+'-line diff from the original';
+      if(j.skipped&&j.skipped.length) msg+=' \\u00b7 skipped: '+j.skipped.join(', ');
+      st.innerHTML=esc(msg)+' <a class="link" href="/recipe_formula_download?t='+encodeURIComponent(j.token)+'&name='+encodeURIComponent(recipe)+'">Download edited FHX \\u2193</a>';
+    })
+    .catch(function(e){ st.textContent='Edit failed: '+e.message; });
 }
 function showAliases(unitName){ navTo({k:'aliases', unit:unitName}); }
 function renderAliases(unitName){
@@ -1637,26 +1933,29 @@ function renderEntry(e){
 // internal sub-sections can each collapse independently. Pure CSS affordance + one
 // delegated handler — works for cards added at any time across ALL object types.
 function makeCardsCollapsible(){
-  // The click delegation + CSS already handle .card and .subcard headers. This pass
-  // ensures nested sections that were rendered as a bare <h4> inside a .card (without
-  // an explicit .subcard wrapper) also collapse: we wrap each such <h4> and its
-  // following siblings up to the next <h4> in a .subcard so the same rules apply.
+  // The click delegation + CSS handle .card / .subcard headers. This pass extends
+  // that to (a) bare <h4> sections inside a .card, and (b) the FBD cards used in CM
+  // diagram views (.fbd-info-card with an <h4>, and .fbd-diagram-card with .fbd-head)
+  // which use a different class structure — so those collapse too (#1).
   try{
-    var scope=document.getElementById('detail'); var scope2=document.getElementById('rdetail');
-    [scope,scope2].forEach(function(root){
+    var roots=[document.getElementById('detail'),document.getElementById('rdetail'),document.getElementById('stuMain')];
+    roots.forEach(function(root){
       if(!root) return;
       root.querySelectorAll('.card').forEach(function(card){
-        // only when a card has 2+ inner h4 sections and none are already wrapped
         var h4s=[]; for(var i=0;i<card.children.length;i++){ if(card.children[i].tagName==='H4') h4s.push(card.children[i]); }
-        if(h4s.length<1) return;
         h4s.forEach(function(h){
-          if(h.parentElement.classList.contains('subcard')) return; // already
+          if(h.parentElement.classList.contains('subcard')) return;
           var sub=document.createElement('div'); sub.className='subcard';
           h.parentNode.insertBefore(sub, h);
           var n=h;
           while(n){ var nx=n.nextSibling; sub.appendChild(n); if(nx && nx.nodeType===1 && nx.tagName==='H4') break; n=nx; }
         });
       });
+      // FBD info-cards: mark collapsible via their <h4>; the delegated handler below
+      // recognises .fbd-collapse just like .subcard.
+      root.querySelectorAll('.fbd-info-card').forEach(function(c){ c.classList.add('fbd-collapse'); });
+      // FBD diagram cards: the .fbd-head is the toggle; body is .fbd-svg-holder.
+      root.querySelectorAll('.fbd-diagram-card').forEach(function(c){ c.classList.add('fbd-collapse'); });
     });
   }catch(e){}
 }
@@ -1726,7 +2025,7 @@ if(!window._ctxWired){
     }
     if(kind==='phase'){
       acts.push(ctxItem('Open phase', function(){ show(id); }));
-      acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen(name); },0); }));
+      acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen(id); },0); }));
       if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN)
         acts.push(ctxItem('Export (.xlsx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=excel&obj='+encodeURIComponent(id); }, {sep:true}));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
@@ -1734,6 +2033,8 @@ if(!window._ctxWired){
     }
     if(kind==='em' || kind==='cm' || kind==='fbtype' || kind==='composite'){
       acts.push(ctxItem('Open', function(){ show(id); }));
+      if(kind==='em' || kind==='cm')
+        acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen(id); },0); }));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
       return acts;
     }
@@ -1825,6 +2126,16 @@ if(!window._cardCollapseWired){
       }
       return;
     }
+    // FBD cards (#1): .fbd-info-card toggles on its <h4>; .fbd-diagram-card on .fbd-head.
+    var fbdCard=t.closest && t.closest('.fbd-collapse');
+    if(fbdCard){
+      var onHead = t.closest('h4') || t.closest('.fbd-head');
+      if(onHead && (onHead.parentElement===fbdCard)){
+        fbdCard.classList.toggle('collapsed');
+        ev.stopPropagation();
+        return;
+      }
+    }
     // a header is a direct h3/h4 child of a .card or .subcard container.
     // Walk up from the click target to find an h3/h4 whose parent is a card/subcard —
     // more robust than closest('.card > h3') (child-combinator in closest is finicky).
@@ -1838,7 +2149,7 @@ if(!window._cardCollapseWired){
       node=node.parentElement;
     }
     if(!hdr) return;
-    if(!hdr.closest('#detail') && !hdr.closest('#rdetail')) return;
+    if(!hdr.closest('#detail') && !hdr.closest('#rdetail') && !hdr.closest('#stuMain')) return;
     hdr.parentElement.classList.toggle('collapsed');
     ev.stopPropagation();
   });
@@ -2745,20 +3056,17 @@ function wireFbdLinks(){
     if export_token:
         ft = html.escape(fname, quote=True)
         tk = html.escape(export_token, quote=True)
+        # The top-banner export now opens a multi-object export picker (see #7) rather
+        # than dumping the whole database; Converter/Append/Settings moved to the rail.
         export_html = (
             f'<div class="hdr-export">'
-            f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=excel&amp;name={ft}" '
-            f'title="Download an Excel workbook generated from this database">{_EXCEL_ICON}Excel</a>'
-            f'<a class="exp-btn" href="/export?token={tk}&amp;fmt=word&amp;name={ft}" '
-            f'title="Download a Word DDS document generated from this database">{_WORD_ICON}Word DDS</a>'
-            f'<a class="exp-btn" href="javascript:void 0" title="Open the FHX Converter wizard" onclick="switchView(\'converter\')">&#9881; Converter</a>'
-            f'<a class="exp-btn" href="javascript:void 0" title="Append another FHX such as a recipe without losing this import" onclick="openAppend()">&#43; Append FHX</a>'
-            f'<a class="exp-btn" href="javascript:void 0" title="Settings" onclick="openSettings()">&#9881; Settings</a>'
+            f'<a class="exp-btn" href="javascript:void 0" onclick="openExportPicker()" '
+            f'title="Choose objects and export them to Excel or Word in one go">{_EXCEL_ICON}Export\u2026</a>'
             f'</div>')
 
     theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)
-    theme_html = (f'<div class="hdr-theme"><label for="iconTheme">Icons</label>'
-                  f'<select id="iconTheme" onchange="skinTree(this.value)">{theme_opts}</select></div>')
+    icon_theme_opts_json = json.dumps(theme_opts)
+    theme_html = ''  # icon selector moved into Settings (was a top-banner dropdown)
     themes_json = json.dumps(_ICON_THEMES)
     tcolors_json = json.dumps(_THEME_COLORS)
 
@@ -2788,6 +3096,12 @@ function wireFbdLinks(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>
     <span class="tip">FHX Converter</span></a>
   <div class="spacer"></div>
+  <a class="rail-btn" id="rb-append" href="javascript:void 0" title="Append another FHX" onclick="openAppend()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+    <span class="tip">Append FHX</span></a>
+  <a class="rail-btn" id="rb-settings" href="javascript:void 0" title="Settings" onclick="openSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    <span class="tip">Settings</span></a>
 </nav>
 <header class="topbar">
   <h1>DeltaV Strategy Workbench</h1><span class="sub">{html.escape(fname)}</span><span class="sub" style="opacity:.6;margin-left:8px" title="Build identifier — confirms which deployment is live">build {_BUILD_ID}</span>
@@ -2808,7 +3122,7 @@ function wireFbdLinks(){
   <div class="stu-shell">
     <div class="stu-side">
       <div class="stu-side-h">Studio</div>
-      <div class="stu-side-sub">Open one object in a focused, multi-panel workspace \u2014 diagram, parameters and algorithm side by side. Phases first.</div>
+      <div class="stu-side-sub">Open one object \u2014 phase, EM or CM \u2014 in a focused, multi-panel workspace. Panels are dockable and the list is hideable.</div>
       <input class="alias-filter" id="stuFilter" placeholder="Filter phases\u2026" oninput="stuFilterList(this)" style="margin:8px 0">
       <div id="stuList"></div>
     </div>
@@ -2837,8 +3151,11 @@ function wireFbdLinks(){
 </div>
 <script>
 const ICON_THEMES={themes_json};
+const _ICON_THEME_OPTS={icon_theme_opts_json};
 const THEME_COLORS={tcolors_json};
 const EXPORT_TOKEN={json.dumps(export_token or "")};
+const _EXCEL_ICON_RAW='<svg viewBox="0 0 16 16" width="13" height="13" style="vertical-align:-2px;margin-right:3px"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" fill="none"/></svg>';
+const _WORD_ICON_RAW='<svg viewBox="0 0 16 16" width="13" height="13" style="vertical-align:-2px;margin-right:3px"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" fill="none"/></svg>';
 function exportBar(obj,name){{
   if(!EXPORT_TOKEN) return '';
   var base='/export?token='+encodeURIComponent(EXPORT_TOKEN)+'&obj='+encodeURIComponent(obj)+'&name='+encodeURIComponent(name);
@@ -2857,7 +3174,7 @@ function skinTree(theme){{
     if(cols&&cols[t]) el.style.color=cols[t];
   }});
   try{{localStorage.setItem('dvexp_icontheme',theme);}}catch(e){{}}
-  var sel=document.getElementById('iconTheme'); if(sel) sel.value=theme;
+  var sel=document.getElementById('set-icontheme'); if(sel) sel.value=theme;
 }}
 (function(){{ try{{ var t=localStorage.getItem('dvexp_icontheme'); if(t&&ICON_THEMES[t]) skinTree(t); }}catch(e){{}} }})();
 const _SUN='<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';

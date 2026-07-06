@@ -364,19 +364,23 @@ def _merge_fhx(base, add, mode='skip'):
             except Exception:
                 pass
 
-    # collect top-level block identities in the base (TYPE + NAME)
+    # collect top-level block identities in the base (TYPE + NAME, and TYPE + TAG for
+    # deployed MODULE_INSTANCE blocks which key off TAG= not NAME=, so appending
+    # another unit or re-appending doesn't duplicate instances).
     def _identities(t):
         ids = set()
         for hm in _re.finditer(r'^([A-Z][A-Z_]+)\s+NAME="([^"]+)"', t, _re.M):
             ids.add((hm.group(1), hm.group(2)))
+        for hm in _re.finditer(r'^([A-Z][A-Z_]+)\s+TAG="([^"]+)"', t, _re.M):
+            ids.add((hm.group(1), 'TAG:' + hm.group(2)))
         return ids
 
     base_ids = _identities(base)
 
     # walk the addition's top-level blocks; skip/allow per dedup
     out_add = []
-    # find each top-level NAMEd block header and its extent
-    headers = list(_re.finditer(r'^([A-Z][A-Z_]+)\s+NAME="([^"]+)"', add_body, _re.M))
+    # find each top-level NAMEd or TAGged block header and its extent
+    headers = list(_re.finditer(r'^([A-Z][A-Z_]+)\s+(NAME|TAG)="([^"]+)"', add_body, _re.M))
     if not headers:
         merged = base.rstrip() + "\n\n" + add_body.lstrip()
         return merged
@@ -385,7 +389,10 @@ def _merge_fhx(base, add, mode='skip'):
     if mode == 'overwrite':
         add_ids = _identities(add_body)
         for (typ, nm) in add_ids:
-            bm = _re.search(r'^' + typ + r'\s+NAME="' + _re.escape(nm) + r'"', base_out, _re.M)
+            if nm.startswith('TAG:'):
+                bm = _re.search(r'^' + typ + r'\s+TAG="' + _re.escape(nm[4:]) + r'"', base_out, _re.M)
+            else:
+                bm = _re.search(r'^' + typ + r'\s+NAME="' + _re.escape(nm) + r'"', base_out, _re.M)
             if bm:
                 try:
                     blk = db_parser.extract_block(base_out, base_out.index('{', bm.start()))
@@ -397,11 +404,12 @@ def _merge_fhx(base, add, mode='skip'):
     idx = 0
     kept = []
     for i, hm in enumerate(headers):
-        typ, nm = hm.group(1), hm.group(2)
+        typ, keyword, nm = hm.group(1), hm.group(2), hm.group(3)
+        ident = (typ, ('TAG:' + nm) if keyword == 'TAG' else nm)
         start = hm.start()
         end = headers[i + 1].start() if i + 1 < len(headers) else len(add_body)
         seg = add_body[start:end]
-        if mode == 'skip' and (typ, nm) in base_ids:
+        if mode == 'skip' and ident in base_ids:
             continue
         kept.append(seg)
     merged = base_out.rstrip() + "\n\n" + "\n".join(kept)
@@ -660,6 +668,55 @@ def em_view():
         return jsonify({'error': _h.escape(str(e))})
 
 
+@app.route('/recipe_formula_edit', methods=['POST'])
+def recipe_formula_edit():
+    """#editing-slice: apply in-place edits to a recipe formula's values and return a
+    minimal-diff FHX for re-import into DeltaV. Body: {token, recipe, formula,
+    changes:{param:value}}. Only the CV= tokens change; everything else is
+    byte-identical to the original export."""
+    data = request.get_json(force=True, silent=True) or {}
+    token = data.get('token', '')
+    recipe = data.get('recipe', '')
+    formula = data.get('formula', '')
+    changes = data.get('changes', {}) or {}
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'}), 410
+    if not changes:
+        return jsonify({'error': 'No changes provided.'}), 400
+    try:
+        import recipe_bridge
+        new_text, applied, skipped = recipe_bridge.edit_formula_values(
+            text, recipe, formula, changes)
+        # stash the edited text so it can be downloaded and counted
+        new_token = _stash_fhx(new_text)
+        # count the diff for the user's confidence
+        import difflib
+        diff_lines = [l for l in difflib.unified_diff(
+            text.splitlines(), new_text.splitlines(), lineterm='')
+            if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))]
+        return jsonify({'token': new_token, 'applied': applied, 'skipped': skipped,
+                        'diff_lines': len(diff_lines)})
+    except Exception as e:
+        app.logger.exception('formula edit failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/recipe_formula_download')
+def recipe_formula_download():
+    """Download the edited FHX (stashed by /recipe_formula_edit) for re-import."""
+    token = request.args.get('t', '')
+    name = re.sub(r'[^A-Za-z0-9_.-]', '_', request.args.get('name', 'edited')) or 'edited'
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'Edited file expired — re-apply the edit.')
+    import io as _io
+    buf = _io.BytesIO(text.encode('utf-8'))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name=name + '_edited.fhx',
+                     mimetype='text/plain')
+
+
 @app.route('/recipe_import', methods=['POST'])
 def recipe_import():
     """Standalone recipe import for the Recipes workspace (like the Converter's own
@@ -822,9 +879,50 @@ def em_sim():
         return Response(f'<p>Could not build EM simulation: {_h.escape(str(e))}</p>', mimetype='text/html')
 
 
+@app.route('/studio_list')
+def studio_list():
+    """Typed list of objects openable in the Studio (phases, EMs, CMs)."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'groups': []})
+    try:
+        import studio_bridge
+        cat = db_parser.parse_database(text)
+        return jsonify({'groups': studio_bridge.studio_object_list(text, cat)})
+    except Exception as e:
+        app.logger.exception('studio_list failed')
+        return jsonify({'groups': [], 'error': str(e)})
+
+
+@app.route('/studio_diagram')
+def studio_diagram():
+    """Serve an EM/CM diagram as a standalone HTML document for the Studio iframe, so
+    the large diagram HTML streams as its own response instead of bloating the JSON
+    payload (same pattern as /phase_view)."""
+    token = request.args.get('t', '')
+    kind = request.args.get('kind', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return Response('<p>Session expired — re-open the export.</p>', mimetype='text/html')
+    try:
+        import studio_bridge
+        if kind == 'em':
+            doc = studio_bridge.build_em_diagram_html(text, name)
+        elif kind == 'cm':
+            doc = studio_bridge.build_cm_diagram_html(text, name)
+        else:
+            doc = '<p>Unknown diagram type.</p>'
+        return Response(doc, mimetype='text/html')
+    except Exception as e:
+        app.logger.exception('studio_diagram failed')
+        return Response(f'<p>Could not build diagram: {e}</p>', mimetype='text/html')
+
+
 @app.route('/studio_view')
 def studio_view():
-    """Build the Studio deep-view payload for one object (phase to start)."""
+    """Build the Studio deep-view payload for one object (phase / em / cm)."""
     token = request.args.get('t', '')
     name = request.args.get('n', '')
     text = _read_stash(token)
@@ -832,7 +930,8 @@ def studio_view():
         return jsonify({'error': 'Session expired — re-open the export.'})
     try:
         import studio_bridge
-        return jsonify(studio_bridge.build_phase_studio(text, name))
+        cat = db_parser.parse_database(text)
+        return jsonify(studio_bridge.build_studio(text, name, cat))
     except Exception as e:
         app.logger.exception('studio_view failed')
         return jsonify({'error': str(e)})
@@ -859,6 +958,45 @@ def phase_view():
     except Exception as e:
         app.logger.exception('phase_view failed')
         return Response(f'<p>Could not build phase view: {_h.escape(str(e))}</p>', mimetype='text/html')
+
+
+@app.route('/export_multi')
+def export_multi():
+    """#7: export several selected objects at once into one Excel/Word file. objs is a
+    comma-separated list of type:name tokens; each is extracted from the stash and the
+    slices are merged, then run through the converter core as a single document."""
+    token = request.args.get('token', '')
+    fmt = request.args.get('fmt', 'excel')
+    objs = [o for o in request.args.get('objs', '').split(',') if o.strip()]
+    text = _read_stash(token)
+    if text is None:
+        abort(404, 'Export source expired — re-open the database to export again.')
+    if not objs:
+        abort(400, 'No objects selected for export.')
+    slices = []
+    for obj in objs:
+        sub = _extract_object_fhx(text, obj)
+        if sub:
+            slices.append(sub)
+    if not slices:
+        abort(404, 'None of the selected objects could be located.')
+    # merge the slices into one FHX (reuse the append merge, skip-dedup on shared libs)
+    merged = slices[0]
+    for s in slices[1:]:
+        merged = _merge_fhx(merged, s, 'skip')
+    fname = re.sub(r'[^A-Za-z0-9_.-]', '_', request.args.get('name', 'export')) or 'export'
+    try:
+        import phase_bridge as _pb
+        ns, _ = _pb._core()
+        ftype = ns['detect_fhx_type'](merged)
+        buf, _sheets = ns['parse_and_build'](merged, ftype, fname, _EXPORT_OPTS, fmt)
+    except Exception as e:
+        abort(500, f'Export failed: {e}')
+    if fmt == 'word':
+        return send_file(buf, as_attachment=True, download_name=fname + '_DDS.docx',
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    return send_file(buf, as_attachment=True, download_name=fname + '.xlsx',
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
 @app.route('/export')

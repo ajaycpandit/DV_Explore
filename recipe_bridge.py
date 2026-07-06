@@ -24,6 +24,48 @@ def _blk(text, start_brace_search_from):
     return db_parser.extract_block(text, text.index('{', start_brace_search_from))
 
 
+def edit_formula_values(text, recipe_name, formula_name, changes):
+    """Minimal-diff write-back of formula parameter values. `changes` is
+    {param_name: new_value}. Only the CV= (or STRING_CV=) token inside the matching
+    ATTRIBUTE_INSTANCE of the named BATCH_RECIPE_FORMULA is replaced — everything else
+    stays byte-identical, so the result is a provable minimal diff of the original
+    export that DeltaV can re-import. Returns (new_text, applied_list, skipped_list)."""
+    # locate the specific formula block
+    applied, skipped = [], []
+    fm = None
+    for m in re.finditer(r'BATCH_RECIPE_FORMULA\s+NAME="([^"]+)"\s+RECIPE="([^"]+)"', text):
+        if m.group(1) == formula_name and m.group(2) == recipe_name:
+            fm = m
+            break
+    if fm is None:
+        return text, [], list(changes.keys())
+    start = text.index('{', fm.start())
+    blk = db_parser.extract_block(text, start)
+    blk_start = start
+    blk_end = start + len(blk)
+    new_blk = blk
+    # for each requested change, rewrite the CV inside that param's ATTRIBUTE_INSTANCE
+    for pname, newval in changes.items():
+        # match the attribute instance for this parameter within the block
+        am = re.search(
+            r'(ATTRIBUTE_INSTANCE\s+NAME="' + re.escape(pname) + r'"\s*\{\s*VALUE\s*\{\s*)'
+            r'(CV=)([^\s}]+)', new_blk)
+        if am:
+            new_blk = new_blk[:am.start(3)] + str(newval) + new_blk[am.end(3):]
+            applied.append(pname)
+            continue
+        sm = re.search(
+            r'(ATTRIBUTE_INSTANCE\s+NAME="' + re.escape(pname) + r'"\s*\{\s*VALUE\s*\{\s*)'
+            r'(STRING_CV=")([^"]*)(")', new_blk)
+        if sm:
+            new_blk = new_blk[:sm.start(3)] + str(newval) + new_blk[sm.end(3):]
+            applied.append(pname)
+            continue
+        skipped.append(pname)
+    new_text = text[:blk_start] + new_blk + text[blk_end:]
+    return new_text, applied, skipped
+
+
 def parse_formulas(text):
     """Parse BATCH_RECIPE_FORMULA blocks — the named value sets (e.g. 'MEDIA AND 20')
     that populate a recipe's parameters with actual literals. Returns
@@ -488,8 +530,13 @@ def build_recipe_html(recipe, known_recipes=None, deferral_map=None, formulas=No
                            for f in formulas)
             h.append('<div class="rp-formula-bar">Formula: <select id="rpFormula" '
                      'data-fvals="' + html.escape(_json.dumps(fvals), quote=True) + '" '
+                     'data-recipe="' + html.escape(recipe.get('name', ''), quote=True) + '" '
                      'onchange="rpApplyFormula(this)">' + opts + '</select>'
-                     '<span class="rp-formula-hint">values shown come from the selected formula</span></div>')
+                     '<span class="rp-formula-hint">values shown come from the selected formula</span>'
+                     '<span style="flex:1"></span>'
+                     '<button class="rp-editbtn" onclick="rpToggleEdit(this)" '
+                     'title="Edit this formula\'s values and export a minimal-diff FHX for re-import">'
+                     '\u270e Edit values</button></div>')
         h.append('<input class="alias-filter" id="rpFilter" placeholder="Filter parameters\u2026" oninput="rpFilterGrid(this)">')
         h.append('<div class="rp-gridwrap"><table class="fbd-table rp-grid"><thead><tr>'
                  '<th>Name</th><th>Type</th><th>Description</th><th>Parameter Value</th>'
@@ -1078,7 +1125,14 @@ RECIPE_CSS = """
 .rp-upref{color:#2563eb}
 .rp-uparrow{font-size:10px;color:#94a3b8;font-weight:600}
 .rp-val{color:#0f766e;font-weight:600}
-.rp-formula-bar{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px;color:#334155}
+.rp-formula-bar{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:12.5px;color:#334155;flex-wrap:wrap}
+.rp-editbtn{background:var(--surface-2,#f1f5f9);border:1px solid var(--border,#e2e8f0);border-radius:7px;padding:5px 11px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink,#16202c)}
+.rp-editbtn:hover{border-color:var(--accent,#2563eb);color:var(--accent,#2563eb)}
+.rp-editbtn-on{background:#fef2f2;border-color:#fca5a5;color:#b91c1c}
+.rp-editin{width:100%;box-sizing:border-box;padding:3px 6px;border:1px solid var(--accent,#2563eb);border-radius:5px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;background:#fffbeb}
+.rp-grid.rp-editing .rp-valcell.rp-noedit{opacity:.5}
+.rp-editstatus{flex-basis:100%;margin-top:6px;font-size:12px;color:var(--ink-2,#475569)}
+.rp-editstatus .link{margin-left:8px;font-weight:600}
 .rp-formula-bar select{background:var(--surface-2,#f1f5f9);color:var(--ink,#16202c);border:1px solid var(--border,#e2e8f0);border-radius:7px;padding:5px 10px;font-size:13px;font-weight:600}
 .def-summary{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
 .rp-formula-hint{font-size:11px;color:#94a3b8}
