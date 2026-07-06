@@ -206,6 +206,16 @@ button{font-family:inherit}
 .ic-em{color:var(--b-em)}.ic-cm{color:var(--b-cm)}.ic-phase{color:var(--b-phase)}.ic-recipe{color:var(--b-recipe)}
 .ic-composite{color:var(--b-composite)}.ic-fbtype{color:var(--b-fbtype)}
 .navchild{padding-left:34px}
+.nav-note{font-size:10.5px;color:var(--ink-3);padding:4px 12px 7px;line-height:1.5;font-style:italic}
+.nav-empty{font-size:11px;color:var(--ink-3);padding:5px 12px 7px 34px;font-style:italic}
+.io-point{align-items:center;gap:6px;font-size:12px}
+.io-point .inst-tag{font-weight:500}
+.io-kind{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px;letter-spacing:.03em;flex:0 0 auto}
+.io-ai{background:#dbeafe;color:#1e40af}
+.io-di{background:#dcfce7;color:#166534}
+.io-ao{background:#fef3c7;color:#92400e}
+.io-do{background:#fce7f3;color:#9d174d}
+.io-arrow{color:var(--ink-3);font-size:11px;flex:0 0 auto}
 .navghost{opacity:.55;cursor:pointer;border:1px dashed transparent}
 .navghost:hover{opacity:.9;background:var(--surface-2)}
 .navghost .inst-cls{font-style:italic}
@@ -602,7 +612,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260706-0352"
+_BUILD_ID = "20260706-0358"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -2620,23 +2630,60 @@ function wireFbdLinks(){
     if ctrls:
         _fold('Physical Network', collapsed=False)
         _ph('Decommissioned Nodes')
+        # #6: Control Network now shows the I/O each control module uses (controller
+        # -> CM -> its field I/O signals), not the CM modules as strategy objects.
+        # The CMs themselves live under Control Strategies (the areas tree above).
+        io_by_ctrl = catalog.get('io_by_controller', {}) or {}
+        total_io = sum(d.get('counts', {}).get('total', 0) for d in io_by_ctrl.values())
         _fold('Control Network', collapsed=False)
+        nav.append('<div class="nav-note">I/O wired by the control modules on each '
+                   'controller. The modules themselves live under Control Strategies.</div>')
         for cn in sorted(ctrls):
+            info = io_by_ctrl.get(cn, {})
+            mods_io = info.get('modules', {})
+            counts = info.get('counts', {})
             sec_id[0] += 1
             cid = f'fold{sec_id[0]}'
+            badge_counts = []
+            for k in ('AI', 'DI', 'AO', 'DO'):
+                if counts.get(k):
+                    badge_counts.append(f'{counts[k]} {k}')
+            csummary = (' \u00b7 ' + ', '.join(badge_counts)) if badge_counts else ' \u00b7 no field I/O'
             nav.append(f'<div class="navfolder navsec-tog" onclick="secToggle(\'{cid}\',this)">'
                        f'<span class="secarrow">\u25be</span> {_nav_badge("ctrl")}'
                        f'<span style="margin-left:2px">{html.escape(cn)}</span>'
-                       f' <span class="navcount">{len(ctrls[cn])}</span></div>')
+                       f' <span class="navcount">{counts.get("total", 0)} I/O</span></div>')
             nav.append(f'<div class="navfoldbody" id="{cid}" style="display:block">')
-            for tag in sorted(ctrls[cn]):
-                d = deployed.get(tag, {})
-                cls = d.get('cls', '')
-                key = 'em' if cls in em_class_names else 'inst'
-                nav.append(f'<div class="navitem navinst" data-tag="{html.escape(tag)}" data-dep="1" '
-                           f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
-                           f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
-                           f'<span class="inst-cls">({html.escape(cls)})</span></div>')
+            if mods_io:
+                for tag in sorted(mods_io):
+                    d = deployed.get(tag, {})
+                    cls = d.get('cls', '')
+                    io = mods_io[tag]
+                    # the CM as a collapsible parent; its I/O points nest under it.
+                    nav.append('<div class="navgroup">')
+                    nav.append(f'<div class="navitem navchild navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                               f'onclick="showDeployed(this.dataset.tag)" '
+                               f'title="{html.escape(tag)} ({html.escape(cls)}) \u2014 {len(io)} I/O point(s)">'
+                               f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
+                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(tag)}</span>'
+                               f'<span class="inst-cls">({len(io)} I/O)</span></div>')
+                    nav.append('<div class="navchildren" style="display:none">')
+                    for pt in io:
+                        arrow = '\u2190' if pt['direction'] == 'in' else '\u2192'
+                        sig_tag = pt['signal_tag']
+                        is_dep = sig_tag in deployed
+                        onclick = (f'onclick="showDeployed(\'{html.escape(sig_tag)}\')"'
+                                   if is_dep else '')
+                        cls_attr = 'navinst' if is_dep else ''
+                        nav.append(f'<div class="navitem navchild2 io-point {cls_attr}" {onclick} '
+                                   f'title="{html.escape(pt["port"])}: {html.escape(pt["signal"])} ({html.escape(pt["class"])})">'
+                                   f'<span class="io-kind io-{pt["kind"].lower()}">{html.escape(pt["kind"])}</span> '
+                                   f'<span class="io-arrow">{arrow}</span> '
+                                   f'<span class="inst-tag">{html.escape(sig_tag)}</span></div>')
+                    nav.append('</div></div>')
+            else:
+                nav.append('<div class="nav-empty">No field I/O wired on this controller '
+                           '(logic-only or peer/EM modules).</div>')
             nav.append('</div>')
         _endfold()  # Control Network
         _endfold()  # Physical Network

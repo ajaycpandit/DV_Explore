@@ -511,6 +511,17 @@ def _render_explore(text, fname):
         app.logger.exception('em member maps failed (non-fatal)')
     catalog['em_member_maps'] = em_member_maps
 
+    # #6: Control Network rebuild — extract the field I/O each CM wires to, so the
+    # Control Network can show controller -> CM -> its I/O signals (DeltaV's real
+    # structure) while the CMs themselves live under Control Strategies.
+    try:
+        import io_bridge
+        catalog['io_by_controller'] = io_bridge.io_summary_by_controller(
+            text, catalog.get('controllers', {}) or {})
+    except Exception:
+        app.logger.exception('io summary failed (non-fatal)')
+        catalog['io_by_controller'] = {}
+
     try:
         html = db_explorer.build_explorer_html(catalog, fname, phase_names=phase_names,
                                                fbd_names=fbd_names, em_names=em_names,
