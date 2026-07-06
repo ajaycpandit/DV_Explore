@@ -114,8 +114,8 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .fn{margin-top:14px;color:var(--link);font-size:13px;text-align:center;word-break:break-all;font-family:'IBM Plex Mono'}
 .prog{margin-top:16px;display:none}
 .prog.on{display:block}
-.prog .bar{height:10px;border-radius:6px;background:var(--border);overflow:hidden;position:relative}
-.prog .fill{height:100%;width:0;border-radius:6px;transition:width .2s ease;background:linear-gradient(90deg,var(--accent),#7c9cff,var(--accent));background-size:200% 100%;animation:dvshimmer 1.6s linear infinite}
+.prog .bar{height:12px;border-radius:8px;background:var(--border);overflow:hidden;position:relative;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
+.prog .fill{height:100%;width:0;border-radius:8px;transition:width .2s ease;background:linear-gradient(90deg,var(--accent),#7c9cff,#a78bfa,var(--accent));background-size:250% 100%;animation:dvshimmer 1.4s linear infinite;box-shadow:0 0 8px rgba(124,124,255,.5)}
 .prog.indet .fill{width:40%;border-radius:6px;animation:dvslide 1.1s ease-in-out infinite,dvshimmer 1.6s linear infinite}
 @keyframes dvslide{0%{margin-left:-40%}100%{margin-left:100%}}
 @keyframes dvshimmer{to{background-position:-200% 0}}
@@ -159,6 +159,27 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 </div>
 <script>
 var fi=document.getElementById('file'),fn=document.getElementById('fn'),btn=document.getElementById('btn');
+// meaningful, moving status during the (signal-less) server parse phase: cycle through
+// the real stages the parser goes through so the wait feels informative, not stuck.
+var _parseTimer=null;
+function startParseStages(plbl){
+  var stages=[
+    'Decoding the FHX export…',
+    'Indexing control modules & EM classes…',
+    'Parsing SFC steps and transitions…',
+    'Resolving instances and I/O wiring…',
+    'Building recipe hierarchy & deferrals…',
+    'Rendering the explorer…'
+  ];
+  var i=0;
+  function tick(){
+    plbl.innerHTML='<span class="pct">Parsing</span> '+stages[Math.min(i,stages.length-1)];
+    i++;
+  }
+  tick();
+  if(_parseTimer) clearInterval(_parseTimer);
+  _parseTimer=setInterval(function(){ if(i>=stages.length){ i=stages.length-1; } tick(); }, 1400);
+}
 fi.addEventListener('change',function(){ if(fi.files.length){fn.textContent=fi.files[0].name;btn.disabled=false;} });
 var drop=document.getElementById('drop');
 ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.style.borderColor='var(--accent)';}));
@@ -181,11 +202,12 @@ document.getElementById('f').addEventListener('submit',function(ev){
       fill.style.width=p+'%'; ppct.textContent=p+'%';
       if(p>=100){ // upload done -> server is now parsing (no granular signal)
         prog.classList.add('indet');
-        plbl.innerHTML='<span class="pct">Parsing</span> the export — this can take a moment for large files…';
+        startParseStages(plbl);
       }
     }
   });
   xhr.addEventListener('load',function(){
+    if(_parseTimer) clearInterval(_parseTimer);
     if(xhr.status===200){
       plbl.innerHTML='<span class="pct">Done</span> — loading explorer…';
       // replace the whole document with the returned explorer HTML
@@ -470,6 +492,24 @@ def _render_explore(text, fname):
         catalog['recipe_children'] = children
     except Exception:
         app.logger.exception('recipe view failed (non-fatal)')
+
+    # #4: resolve each deployed EM instance's member ROLES (e.g. PRESS_INLET_VLV, from
+    # the EM class) to the ACTUAL deployed CM tags (e.g. FP005-HV-001) so the nav tree
+    # can show the real instance under the EM rather than the class-level role name.
+    em_member_maps = {}
+    try:
+        import em_sim_export
+        deployed = catalog.get('deployed_modules', {}) or {}
+        em_class_names = set(catalog.get('em_class_index', {}) or {}) or \
+            set(c.get('name') for c in (catalog.get('em_classes') or []))
+        for tag, d in deployed.items():
+            if d.get('cls') in em_class_names:
+                mm = em_sim_export.instance_member_map(text, tag)
+                if mm:
+                    em_member_maps[tag] = mm
+    except Exception:
+        app.logger.exception('em member maps failed (non-fatal)')
+    catalog['em_member_maps'] = em_member_maps
 
     try:
         html = db_explorer.build_explorer_html(catalog, fname, phase_names=phase_names,

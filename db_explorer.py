@@ -59,7 +59,13 @@ button{font-family:inherit}
 #view-converter{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
 #view-studio{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
 #view-studio.on{display:block}
-.stu-shell{display:grid;grid-template-columns:260px 1fr;height:100%;overflow:hidden}
+.stu-shell{display:grid;grid-template-columns:260px 1fr;height:100%;overflow:hidden;transition:grid-template-columns .18s ease}
+.stu-shell.side-hidden{grid-template-columns:0 1fr}
+.stu-shell.side-hidden .stu-side{opacity:0;pointer-events:none}
+.stu-toggle{background:var(--surface-2);border:1px solid var(--border);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:15px;color:var(--ink-2);display:grid;place-items:center;flex:0 0 auto}
+.stu-toggle:hover{background:var(--accent-soft);color:var(--accent)}
+.stu-diagram{position:relative}
+.stu-diagload{position:absolute;inset:0;display:grid;place-items:center;background:var(--canvas);z-index:2}
 .stu-side{border-right:1px solid var(--border);padding:14px 12px;overflow:auto;background:var(--surface)}
 .stu-side-h{font-size:15px;font-weight:700;color:var(--ink)}
 .stu-side-sub{font-size:11px;color:var(--ink-3);line-height:1.5;margin-top:4px}
@@ -318,6 +324,17 @@ body[data-loader="bars"] .dvload .lv-bars i:nth-child(2){animation-delay:.2s}
 body[data-loader="bars"] .dvload .lv-bars i:nth-child(3){animation-delay:.4s}
 body[data-loader="bars"] .dvload .lv-bars i:nth-child(4){animation-delay:.6s}
 body[data-loader="pulse"] .dvload .lv-pulse{display:inline-block;width:13px;height:13px;border-radius:50%;background:var(--accent);animation:dvpulse 1s ease-in-out infinite}
+body[data-loader="orbit"] .dvload .lv-orbit{display:inline-block;position:relative;width:16px;height:16px}
+body[data-loader="orbit"] .dvload .lv-orbit::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--border)}
+body[data-loader="orbit"] .dvload .lv-orbit::after{content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:var(--accent);top:-1px;left:5px;transform-origin:3px 9px;animation:dvspin .9s linear infinite}
+body[data-loader="rainbow"] .dvload .lv-rainbow{display:inline-block;width:15px;height:15px;border-radius:50%;border:2px solid transparent;background:conic-gradient(from 0deg,#ef4444,#f59e0b,#eab308,#22c55e,#3b82f6,#8b5cf6,#ef4444) border-box;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0);animation:dvspin .8s linear infinite}
+body[data-loader="dotwave"] .dvload .lv-dotwave{display:inline-flex;gap:3px}
+body[data-loader="dotwave"] .dvload .lv-dotwave i{width:7px;height:7px;border-radius:50%;animation:dvbounce 1s ease-in-out infinite}
+body[data-loader="dotwave"] .dvload .lv-dotwave i:nth-child(1){background:#ef4444}
+body[data-loader="dotwave"] .dvload .lv-dotwave i:nth-child(2){background:#3b82f6;animation-delay:.15s}
+body[data-loader="dotwave"] .dvload .lv-dotwave i:nth-child(3){background:#22c55e;animation-delay:.3s}
+body[data-loader="dotwave"] .dvload .lv-dotwave i:nth-child(4){background:#f59e0b;animation-delay:.45s}
+body[data-loader="comet"] .dvload .lv-comet{display:inline-block;width:15px;height:15px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0deg,var(--accent) 300deg,transparent 360deg);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 3px),#000 0);animation:dvspin .7s linear infinite}
 body:not([data-loader]) .dvload .lv-dots,body[data-loader=""] .dvload .lv-dots{display:inline-flex;gap:3px}
 body:not([data-loader]) .dvload .lv-dots i,body[data-loader=""] .dvload .lv-dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:dvbounce 1s ease-in-out infinite}
 @keyframes dvspin{to{transform:rotate(360deg)}}
@@ -585,7 +602,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260705-2029"
+_BUILD_ID = "20260706-0352"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -880,6 +897,10 @@ function dvLoader(label){
     +'<span class="lv lv-ring"></span>'
     +'<span class="lv lv-bars"><i></i><i></i><i></i><i></i></span>'
     +'<span class="lv lv-pulse"></span>'
+    +'<span class="lv lv-orbit"></span>'
+    +'<span class="lv lv-rainbow"></span>'
+    +'<span class="lv lv-dotwave"><i></i><i></i><i></i><i></i></span>'
+    +'<span class="lv lv-comet"></span>'
     +(label?('<span>'+label+'</span>'):'')+'</span>';
 }
 function applySettings(){
@@ -911,7 +932,7 @@ function openSettings(){
     +'<div style="display:flex;align-items:center;gap:12px">'
     +'<span id="loaderPreview" style="min-width:70px">'+dvLoader('')+'</span>'
     +'<select id="set-loader" onchange="document.body.setAttribute(\\'data-loader\\',this.value)">'
-    +['dots','ring','bars','pulse'].map(function(x){return '<option value="'+x+'"'+(x===APP_SETTINGS.loader?' selected':'')+'>'+x.charAt(0).toUpperCase()+x.slice(1)+'</option>';}).join('')
+    +['dots','ring','bars','pulse','orbit','rainbow','dotwave','comet'].map(function(x){return '<option value="'+x+'"'+(x===APP_SETTINGS.loader?' selected':'')+'>'+x.charAt(0).toUpperCase()+x.slice(1)+(['rainbow','dotwave','comet'].indexOf(x)>=0?' \\u2728':'')+'</option>';}).join('')
     +'</select></div></div>'
     +'<div style="display:flex;gap:8px;margin-top:16px">'
     +'<button class="exp-btn" style="background:var(--accent);color:#fff;border:none" onclick="saveSettings()">Apply</button>'
@@ -1041,11 +1062,14 @@ function stuRender(d){
   var c=d.counts||{};
   var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(d.name);
   var h=''
-    +'<div class="stu-head"><h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'
+    +'<div class="stu-head"><button class="stu-toggle" onclick="stuToggleSide()" title="Show/hide the phase list">\\u2630</button>'
+    +'<h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'
     +'<span class="stu-chip">'+(c.params||0)+' parameters</span>'
     +'<span class="stu-chip">'+(c.attrs||0)+' attributes</span></div>'
     +'<div class="stu-body">'
-    +'<div class="stu-pane stu-diagram"><iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram"></iframe></div>'
+    +'<div class="stu-pane stu-diagram">'
+    +'<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering SFC diagram\u2026')+'</div>'
+    +'<iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe></div>'
     +'<div class="stu-pane">'
     +'<div class="stu-tabs">'
     +'<div class="stu-tab on" data-t="params" onclick="stuTab(this,\\'params\\')">Parameters</div>'
@@ -1057,6 +1081,9 @@ function stuRender(d){
     +'<div class="stu-tabpanel" data-t="mon">'+(d.monitors||'')+'</div>'
     +'</div></div>';
   document.getElementById('stuMain').innerHTML=h;
+}
+function stuToggleSide(){
+  var shell=document.querySelector('.stu-shell'); if(shell) shell.classList.toggle('side-hidden');
 }
 function stuTab(el,t){
   var main=document.getElementById('stuMain');
@@ -1689,6 +1716,7 @@ if(!window._ctxWired){
     }
     if(kind==='phase'){
       acts.push(ctxItem('Open phase', function(){ show(id); }));
+      acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen(name); },0); }));
       if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN)
         acts.push(ctxItem('Export (.xlsx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=excel&obj='+encodeURIComponent(id); }, {sep:true}));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
@@ -2313,6 +2341,7 @@ function wireFbdLinks(){
             key = 'em' if is_em else 'inst'
             child_iids = parent_instances.get(cls, []) if is_em else []
             if child_iids:
+                _mmap = (catalog.get('em_member_maps', {}) or {}).get(tag, {})
                 nav.append('<div class="navgroup">')
                 nav.append(f'<div class="navitem {_ncls(lvl + 1)} navinst" data-tag="{html.escape(tag)}" data-dep="1" '
                            f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
@@ -2325,12 +2354,24 @@ function wireFbdLinks(){
                     itag, icls = ins.get('tag', ''), ins.get('cls', '')
                     own = (ins.get('ownership') or '').upper()
                     own_ico = _ownership_nav_ico(own)
-                    nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
-                               f'data-parent="{html.escape(cls)}" data-tag="{html.escape(itag)}" '
-                               f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
-                               f'title="{html.escape(itag)} (instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
-                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>{own_ico}'
-                               f'<span class="inst-cls">({html.escape(icls)})</span></div>')
+                    # #4: resolve the member role (itag, e.g. PRESS_INLET_VLV, defined on
+                    # the EM class) to the ACTUAL deployed module tag (FP005-HV-001) via
+                    # this EM instance's member map, and open that real instance.
+                    real = _mmap.get(itag)
+                    if real:
+                        nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
+                                   f'data-tag="{html.escape(real)}" data-dep="1" data-role="{html.escape(itag)}" '
+                                   f'onclick="showDeployed(this.dataset.tag, this.dataset.role)" '
+                                   f'title="{html.escape(real)} ({html.escape(itag)} \u2014 instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
+                                   f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(real)}</span>{own_ico}'
+                                   f'<span class="inst-cls">({html.escape(itag)})</span></div>')
+                    else:
+                        nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
+                                   f'data-parent="{html.escape(cls)}" data-tag="{html.escape(itag)}" '
+                                   f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
+                                   f'title="{html.escape(itag)} (instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
+                                   f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>{own_ico}'
+                                   f'<span class="inst-cls">({html.escape(icls)})</span></div>')
                 nav.append('</div></div>')
             else:
                 nav.append(f'<div class="navitem {_ncls(lvl + 1)} navinst" data-tag="{html.escape(tag)}" data-dep="1" '
