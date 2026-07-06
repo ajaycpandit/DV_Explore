@@ -66,14 +66,17 @@ button{font-family:inherit}
 .stu-litem{padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:7px}
 .stu-litem:hover{background:var(--surface-2)}
 .stu-litem.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
-.stu-main{overflow:hidden;display:flex;flex-direction:column}
+.stu-main{overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
+.stu-side{border-right:1px solid var(--border);padding:14px 12px;overflow:auto;background:var(--surface);min-height:0}
 .stu-welcome{padding:26px}
 .stu-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .stu-head h2{margin:0;font-size:17px}
 .stu-kind{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:20px}
 .stu-chip{font-size:11px;font-weight:600;background:var(--surface-2);color:var(--ink-2);padding:3px 9px;border-radius:20px}
-.stu-body{flex:1;display:grid;grid-template-columns:1.35fr 1fr;grid-template-rows:1fr;overflow:hidden}
-.stu-pane{overflow:auto;padding:0}
+.stu-body{flex:1 1 auto;display:grid;grid-template-columns:1.35fr 1fr;grid-template-rows:minmax(0,1fr);overflow:hidden;min-height:0}
+.stu-pane{overflow:auto;padding:0;min-height:0;min-width:0}
+.stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff;overflow:hidden;display:flex}
+.stu-diagram iframe{flex:1 1 auto;width:100%;height:100%;border:0;display:block;min-height:0}
 .stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff}
 .stu-diagram iframe{width:100%;height:100%;border:0;display:block}
 .stu-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--canvas);z-index:2}
@@ -87,7 +90,7 @@ button{font-family:inherit}
 .stu-grid .stu-desc{color:var(--ink-2);max-width:280px}
 .stu-empty{color:var(--ink-3);font-size:12.5px;padding:14px 4px}
 .stu-split{cursor:col-resize;width:5px;background:transparent}
-@media(max-width:1100px){.stu-body{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
+@media(max-width:1100px){.stu-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}.stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
 #view-converter.on{display:block}
 #convFrame{width:100%;height:100%;border:0;display:block}
 #view-recipes{position:fixed;left:60px;top:0;right:0;bottom:0;display:none;z-index:7;background:var(--canvas)}
@@ -582,7 +585,7 @@ def _nav_badge(key):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260705-2016"
+_BUILD_ID = "20260705-2029"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
