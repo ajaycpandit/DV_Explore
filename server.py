@@ -526,9 +526,22 @@ def _render_explore(text, fname):
         import io_bridge
         catalog['io_by_controller'] = io_bridge.io_summary_by_controller(
             text, catalog.get('controllers', {}) or {})
+        catalog['io_flat'] = io_bridge.flat_io_signals(
+            text, catalog.get('controllers', {}) or {},
+            catalog.get('module_controller', {}) or {})
     except Exception:
         app.logger.exception('io summary failed (non-fatal)')
         catalog['io_by_controller'] = {}
+        catalog['io_flat'] = []
+
+    # cross-reference index: where each tag is referenced in other modules' logic
+    # (built once, one pass; member-of relationships already in class_used_by).
+    try:
+        import xref_bridge
+        catalog['logic_xref'] = xref_bridge.build_logic_xref(text)
+    except Exception:
+        app.logger.exception('logic xref failed (non-fatal)')
+        catalog['logic_xref'] = {}
 
     try:
         html = db_explorer.build_explorer_html(catalog, fname, phase_names=phase_names,

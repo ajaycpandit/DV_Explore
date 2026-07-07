@@ -276,6 +276,20 @@ button{font-family:inherit}
 .io-ao{background:#fef3c7;color:#92400e}
 .io-do{background:#fce7f3;color:#9d174d}
 .io-arrow{color:var(--ink-3);font-size:11px;flex:0 0 auto}
+.io-open{cursor:pointer}
+.io-tbl-tools{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.io-tbl-tools select{background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12.5px}
+.io-tbl-count{font-size:12px;color:var(--ink-3)}
+.io-tbl td{vertical-align:middle}
+.io-dir{font-size:11px;color:var(--ink-3);white-space:nowrap}
+.ref-card h4{margin:12px 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3)}
+.ref-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ref-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:4px 11px;font-size:12.5px;cursor:pointer}
+.ref-chip:hover{border-color:var(--accent);color:var(--accent)}
+.ref-chip.ref-nolink{cursor:default;opacity:.75}
+.ref-chip.ref-nolink:hover{border-color:var(--border);color:inherit}
+.ref-role{color:var(--ink-3);font-size:11px}
+.ref-cnt{color:var(--ink-3);font-size:11px;font-weight:600}
 .navghost{opacity:.55;cursor:pointer;border:1px dashed transparent}
 .navghost:hover{opacity:.9;background:var(--surface-2)}
 .navghost .inst-cls{font-style:italic}
@@ -686,7 +700,7 @@ def _nav_badge(key, own=None):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260706-2145"
+_BUILD_ID = "20260707-0336"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -750,6 +764,8 @@ def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_
                             'unit_ems': catalog.get('unit_ems', {}),
                             'em_cms': catalog.get('em_cms', {}),
                             'used_by': catalog.get('class_used_by', {}),
+                            'logic_xref': catalog.get('logic_xref', {}),
+                            'io_flat': catalog.get('io_flat', []),
                             'instances': catalog.get('instances', {}),
                             'parent_instances': catalog.get('parent_instances', {}),
                             'unit_instances': catalog.get('unit_instances', {}),
@@ -1983,6 +1999,8 @@ function renderEntry(e){
     else if(e.k==='dep') renderDeployed(e.tag, e.role);
     else if(e.k==='emmember') renderEmMember(e.em,e.member,e.cls);
     else if(e.k==='aliases') renderAliases(e.unit);
+    else if(e.k==='iotable') renderIoTable(e.ctrl);
+    else if(e.k==='references') renderReferences(e.tag);
     else if(e.k==='rstep') renderRecipeStep(e.parent, e.step, e.layer);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
@@ -2100,11 +2118,13 @@ if(!window._ctxWired){
           acts.push(ctxItem('Export (.docx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=word&obj='+encodeURIComponent(id); }));
         }
       }
+      acts.push(ctxItem('Find references', function(){ showReferences(name); }));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
       return acts;
     }
     if(tag){
       acts.push(ctxItem('Open instance', function(){ if(typeof showDeployed==='function') showDeployed(tag); }));
+      acts.push(ctxItem('Find references', function(){ showReferences(tag); }));
       acts.push(ctxItem('Copy tag', function(){ ctxCopy(tag); }, {sep:true}));
       return acts;
     }
@@ -2346,6 +2366,95 @@ function lazyFbd(name){
     })
     .catch(function(){ if(box) box.innerHTML='<h3>Detail</h3><span class="empty">Could not load diagram.</span>'; });
 }
+// ── flat I/O signal table (Control Network) ──
+function showIoTable(ctrlFilter){ navTo({k:'iotable', ctrl:ctrlFilter||''}); }
+function renderIoTable(ctrlFilter){
+  var d=document.getElementById('detail'); if(!d) return;
+  var rows=(DB.io_flat||[]);
+  var h='<h2 class="dt">I/O Signals <span class="dt-type b-ctrl">Control Network</span></h2>';
+  h+='<p class="dt-desc">Every field signal wired by a control module \\u2014 flat and filterable. '
+    +'Click a signal or module to jump to it; right-click for references.</p>';
+  h+='<div class="card" style="max-width:none">';
+  h+='<div class="io-tbl-tools">'
+    +'<input class="alias-filter" id="ioFilter" placeholder="Filter by tag, module, controller\\u2026" oninput="ioTblFilter()">'
+    +'<select id="ioKindFilter" onchange="ioTblFilter()"><option value="">All types</option>'
+    +'<option value="DI">DI</option><option value="DO">DO</option>'
+    +'<option value="AI">AI</option><option value="AO">AO</option></select>'
+    +'<span class="io-tbl-count" id="ioTblCount"></span></div>';
+  h+='<table class="fbd-table io-tbl" id="ioTbl"><thead><tr>'
+    +'<th>Type</th><th>Dir</th><th>Signal tag</th><th>Used by (module)</th><th>Controller</th><th>Port</th>'
+    +'</tr></thead><tbody>';
+  rows.forEach(function(r){
+    var arrow=r.direction==='in'?'\\u2190 read':'\\u2192 write';
+    var sigDep=(DB.deployed_modules&&DB.deployed_modules[r.signal_tag]);
+    var sigCell=sigDep?('<span class="link" onclick="showDeployed(\\''+esc(r.signal_tag)+'\\')">'+esc(r.signal_tag)+'</span>'):('<code>'+esc(r.signal_tag)+'</code>');
+    var modDep=(DB.deployed_modules&&DB.deployed_modules[r.module]);
+    var modCell=modDep?('<span class="link" onclick="showDeployed(\\''+esc(r.module)+'\\')" oncontextmenu="ioCtx(event,\\''+esc(r.module)+'\\')">'+esc(r.module)+'</span>'):('<code>'+esc(r.module)+'</code>');
+    h+='<tr class="io-trow" data-search="'+esc((r.signal_tag+' '+r.module+' '+r.controller+' '+r.kind).toLowerCase())+'" data-kind="'+esc(r.kind)+'">'
+      +'<td><span class="io-kind io-'+esc(r.kind.toLowerCase())+'">'+esc(r.kind)+'</span></td>'
+      +'<td class="io-dir">'+arrow+'</td>'
+      +'<td>'+sigCell+'</td>'
+      +'<td>'+modCell+'</td>'
+      +'<td>'+esc(r.controller)+'</td>'
+      +'<td><code>'+esc(r.port)+'</code></td></tr>';
+  });
+  h+='</tbody></table></div>';
+  d.innerHTML=h; d.scrollTop=0;
+  if(ctrlFilter){ var f=document.getElementById('ioFilter'); f.value=ctrlFilter; }
+  ioTblFilter();
+}
+function ioTblFilter(){
+  var q=(document.getElementById('ioFilter').value||'').toLowerCase();
+  var k=(document.getElementById('ioKindFilter').value||'');
+  var n=0, tot=0;
+  document.querySelectorAll('#ioTbl tbody .io-trow').forEach(function(tr){
+    tot++;
+    var show=(!q || tr.getAttribute('data-search').indexOf(q)>=0) && (!k || tr.getAttribute('data-kind')===k);
+    tr.style.display=show?'':'none'; if(show) n++;
+  });
+  var c=document.getElementById('ioTblCount'); if(c) c.textContent=n+' of '+tot+' signals';
+}
+// right-click a module in the I/O table -> jump to its references
+function ioCtx(e, tag){ e.preventDefault(); showReferences(tag); }
+
+// ── references: where a tag/class is used (member-of + logic refs) ──
+function refCardHTML(tag){
+  var usedBy=(DB.used_by&&DB.used_by[tag])||[];
+  var logic=(DB.logic_xref&&DB.logic_xref[tag])||[];
+  if(!usedBy.length && !logic.length) return '';
+  var h='<div class="card ref-card"><h3>References <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 where this is used</span></h3>';
+  if(usedBy.length){
+    h+='<h4>Used as a member by ('+usedBy.length+')</h4><div class="ref-chips">';
+    usedBy.forEach(function(u){
+      h+='<span class="ref-chip" onclick="show(\\'em:'+esc(u.parent)+'\\')" title="member role: '+esc(u.instance||'')+'">'
+        +'<span class="ic-badge ic-em" style="width:14px;height:14px"></span>'+esc(u.parent)
+        +(u.instance?(' <span class="ref-role">\\u00b7 '+esc(u.instance)+'</span>'):'')+'</span>';
+    });
+    h+='</div>';
+  }
+  if(logic.length){
+    h+='<h4>Referenced in logic by ('+logic.length+')</h4><div class="ref-chips">';
+    logic.forEach(function(r){
+      var jump = (DB.deployed_modules&&DB.deployed_modules[r.owner]) ? ('showDeployed(\\''+esc(r.owner)+'\\')')
+        : (DB.objs&&DB.objs['cm:'+r.owner]) ? ('show(\\'cm:'+esc(r.owner)+'\\')')
+        : (DB.objs&&DB.objs['em:'+r.owner]) ? ('show(\\'em:'+esc(r.owner)+'\\')') : '';
+      h+='<span class="ref-chip'+(jump?'':' ref-nolink')+'"'+(jump?(' onclick="'+jump+'"'):'')+' title="'+r.count+' reference(s)">'
+        +esc(r.owner)+' <span class="ref-cnt">\\u00d7'+r.count+'</span></span>';
+    });
+    h+='</div>';
+  }
+  h+='</div>';
+  return h;
+}
+function showReferences(tag){ navTo({k:'references', tag:tag}); }
+function renderReferences(tag){
+  var d=document.getElementById('detail'); if(!d) return;
+  var card=refCardHTML(tag);
+  var h='<h2 class="dt">'+esc(tag)+' <span class="dt-type b-composite">References</span> '
+    +'<span class="link" onclick="showTag(\\''+esc(tag)+'\\')">open object \\u2192</span></h2>';
+  h+=card||'<div class="card"><span class="empty">No references found for this tag \\u2014 it isn\\'t used as a member and isn\\'t referenced in any module\\'s logic.</span></div>';
+  d.innerHTML=h; d.scrollTop=0;
+}
 function showParam(name){ if(PARAM_INDEX[name]) navTo({k:'param',name:name}); }
 function showInst(parent,tag){ var iid=parent+'\\u0001'+tag; if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); }
 function showDeployed(tag, roleAlias){ if(DB.deployed_modules&&DB.deployed_modules[tag]) navTo({k:'dep',tag:tag,role:roleAlias||''}); }
@@ -2489,6 +2598,7 @@ function renderDeployed(tag, roleAlias){
     h+='<div class="card" style="max-width:none" id="instSimCard"><h3>Command simulator <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 walk a command with this instance\\'s devices</span></h3><div class="empty" id="instSimList">Loading commands\\u2026</div></div>';
     h+='<div class="card" id="instMembers"><h3>Control modules <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 this instance\\'s wired devices</span></h3><div class="empty" id="instMembersList">Loading\\u2026</div></div>';
   }
+  h+=refCardHTML(tag);
   var dd2=document.getElementById('detail'); dd2.innerHTML=h; dd2.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
   // fetch this instance's FBD (falls back to class diagram if the instance has none)
   lazyInstDiagram(d);
@@ -3006,61 +3116,25 @@ function wireFbdLinks(){
     if ctrls:
         _fold('Physical Network', collapsed=False)
         _ph('Decommissioned Nodes')
-        # #6: Control Network now shows the I/O each control module uses (controller
-        # -> CM -> its field I/O signals), not the CM modules as strategy objects.
-        # The CMs themselves live under Control Strategies (the areas tree above).
-        io_by_ctrl = catalog.get('io_by_controller', {}) or {}
-        total_io = sum(d.get('counts', {}).get('total', 0) for d in io_by_ctrl.values())
+        # Control Network: a flat, filterable I/O signal table (no CM grouping — that
+        # would duplicate Control Strategies). Clicking opens the full table in the
+        # detail pane; the nav shows a per-controller signal count.
+        io_flat = catalog.get('io_flat', []) or []
         _fold('Control Network', collapsed=False)
-        nav.append('<div class="nav-note">I/O wired by the control modules on each '
-                   'controller. The modules themselves live under Control Strategies.</div>')
-        for cn in sorted(ctrls):
-            info = io_by_ctrl.get(cn, {})
-            mods_io = info.get('modules', {})
-            counts = info.get('counts', {})
-            sec_id[0] += 1
-            cid = f'fold{sec_id[0]}'
-            badge_counts = []
-            for k in ('AI', 'DI', 'AO', 'DO'):
-                if counts.get(k):
-                    badge_counts.append(f'{counts[k]} {k}')
-            csummary = (' \u00b7 ' + ', '.join(badge_counts)) if badge_counts else ' \u00b7 no field I/O'
-            nav.append(f'<div class="navfolder navsec-tog" onclick="secToggle(\'{cid}\',this)">'
-                       f'<span class="secarrow">\u25be</span> {_nav_badge("ctrl")}'
-                       f'<span style="margin-left:2px">{html.escape(cn)}</span>'
-                       f' <span class="navcount">{counts.get("total", 0)} I/O</span></div>')
-            nav.append(f'<div class="navfoldbody" id="{cid}" style="display:block">')
-            if mods_io:
-                for tag in sorted(mods_io):
-                    d = deployed.get(tag, {})
-                    cls = d.get('cls', '')
-                    io = mods_io[tag]
-                    # the CM as a collapsible parent; its I/O points nest under it.
-                    nav.append('<div class="navgroup">')
-                    nav.append(f'<div class="navitem navchild navinst" data-tag="{html.escape(tag)}" data-dep="1" '
-                               f'onclick="showDeployed(this.dataset.tag)" '
-                               f'title="{html.escape(tag)} ({html.escape(cls)}) \u2014 {len(io)} I/O point(s)">'
-                               f'<span class="tog" onclick="toggle(this,event)">\u25b8</span>'
-                               f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(tag)}</span>'
-                               f'<span class="inst-cls">({len(io)} I/O)</span></div>')
-                    nav.append('<div class="navchildren" style="display:none">')
-                    for pt in io:
-                        arrow = '\u2190' if pt['direction'] == 'in' else '\u2192'
-                        sig_tag = pt['signal_tag']
-                        is_dep = sig_tag in deployed
-                        onclick = (f'onclick="showDeployed(\'{html.escape(sig_tag)}\')"'
-                                   if is_dep else '')
-                        cls_attr = 'navinst' if is_dep else ''
-                        nav.append(f'<div class="navitem navchild2 io-point {cls_attr}" {onclick} '
-                                   f'title="{html.escape(pt["port"])}: {html.escape(pt["signal"])} ({html.escape(pt["class"])})">'
-                                   f'<span class="io-kind io-{pt["kind"].lower()}">{html.escape(pt["kind"])}</span> '
-                                   f'<span class="io-arrow">{arrow}</span> '
-                                   f'<span class="inst-tag">{html.escape(sig_tag)}</span></div>')
-                    nav.append('</div></div>')
-            else:
-                nav.append('<div class="nav-empty">No field I/O wired on this controller '
-                           '(logic-only or peer/EM modules).</div>')
-            nav.append('</div>')
+        nav.append('<div class="nav-note">Every field I/O signal, flat and filterable. '
+                   'The control modules themselves live under Control Strategies.</div>')
+        nav.append(f'<div class="navitem navchild io-open" onclick="showIoTable()" '
+                   f'title="Open the full I/O signal table">'
+                   f'{_nav_badge("ctrl")}<span class="inst-tag">All I/O signals</span>'
+                   f'<span class="inst-cls">({len(io_flat)})</span></div>')
+        from collections import Counter as _Counter
+        by_ctrl = _Counter(r['controller'] for r in io_flat)
+        for cn in sorted(by_ctrl):
+            nav.append(f'<div class="navitem navchild2 io-open" '
+                       f'onclick="showIoTable({html.escape(json.dumps(cn), quote=True)})" '
+                       f'title="Open I/O for {html.escape(cn)}">'
+                       f'\u2937 <span class="inst-tag">{html.escape(cn)}</span>'
+                       f'<span class="inst-cls">({by_ctrl[cn]})</span></div>')
         _endfold()  # Control Network
         _endfold()  # Physical Network
     else:

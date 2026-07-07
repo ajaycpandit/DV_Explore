@@ -68,6 +68,36 @@ def io_by_module(text, tags=None):
     return out
 
 
+def flat_io_signals(text, controllers=None, module_controller=None):
+    """Flat list of every field I/O signal wired by any module, one row per signal:
+    [{signal, signal_tag, kind, direction, module, controller}]. This is the flat
+    Control Network view (no CM grouping) — each physical signal with the CM that
+    uses it as a column, filterable/sortable in the UI."""
+    mod_ctrl = dict(module_controller or {})
+    if controllers and not mod_ctrl:
+        for cn, tags in controllers.items():
+            for t in tags:
+                mod_ctrl[t] = cn
+    io_map = io_by_module(text)
+    rows = []
+    for mod, io in io_map.items():
+        ctrl = mod_ctrl.get(mod, '')
+        for pt in io:
+            kind = pt['kind']
+            if kind == '?' or not kind:
+                # no CLASS token — infer coarse direction label from the port name
+                kind = 'DO' if pt['direction'] == 'out' else 'DI'
+            rows.append({
+                'signal': pt['signal'], 'signal_tag': pt['signal_tag'],
+                'kind': kind, 'direction': pt['direction'],
+                'port': pt['port'], 'module': mod,
+                'controller': ctrl or '(unassigned)',
+                'class': pt['class'],
+            })
+    rows.sort(key=lambda r: (r['controller'], r['signal_tag']))
+    return rows
+
+
 def io_summary_by_controller(text, controllers, module_controller=None):
     """Aggregate I/O per controller: {controller: {'modules': {tag: [io...]},
     'counts': {'AI':n,'DI':n,'AO':n,'DO':n,'other':n,'total':n}}}. Only modules that
