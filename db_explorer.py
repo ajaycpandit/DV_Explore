@@ -192,6 +192,27 @@ button{font-family:inherit}
 .topbar h1{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
 .topbar .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+/* #1: top-banner command palette (quick name-jump across all objects) */
+.cmdp-wrap{flex:1;display:flex;justify-content:center;position:relative;min-width:0}
+.cmdp-box{width:min(360px,42vw);display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:8px;cursor:text;transition:border-color .12s}
+.cmdp-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cmdp-box .cmdp-ico{font-size:14px;color:var(--ink-3);flex:0 0 auto}
+.cmdp-box input{flex:1;border:none;background:transparent;outline:none;font-size:13px;color:var(--ink);min-width:0}
+.cmdp-box input::placeholder{color:var(--ink-3)}
+.cmdp-kbd{font-size:11px;color:var(--ink-3);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-family:'IBM Plex Mono';flex:0 0 auto}
+.cmdp-pop{position:absolute;top:40px;width:min(400px,60vw);max-height:60vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 12px 40px rgba(15,23,42,.28);z-index:60;display:none}
+.cmdp-hint{padding:6px 12px;font-size:11px;color:var(--ink-3);border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.cmdp-item{display:flex;align-items:center;gap:10px;padding:8px 12px;cursor:pointer}
+.cmdp-item:hover,.cmdp-item.act{background:var(--accent-soft)}
+.cmdp-badge{font-size:10px;font-weight:600;color:#fff;border-radius:20px;padding:2px 8px;min-width:38px;text-align:center;flex:0 0 auto}
+.cmdp-nm{flex:1;min-width:0;overflow:hidden}
+.cmdp-nm .cn{font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmdp-nm .cs{font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmdp-item mark{background:#fde68a;color:#7c4a03;border-radius:2px;padding:0 1px}
+.cmdp-enter{font-size:13px;color:var(--accent);flex:0 0 auto;opacity:0}
+.cmdp-item.act .cmdp-enter{opacity:1}
+.cmdp-empty{padding:14px 12px;font-size:12.5px;color:var(--ink-3)}
+@media(max-width:900px){.cmdp-wrap{display:none}}
 .hdr-theme{display:flex;align-items:center;gap:7px}
 .hdr-theme label{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .hdr-theme select{background:var(--surface-2);color:var(--ink);border:1px solid var(--border);border-radius:8px;
@@ -363,6 +384,24 @@ body[data-density="compact"] .kv{gap:3px 12px}
 .ip-pop-x:hover{color:var(--ink)}
 .ip-pop-meta{padding:8px 18px 0;color:var(--ink-3);font-size:12px}
 .ip-pop-val{margin:8px 18px 18px;padding:12px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;font:13px 'IBM Plex Mono';white-space:pre-wrap;word-break:break-word;color:#16202c}
+/* floating reference-uses card — non-modal, draggable */
+.ruse-card{position:fixed;z-index:10000;width:520px;max-width:92vw;max-height:70vh;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 18px 55px rgba(0,0,0,.32);overflow:hidden}
+.ruse-h{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:move;background:var(--surface-2);user-select:none}
+.ruse-h b{font-size:13px;color:var(--ink)}
+.ruse-h .ruse-sub{font-size:11.5px;color:var(--ink-3);font-weight:400}
+.ruse-x{margin-left:auto;cursor:pointer;font-size:20px;line-height:1;color:var(--ink-3)}
+.ruse-x:hover{color:var(--ink)}
+.ruse-body{overflow:auto;padding:10px 14px 14px}
+.ruse-item{border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin:9px 0;background:var(--canvas)}
+.ruse-ctx{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.ruse-crumb{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:20px}
+.ruse-crumb .rc-kind{opacity:.7;font-weight:500;margin-right:3px}
+.ruse-desc{font-size:12px;color:var(--ink-2);margin-bottom:5px;font-style:italic}
+.ruse-key{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase}
+.ruse-expr{font:12.5px 'IBM Plex Mono',monospace;white-space:pre-wrap;word-break:break-word;color:var(--ink);background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;margin-top:3px}
+.ruse-empty{color:var(--ink-3);font-size:13px;padding:14px 4px}
+.ref-uses-btn{margin-left:5px;font-size:11px;color:var(--ink-3);border:1px solid var(--border);border-radius:6px;padding:0 6px;line-height:16px;cursor:pointer}
+.ref-uses-btn:hover{border-color:var(--accent);color:var(--accent)}
 .cm-group{margin:6px 0}
 .cm-group>summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 0;list-style:none;user-select:none;display:flex;align-items:center;gap:7px}
 .cm-group>summary::-webkit-details-marker{display:none}
@@ -700,7 +739,16 @@ def _nav_badge(key, own=None):
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260707-0336"
+# neutral "export/download" glyph — the banner action exports to BOTH Excel and Word,
+# so a format-specific (green Excel) icon there was misleading. Uses currentColor so it
+# themes correctly (light/dark) and reads as a generic download/share action.
+_EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
+                'style="vertical-align:-2px;margin-right:5px" xmlns="http://www.w3.org/2000/svg">'
+                '<path d="M8 2v8m0 0L5.2 7.2M8 10l2.8-2.8" stroke="currentColor" stroke-width="1.4" '
+                'stroke-linecap="round" stroke-linejoin="round"/>'
+                '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
+                'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
+_BUILD_ID = "20260707-0430"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -821,7 +869,7 @@ function ensureSearchIndex(cb){
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass','FB Type':'b-fbtype','Named Set':'b-nset'};return m[t]||'b-composite';}
-function badgeColor(t){const m={'b-area':'#0ea5e9','b-unit':'#6366f1','b-em':'#0f766e','b-cm':'#7c3aed','b-phase':'#b45309','b-recipe':'#be123c','b-composite':'#475569','b-uclass':'#2563eb','b-fbtype':'#334155'};if(t==='Parameter')return '#0891b2';if(t==='Instance')return '#6d28d9';return m[badge(t)]||'#475569';}
+function badgeColor(t){const m={'b-area':'#0ea5e9','b-unit':'#6366f1','b-em':'#0f766e','b-cm':'#7c3aed','b-phase':'#b45309','b-recipe':'#be123c','b-composite':'#475569','b-uclass':'#2563eb','b-fbtype':'#334155'};if(t==='Parameter')return '#0891b2';if(t==='Instance')return '#6d28d9';if(t==='EM instance')return '#0f766e';if(t==='CM instance')return '#6d28d9';return m[badge(t)]||'#475569';}
 
 // ── global search: Names | Expressions | Values ──
 var SIDX=null, SRES=[], SSEL=-1, SMODE='names';
@@ -831,6 +879,13 @@ function searchIndex(){
   for(var id in DB.objs){var o=DB.objs[id];SIDX.push({id:id,name:o.name||'',type:o._type||'',desc:o.description||''});}
   for(var pn in PARAM_INDEX){SIDX.push({id:'param:'+pn,name:pn,type:'Parameter',desc:''});}
   for(var iid in (DB.instances||{})){var ins=DB.instances[iid];SIDX.push({id:'inst:'+iid,name:ins.tag,type:'Instance',desc:ins.cls});}
+  // deployed module tags (e.g. FP005-HV-001) — the actual objects opened via
+  // showDeployed(); previously unsearchable. id uses the dep: scheme handled by show().
+  for(var dt in (DB.deployed_modules||{})){
+    var dm=DB.deployed_modules[dt];
+    var dtype=(DB.objs['em:'+(dm.cls||'')])?'EM instance':'CM instance';
+    SIDX.push({id:'dep:'+dt,name:dt,type:dtype,desc:(dm.cls||'')});
+  }
   SIDX.sort(function(a,b){return a.name.localeCompare(b.name);});
   return SIDX;
 }
@@ -840,7 +895,7 @@ function navMode(btn,m){
   SMODE=m;
   document.querySelectorAll('.navmode .nm-btn').forEach(b=>b.classList.toggle('active',b===btn));
   var q=document.getElementById('navq');
-  q.placeholder=(m==='expr'?'Search expression logic…':m==='values'?'Search configured values…':'Search…  (Ctrl-K)');
+  q.placeholder=(m==='expr'?'Search expression logic…':m==='values'?'Search configured values…':'Search names, logic, values…');
   navSearch(q.value); q.focus();
 }
 function navSearch(q){
@@ -900,6 +955,68 @@ function navSearch(q){
     });
   }
   box.innerHTML=h;box.style.display='block';
+}
+// ── #1: top-banner command palette — fast name-jump across every object type ──
+var CMDP_RES=[], CMDP_SEL=-1;
+function cmdpClose(){ var p=document.getElementById('cmdpPop'); if(p)p.style.display='none'; CMDP_RES=[]; CMDP_SEL=-1; }
+function cmdpSubtitle(e){
+  // a short context line: description if present, else type-specific hint
+  if(e.type==='Instance') return 'instance'+(e.desc?' of '+e.desc:'');
+  if(e.desc) return e.desc;
+  return e.type||'';
+}
+function cmdpSearch(q){
+  var pop=document.getElementById('cmdpPop'); if(!pop) return;
+  q=(q||'').trim();
+  if(!q){ cmdpClose(); return; }
+  var ql=q.toLowerCase(), idx=searchIndex(), out=[];
+  // rank: name-prefix first, then name-substring, then type match
+  var pre=[], sub=[], typ=[];
+  for(var i=0;i<idx.length;i++){
+    var e=idx[i], nl=e.name.toLowerCase();
+    var p=nl.indexOf(ql);
+    if(p===0) pre.push(e);
+    else if(p>0) sub.push(e);
+    else if((e.type||'').toLowerCase().indexOf(ql)>=0) typ.push(e);
+    if(pre.length>=40) break;
+  }
+  out=pre.concat(sub).concat(typ).slice(0,40);
+  CMDP_RES=out; CMDP_SEL=out.length?0:-1;
+  if(!out.length){ pop.innerHTML='<div class="cmdp-empty">No object matches \\u201c'+esc(q)+'\\u201d</div>'; pop.style.display='block'; return; }
+  var h='<div class="cmdp-hint">'+out.length+(out.length===40?'+':'')+' match'+(out.length===1?'':'es')+' \\u2014 \\u2191\\u2193 to move, \\u21b5 to open, esc to close</div>';
+  out.forEach(function(e,k){
+    var col=badgeColor(e.type);
+    var bl=(e.type||'').toUpperCase();
+    if(bl==='EM INSTANCE')bl='EM'; else if(bl==='CM INSTANCE')bl='CM'; else if(bl==='UNIT INSTANCE')bl='UNIT';
+    else if(bl==='PARAMETER')bl='PARAM'; else if(bl==='EM CLASS')bl='EM'; else if(bl==='CM CLASS')bl='CM';
+    else if(bl==='PHASE CLASS')bl='PHASE'; else if(bl==='NAMED SET')bl='SET';
+    h+='<div class="cmdp-item'+(k===0?' act':'')+'" data-i="'+k+'" onmousedown="cmdpPick('+k+')">'
+      +'<span class="cmdp-badge" style="background:'+col+'">'+esc(bl)+'</span>'
+      +'<span class="cmdp-nm"><span class="cn">'+hiQ(e.name,q)+'</span>'
+      +'<span class="cs">'+esc(cmdpSubtitle(e))+'</span></span>'
+      +'<span class="cmdp-enter">\\u21b5</span></div>';
+  });
+  pop.innerHTML=h; pop.style.display='block';
+}
+function cmdpPick(k){
+  var e=CMDP_RES[k]; if(!e) return;
+  var inp=document.getElementById('cmdpInput'); if(inp){ inp.value=''; inp.blur(); }
+  cmdpClose();
+  show(e.id);
+}
+function cmdpKey(ev){
+  if(ev.key==='Escape'){ cmdpClose(); ev.target.value=''; ev.target.blur(); return; }
+  if(!CMDP_RES.length) return;
+  if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){
+    ev.preventDefault();
+    CMDP_SEL+=(ev.key==='ArrowDown'?1:-1);
+    if(CMDP_SEL<0)CMDP_SEL=CMDP_RES.length-1; if(CMDP_SEL>=CMDP_RES.length)CMDP_SEL=0;
+    var items=document.querySelectorAll('#cmdpPop .cmdp-item');
+    items.forEach(function(it,i){ it.classList.toggle('act',i===CMDP_SEL); });
+    if(items[CMDP_SEL]) items[CMDP_SEL].scrollIntoView({block:'nearest'});
+  } else if(ev.key==='Enter' && CMDP_SEL>=0){
+    ev.preventDefault(); cmdpPick(CMDP_SEL);
+  }
 }
 function openExpr(i){
   var e=EXPR_INDEX[i]; if(!e)return;
@@ -962,7 +1079,7 @@ function navSearchKey(ev){
   });
 })();
 document.addEventListener('keydown',function(e){
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();var q=document.getElementById('navq');if(q){q.focus();q.select();}}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();var cq=document.getElementById('cmdpInput');if(cq){cq.focus();cq.select();}else{var q=document.getElementById('navq');if(q){q.focus();q.select();}}}
 });
 document.addEventListener('click',function(e){
   var s=document.querySelector('.navsearch');
@@ -1979,6 +2096,9 @@ function renderEmMember(emName, memberName, cls){
 }
 function renderEntry(e){
   const d=document.getElementById('detail');
+  // #6: before leaving the current view, snapshot it if it's a fully-loaded deployed
+  // instance so returning to it is instant (no re-fetch of diagram/params/logic/members).
+  try{ if(typeof _captureDepView==='function') _captureDepView(); }catch(e2){}
   // paint an immediate loading state so selecting an object feels responsive,
   // then do the (possibly heavier) render on the next frame so the loader shows.
   var label = e.k==='obj' ? ((DB.objs[e.id]&&DB.objs[e.id].name)||'')
@@ -2235,7 +2355,19 @@ if(!window._cardCollapseWired){
     }
     if(!hdr) return;
     if(!hdr.closest('#detail') && !hdr.closest('#rdetail') && !hdr.closest('#stuMain')) return;
-    hdr.parentElement.classList.toggle('collapsed');
+    // #3 fix: an <h4> sitting *directly* inside a .card (common after a lazy innerHTML
+    // swap that ran AFTER makeCardsCollapsible) has no .subcard wrapper — toggling the
+    // card would collapse the whole card. Wrap this h4 + its following siblings (up to
+    // the next h4) into a .subcard on the fly, then toggle just that subcard.
+    var parent=hdr.parentElement, target=parent;
+    if(hdr.tagName==='H4' && parent.classList.contains('card') && !parent.classList.contains('subcard')){
+      var sub=document.createElement('div'); sub.className='subcard';
+      parent.insertBefore(sub, hdr);
+      var m=hdr;
+      while(m){ var nx=m.nextSibling; sub.appendChild(m); if(nx && nx.nodeType===1 && nx.tagName==='H4') break; m=nx; }
+      target=sub;
+    }
+    target.classList.toggle('collapsed');
     ev.stopPropagation();
   });
 }
@@ -2244,6 +2376,7 @@ function goBack(){ if(VIEW_STACK.length>1){ VIEW_STACK.pop(); renderEntry(VIEW_S
 function show(id){
   if(id && id.indexOf('param:')===0){ var pn=id.slice(6); if(PARAM_INDEX[pn]) navTo({k:'param',name:pn}); return; }
   if(id && id.indexOf('inst:')===0){ var iid=id.slice(5); if(DB.instances&&DB.instances[iid]) navTo({k:'inst',iid:iid}); return; }
+  if(id && id.indexOf('dep:')===0){ var dt=id.slice(4); if(DB.deployed_modules&&DB.deployed_modules[dt]) navTo({k:'dep',tag:dt,role:''}); return; }
   if(DB.objs[id]) navTo({k:'obj',id:id});
 }
 function showFbd(def,label){ if(FBD_VIEWS[def] || (typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(def)>=0)) navTo({k:'fbd',def:def,label:label}); }
@@ -2308,15 +2441,26 @@ function lazyInstMembers(d){
       var mm=(j&&j.members)||{};
       var roles=Object.keys(mm);
       if(!roles.length){ box.outerHTML='<div class="empty" id="instMembersList">No resolved control modules for this instance.</div>'; return; }
+      // count ignored (commissioned-out) roles for the header note
+      var nIgn=roles.filter(function(r){return mm[r]===null;}).length;
+      var note=nIgn?(' <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 '+nIgn+' ignored (commissioned-out)</span>'):'';
       var h='<table class="fbd-table"><thead><tr><th>Role in EM</th><th>Wired device</th></tr></thead><tbody>';
       roles.sort().forEach(function(role){
         var dev=mm[role];
-        var link=(DB.deployed_modules&&DB.deployed_modules[dev])
-          ? '<span class="link" onclick="showDeployed(\\''+esc(dev).replace(/\'/g,"\\\\'")+'\\')">'+esc(dev)+'</span>'
-          : '<code>'+esc(dev)+'</code>';
-        h+='<tr><td><code>'+esc(role)+'</code></td><td>'+link+'</td></tr>';
+        var cell;
+        if(dev===null){
+          // #4: intentionally commissioned-out member (MODULE="" IGNORE=T) — keep it
+          // visible but disabled, labelled Ignored, matching the alias-table treatment.
+          cell='<span class="alias-ignored" title="MODULE=\\u0022\\u0022 IGNORE=T \\u2014 intentionally not wired / commissioned-out">Ignored ('+esc(role)+')</span>';
+        } else if(DB.deployed_modules&&DB.deployed_modules[dev]){
+          cell='<span class="link" onclick="showDeployed(\\''+esc(dev).replace(/\'/g,"\\\\'")+'\\')">'+esc(dev)+'</span>';
+        } else {
+          cell='<code>'+esc(dev)+'</code>';
+        }
+        h+='<tr'+(dev===null?' class="mem-row-ign" style="opacity:.62"':'')+'><td><code>'+esc(role)+'</code></td><td>'+cell+'</td></tr>';
       });
       h+='</tbody></table>';
+      if(note){ h=h.replace('<table','<div style="margin:-2px 0 6px">'+note.replace(/^ /,'')+'</div><table'); }
       box.outerHTML='<div id="instMembersList">'+h+'</div>';
     })
     .catch(function(){ var b=document.getElementById('instMembersList'); if(b) b.textContent='Could not load control modules.'; });
@@ -2438,13 +2582,78 @@ function refCardHTML(tag){
       var jump = (DB.deployed_modules&&DB.deployed_modules[r.owner]) ? ('showDeployed(\\''+esc(r.owner)+'\\')')
         : (DB.objs&&DB.objs['cm:'+r.owner]) ? ('show(\\'cm:'+esc(r.owner)+'\\')')
         : (DB.objs&&DB.objs['em:'+r.owner]) ? ('show(\\'em:'+esc(r.owner)+'\\')') : '';
-      h+='<span class="ref-chip'+(jump?'':' ref-nolink')+'"'+(jump?(' onclick="'+jump+'"'):'')+' title="'+r.count+' reference(s)">'
-        +esc(r.owner)+' <span class="ref-cnt">\\u00d7'+r.count+'</span></span>';
+      // the chip body jumps to the owner; the ⤢ button opens the floating exact-use card
+      h+='<span class="ref-chip'+(jump?'':' ref-nolink')+'" title="'+r.count+' reference(s)">'
+        +'<span'+(jump?(' style="cursor:pointer" onclick="'+jump+'"'):'')+'>'+esc(r.owner)+'</span>'
+        +' <span class="ref-cnt">\\u00d7'+r.count+'</span>'
+        +' <span class="ref-uses-btn" title="Show exactly where '+esc(tag)+' is used in '+esc(r.owner)+'" '
+        +'onclick="event.stopPropagation();showRefUses(\\''+esc(tag).replace(/'/g,"\\\\'")+'\\',\\''+esc(r.owner).replace(/'/g,"\\\\'")+'\\')">\\u2922 uses</span>'
+        +'</span>';
     });
     h+='</div>';
   }
   h+='</div>';
   return h;
+}
+// ── floating "exact use" card: shows block · action · expression for one owner→tag ──
+function showRefUses(tag, owner){
+  var id='ruse_'+tag.replace(/[^A-Za-z0-9]/g,'_')+'__'+owner.replace(/[^A-Za-z0-9]/g,'_');
+  var ex=document.getElementById(id); if(ex){ ex.remove(); return; } // toggle off if open
+  var card=document.createElement('div'); card.className='ruse-card'; card.id=id;
+  // cascade so multiple cards don't stack exactly
+  var n=document.querySelectorAll('.ruse-card').length;
+  card.style.left=(Math.min(window.innerWidth-540, 120+n*26))+'px';
+  card.style.top=(90+n*26)+'px';
+  card.innerHTML='<div class="ruse-h"><b>'+esc(tag)+'</b>'
+    +'<span class="ruse-sub">used in '+esc(owner)+'</span>'
+    +'<span class="ruse-x" title="Close" onclick="var c=document.getElementById(\\''+id+'\\');if(c)c.remove();">\\u00d7</span></div>'
+    +'<div class="ruse-body"><div class="ruse-empty"><span class="dv-dots"><i></i><i></i><i></i></span> Finding exact uses\\u2026</div></div>';
+  document.body.appendChild(card);
+  _ruseDrag(card);
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){
+    card.querySelector('.ruse-body').innerHTML='<div class="ruse-empty">Exact-use lookup needs the loaded database session.</div>'; return;
+  }
+  fetch('/reference_uses?t='+encodeURIComponent(EXPORT_TOKEN)+'&tag='+encodeURIComponent(tag)+'&owner='+encodeURIComponent(owner))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var body=card.querySelector('.ruse-body'); if(!body) return;
+      var uses=(j&&j.uses)||[];
+      if(!uses.length){ body.innerHTML='<div class="ruse-empty">No resolvable use-sites found (the reference may be through an alias or removed in this export).</div>'; return; }
+      var h='';
+      uses.forEach(function(u){
+        h+='<div class="ruse-item">';
+        if(u.context&&u.context.length){
+          h+='<div class="ruse-ctx">';
+          u.context.forEach(function(c){
+            var sp=c.indexOf(' '); var kind=sp>0?c.slice(0,sp):''; var nm=sp>0?c.slice(sp+1):c;
+            h+='<span class="ruse-crumb"><span class="rc-kind">'+esc(kind)+'</span>'+esc(nm)+'</span>';
+          });
+          h+='</div>';
+        }
+        if(u.description) h+='<div class="ruse-desc">'+esc(u.description)+'</div>';
+        if(u.key) h+='<div class="ruse-key">'+esc(u.key)+'</div>';
+        h+='<div class="ruse-expr">'+esc(u.line||'')+'</div>';
+        h+='</div>';
+      });
+      body.innerHTML=h;
+    })
+    .catch(function(){ var b=card.querySelector('.ruse-body'); if(b) b.innerHTML='<div class="ruse-empty">Could not load use-sites.</div>'; });
+}
+function _ruseDrag(card){
+  var hdr=card.querySelector('.ruse-h'); if(!hdr) return;
+  var sx,sy,ox,oy,drag=false;
+  hdr.addEventListener('mousedown',function(e){
+    if(e.target.closest('.ruse-x')) return;
+    drag=true; sx=e.clientX; sy=e.clientY;
+    var r=card.getBoundingClientRect(); ox=r.left; oy=r.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!drag) return;
+    card.style.left=Math.max(0,Math.min(window.innerWidth-80, ox+(e.clientX-sx)))+'px';
+    card.style.top=Math.max(0,Math.min(window.innerHeight-40, oy+(e.clientY-sy)))+'px';
+  });
+  document.addEventListener('mouseup',function(){ drag=false; });
 }
 function showReferences(tag){ navTo({k:'references', tag:tag}); }
 function renderReferences(tag){
@@ -2566,10 +2775,36 @@ function renderInstance(iid){
 }
 
 // ── deployed module instance (a real tag in a unit) ──
+// #6: cache of fully-loaded deployed-instance detail views, keyed by tag|role. When a
+// user reopens an instance they already viewed, we restore the rendered HTML instantly
+// instead of re-firing the diagram/params/logic/members fetches. The cache is captured
+// when leaving a loaded dep view (see _captureDepView, called from renderEntry).
+var DEP_CACHE={};
+var _depViewKey=null;        // key of the dep view currently on screen (or null)
+function _depKey(tag,role){ return tag+'\\u0001'+(role||''); }
+// snapshot the current dep view if all its lazy cards have finished loading
+function _captureDepView(){
+  if(!_depViewKey) return;
+  var d=document.getElementById('detail'); if(!d){ _depViewKey=null; return; }
+  // consider it "loaded" once no loading spinners remain in the instance cards
+  if(d.querySelector('.dv-loader, .frame-load, .loading-detail')){ _depViewKey=null; return; }
+  var ml=d.querySelector('#instMembersList, #instSimList');
+  // members/sim lists show plain "Loading…" text (no spinner) until fetched; treat that as not-ready
+  if(ml && /Loading\\u2026/.test(ml.textContent||'')){ _depViewKey=null; return; }
+  DEP_CACHE[_depViewKey]=d.innerHTML;
+  _depViewKey=null;
+}
 function renderDeployed(tag, roleAlias){
   var d=DB.deployed_modules&&DB.deployed_modules[tag]; if(!d){return;}
   document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('sel'));
   document.querySelectorAll('.navinst').forEach(function(n){n.classList.toggle('sel',n.dataset.tag===tag&&n.dataset.dep==='1');});
+  var key=_depKey(tag,roleAlias);
+  // restore instantly from cache if we have a fully-loaded snapshot
+  if(DEP_CACHE[key]){
+    var dc=document.getElementById('detail');
+    if(dc){ dc.innerHTML=DEP_CACHE[key]; dc.scrollTop=0; _depViewKey=key; try{wireFbdLinks();}catch(e){} return; }
+  }
+  _depViewKey=key;  // mark this as the live dep view so it can be captured on exit
   var isEM=!!DB.objs['em:'+d.cls];
   var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">← back</span>':'';
   // DeltaV convention: when reached as an EM member, show "TAG (ROLE)"
@@ -2766,7 +3001,7 @@ function wireFbdLinks(){
     # ── build nav tree ──
     nav = []
     nav.append('<div class="navsearch"><input id="navq" autocomplete="off" '
-               'placeholder="Search…  (Ctrl-K)" '
+               'placeholder="Search names, logic, values…" '
                'oninput="navSearch(this.value)" onkeydown="navSearchKey(event)">'
                '<div class="navmode">'
                '<button class="nm-btn active" onclick="navMode(this,\'names\')">Names</button>'
@@ -3200,7 +3435,7 @@ function wireFbdLinks(){
         export_html = (
             f'<div class="hdr-export">'
             f'<a class="exp-btn" href="javascript:void 0" onclick="openExportPicker()" '
-            f'title="Choose objects and export them to Excel or Word in one go">{_EXCEL_ICON}Export\u2026</a>'
+            f'title="Choose objects and export them to Excel or Word in one go">{_EXPORT_ICON}Export\u2026</a>'
             f'</div>')
 
     theme_opts = ''.join(f'<option value="{k}">{html.escape(lbl)}</option>' for k, lbl in _THEME_LABELS)
@@ -3244,6 +3479,16 @@ function wireFbdLinks(){
 </nav>
 <header class="topbar">
   <h1>DeltaV Strategy Workbench</h1><span class="sub">{html.escape(fname)}</span><span class="sub" style="opacity:.6;margin-left:8px" title="Build identifier — confirms which deployment is live">build {_BUILD_ID}</span>
+  <div class="cmdp-wrap">
+    <div class="cmdp-box" onclick="document.getElementById('cmdpInput').focus()">
+      <svg class="cmdp-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="cmdpInput" autocomplete="off" spellcheck="false" placeholder="Jump to object\u2026  (Ctrl-K)"
+             oninput="cmdpSearch(this.value)" onkeydown="cmdpKey(event)"
+             onfocus="if(this.value)cmdpSearch(this.value)" onblur="setTimeout(cmdpClose,150)">
+      <span class="cmdp-kbd">\u2318K</span>
+    </div>
+    <div class="cmdp-pop" id="cmdpPop"></div>
+  </div>
   <div class="hdr-right">{theme_html}
     <button class="iconbtn" id="themeBtn" title="Toggle light / dark" onclick="toggleMode()">
       <svg id="themeIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>

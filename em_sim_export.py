@@ -284,10 +284,14 @@ _DEV_HOOK_JS = """
 """
 
 
-def instance_member_map(text, tag):
+def instance_member_map(text, tag, include_ignored=False):
     """Map an EM instance's member roles to their actual deployed CM tags, from the
     instance's MODULE_BLOCK_RESOLUTION blocks. E.g. BYP_INLET_VLV -> FP005-HV-027.
-    This is the instance-specific device wiring (#1, #2)."""
+    This is the instance-specific device wiring (#1, #2).
+
+    When include_ignored=True, roles that are intentionally commissioned-out
+    (MODULE="" IGNORE=T) are also returned, mapped to the sentinel None, so callers
+    can display them as "Ignored" rather than silently dropping them."""
     m = re.search(r'MODULE_INSTANCE\s+TAG="' + re.escape(tag) + r'"', text)
     if not m:
         return {}
@@ -298,9 +302,14 @@ def instance_member_map(text, tag):
     out = {}
     for rm in re.finditer(r'MODULE_BLOCK_RESOLUTION\s+NAME="([^"]+)"\s*\{', blk):
         rbody = db_parser.extract_block(blk, rm.end() - 1)
-        mod = re.search(r'MODULE="([^"]+)"', rbody)
-        if mod:
-            out[rm.group(1)] = mod.group(1)
+        mod = re.search(r'MODULE="([^"]*)"', rbody)
+        modval = mod.group(1) if mod else ''
+        if modval:
+            out[rm.group(1)] = modval
+        elif include_ignored:
+            ign = re.search(r'IGNORE=([TF])', rbody)
+            if ign and ign.group(1) == 'T':
+                out[rm.group(1)] = None  # commissioned-out / ignored member
     return out
 
 

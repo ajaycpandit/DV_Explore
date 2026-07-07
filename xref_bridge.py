@@ -62,6 +62,110 @@ def build_logic_xref(text):
     return xref
 
 
+# ── exact-use context (lazy; computed on demand for one owner→tag pair) ──
+# We attribute each //TAG/ reference to the nearest enclosing *labelled* sub-block so
+# the UI can show "block · action · expression". Labels we recognise, innermost-first:
+_CTX_LABEL_RE = re.compile(
+    r'(STEP|TRANSITION|ACTION|ALGORITHM|ATTRIBUTE_INSTANCE|FUNCTION_BLOCK|'
+    r'PARAMETER|WIRE|EXPRESSION_ELEMENT)\s+NAME="([^"]+)"'
+)
+# the actual line/assignment carrying the reference
+_LINE_KEYS = ('EXPRESSION', 'CONFIRM_EXPRESSION', 'REF', 'DESCRIPTION')
+
+
+def _line_containing(seg, pos):
+    """Return the single logical FHX line (a KEY="....") that contains offset `pos`."""
+    ls = seg.rfind('\n', 0, pos)
+    le = seg.find('\n', pos)
+    if ls < 0:
+        ls = 0
+    if le < 0:
+        le = len(seg)
+    return seg[ls:le].strip()
+
+
+def _enclosing_labels(seg, pos):
+    """Walk brace depth backwards from `pos` to find the nearest labelled ancestor
+    blocks (innermost first). Returns a list of (kind, name)."""
+    # Find all label matches before pos with their brace opening, track which are still
+    # "open" (their matching close-brace is after pos).
+    labels = []
+    for m in _CTX_LABEL_RE.finditer(seg, 0, pos):
+        # the block body opens at the next '{' after the label
+        ob = seg.find('{', m.end())
+        if ob < 0 or ob > pos:
+            continue
+        # is pos inside this block? scan braces from ob
+        depth = 0
+        close = -1
+        i = ob
+        n = len(seg)
+        while i < n:
+            c = seg[i]
+            if c == '{':
+                depth += 1
+            elif c == '}':
+                depth -= 1
+                if depth == 0:
+                    close = i
+                    break
+            i += 1
+        if close == -1 or close > pos:
+            labels.append((m.group(1), m.group(2), ob))
+    # innermost = largest opening offset
+    labels.sort(key=lambda x: -x[2])
+    return [(k, nm) for (k, nm, _ob) in labels]
+
+
+def reference_uses(text, target_tag, owner_name, logic_xref=None, max_uses=40):
+    """For one (owner, target) pair, return the exact use sites:
+    [ { context: [ 'ACTION A11', ... ], description, line } ].
+    `owner_name` is the module/phase that references `target_tag`. Absolute //TAG/ only."""
+    owners = {o[3]: o for o in _owner_spans(text)}
+    o = owners.get(owner_name)
+    if not o:
+        return []
+    start, end = o[0], o[1]
+    seg = text[start:end]
+    ref_pat = re.compile(r'//' + re.escape(target_tag) + r'/')
+    uses = []
+    seen_lines = set()
+    for rm in ref_pat.finditer(seg):
+        pos = rm.start()
+        line = _line_containing(seg, pos)
+        # de-dup identical lines (same assignment repeated is noise)
+        if line in seen_lines:
+            continue
+        seen_lines.add(line)
+        labels = _enclosing_labels(seg, pos)
+        # a readable description: prefer a DESCRIPTION= sibling of the innermost block
+        desc = ''
+        if labels:
+            # search the innermost block body for a DESCRIPTION
+            dm = re.search(r'DESCRIPTION="([^"]*)"',
+                           seg[max(0, pos - 400):pos + 400])
+            if dm:
+                desc = dm.group(1)
+        # Pull the tightest meaningful fragment carrying the reference. Prefer an
+        # EXPRESSION="..."/CONFIRM_EXPRESSION="..."/REF="..." value on the line.
+        key, val = '', line
+        found = False
+        for k in ('CONFIRM_EXPRESSION', 'EXPRESSION', 'REF'):
+            em = re.search(k + r'="([^"]*)"', line)
+            if em:
+                key, val, found = k, em.group(1).strip(), True
+                break
+        if not found:
+            km = re.match(r'([A-Z_]+)\s*=\s*(.*)$', line)
+            if km:
+                key, val = km.group(1), km.group(2).strip().strip('"')
+        ctx = [f'{k} {nm}' for (k, nm) in labels[:4]]
+        uses.append({'context': ctx, 'key': key, 'line': val, 'description': desc})
+        if len(uses) >= max_uses:
+            break
+    return uses
+
+
 def references_for(tag, logic_xref, class_used_by=None):
     """Assemble both reference kinds for one tag/class:
     { 'member_of': [ {parent, instance} ], 'logic_refs': [ {owner, kind, count} ] }."""

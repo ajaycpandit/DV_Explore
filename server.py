@@ -611,10 +611,30 @@ def em_members():
         return jsonify({'error': 'expired', 'members': {}})
     try:
         import em_sim_export
-        return jsonify({'tag': tag, 'members': em_sim_export.instance_member_map(text, tag)})
+        return jsonify({'tag': tag,
+                        'members': em_sim_export.instance_member_map(text, tag, include_ignored=True)})
     except Exception as e:
         app.logger.exception('em_members failed')
         return jsonify({'error': str(e), 'members': {}})
+
+
+@app.route('/reference_uses')
+def reference_uses():
+    """Exact use-sites of `tag` inside `owner`'s logic (block/action/expression), for
+    the floating "exact use" card. Computed on demand for one owner->tag pair."""
+    token = request.args.get('t', '')
+    tag = request.args.get('tag', '')
+    owner = request.args.get('owner', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired', 'uses': []})
+    try:
+        import xref_bridge
+        uses = xref_bridge.reference_uses(text, tag, owner)
+        return jsonify({'tag': tag, 'owner': owner, 'uses': uses})
+    except Exception as e:
+        app.logger.exception('reference_uses failed')
+        return jsonify({'error': str(e), 'uses': []})
 
 
 @app.route('/inst_params')
