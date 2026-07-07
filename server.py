@@ -578,7 +578,8 @@ def _extract_object_fhx(text, obj):
     typ, name = obj.split(':', 1)
     if typ == 'phase':
         m = re.search(r'PHASE_CLASS\s+NAME="' + re.escape(name) + r'"', text)
-    elif typ == 'em':
+    elif typ in ('em', 'cm'):
+        # both EM and CM classes are MODULE_CLASS blocks
         m = re.search(r'MODULE_CLASS\s+NAME="' + re.escape(name) + r'"', text)
     else:
         return None
@@ -1004,7 +1005,7 @@ def export():
     """Regenerate an Excel workbook or Word DDS from the stashed FHX, reusing the
     converter core. fmt = excel | word | data_excel. When obj=<type>:<name> is given,
     export just that object (e.g. a single phase) instead of the whole database."""
-    token = request.args.get('token', '')
+    token = request.args.get('token', '') or request.args.get('t', '')
     fmt = request.args.get('fmt', 'excel')
     obj = request.args.get('obj', '')
     text = _read_stash(token)
@@ -1022,7 +1023,11 @@ def export():
         ftype = ns['detect_fhx_type'](text)
         buf, _sheets = ns['parse_and_build'](text, ftype, fname, _EXPORT_OPTS, fmt)
     except Exception as e:
-        abort(500, f'Export failed: {e}')
+        msg = str(e)
+        if 'COMMAND_DRIVEN_ALGORITHM' in msg:
+            msg = ('This equipment module has no command-driven algorithm to export as a '
+                   'standalone document. Try the whole-database export, or view it in Studio.')
+        abort(422, f'Export failed: {msg}')
     if fmt == 'word':
         return send_file(buf, as_attachment=True, download_name=fname + '_DDS.docx',
                          mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')

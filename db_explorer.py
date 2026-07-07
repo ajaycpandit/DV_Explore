@@ -81,6 +81,10 @@ button{font-family:inherit}
 .stu-chip{font-size:11px;font-weight:600;background:var(--surface-2);color:var(--ink-2);padding:3px 9px;border-radius:20px}
 .stu-body{flex:1 1 auto;display:grid;overflow:hidden;min-height:0}
 .stu-body.stu-dock-right{grid-template-columns:1.35fr 5px 1fr;grid-template-rows:minmax(0,1fr)}
+.stu-body.stu-dock-left{grid-template-columns:1fr 5px 1.35fr;grid-template-rows:minmax(0,1fr)}
+.stu-body.stu-dock-left .stu-pane.stu-diagram{order:3;border-right:0;border-left:1px solid var(--border)}
+.stu-body.stu-dock-left .stu-split{order:2}
+.stu-body.stu-dock-left .stu-side-panel{order:1}
 .stu-body.stu-dock-bottom{grid-template-rows:1.3fr 5px 1fr;grid-template-columns:minmax(0,1fr)}
 .stu-pane{overflow:auto;padding:0;min-height:0;min-width:0}
 .stu-pane.stu-diagram{border-right:1px solid var(--border);padding:0;background:#fff;overflow:hidden;display:flex;position:relative}
@@ -255,6 +259,11 @@ button{font-family:inherit}
 .navitem .ic-badge svg{display:block}
 .ic-area{color:var(--b-area)}.ic-cell{color:var(--b-cell)}.ic-unit{color:var(--b-unit)}.ic-uclass{color:var(--b-uclass)}
 .ic-em{color:var(--b-em)}.ic-cm{color:var(--b-cm)}.ic-phase{color:var(--b-phase)}.ic-recipe{color:var(--b-recipe)}
+.alias-ignored{font-size:11px;font-weight:600;color:#92600a;background:#fef3c7;padding:1px 8px;border-radius:20px}
+.alias-unres{color:#94a3b8}
+.alias-row-ign td:first-child code{opacity:.6}
+.ic-badge.ic-shared{position:relative;filter:saturate(1.3)}
+.ic-badge.ic-shared::after{content:"";position:absolute;right:-2px;bottom:-2px;width:6px;height:6px;border-radius:50%;background:#0891b2;border:1.5px solid var(--surface,#fff)}
 .ic-composite{color:var(--b-composite)}.ic-fbtype{color:var(--b-fbtype)}
 .navchild{padding-left:34px}
 .nav-note{font-size:10.5px;color:var(--ink-3);padding:4px 12px 7px;line-height:1.5;font-style:italic}
@@ -647,7 +656,7 @@ def _ownership_nav_ico(own):
     return ''
 
 
-def _nav_badge(key):
+def _nav_badge(key, own=None):
     if key == 'nset':
         return ('<span class="ic-badge b-nset" title="Named Set">'
                 '<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'
@@ -661,14 +670,23 @@ def _nav_badge(key):
                 '<path d="M5.4 2.6V1.4M9.6 2.6V1.4M5.4 13.6v-1.2M9.6 13.6v-1.2M3 5.6H1.6M3 9.4H1.6M13.4 5.6H12M13.4 9.4H12" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></svg></span>')
     cls = _NAV_BADGE_CLS.get(key, 'b-composite')
     title = _NAV_TITLE.get(key, key)
-    return (f'<span class="ic-badge {cls}" data-ic="{key}" title="{title}">'
+    # #1: a CM that's a SHARED EM member gets a visually distinct badge (dashed ring
+    # overlay + shared tint) so shared CMs read differently from private/standalone CMs.
+    own_cls = ''
+    own_extra = ''
+    if key in ('cm', 'inst') and (own or '').upper() == 'SHARED':
+        own_cls = ' ic-shared'
+        title = 'Shared control module'
+        own_extra = ('<circle cx="7.5" cy="7.5" r="6.4" fill="none" stroke="#fff" '
+                     'stroke-width="1.1" stroke-dasharray="2.6 2" opacity="0.9"/>')
+    return (f'<span class="ic-badge {cls}{own_cls}" data-ic="{key}" title="{title}">'
             f'<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'
-            f'{_NAV_ICON.get(key, "")}</svg></span>')
+            f'{_NAV_ICON.get(key, "")}{own_extra}</svg></span>')
 
 
 _EXCEL_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#107C41"/><path d="M5.2 5L8 8 5.2 11M10.8 5L8 8l2.8 3" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 _WORD_ICON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1.5" y="2" width="13" height="12" rx="1.5" fill="#185ABD"/><path d="M4 5l1.2 6L6.6 6.5 8 11l1.4-4.5L10.6 11 12 5" stroke="#fff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>'
-_BUILD_ID = "20260706-2028"
+_BUILD_ID = "20260706-2145"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1267,6 +1285,7 @@ function stuRender(d){
   var sidePanel = panels.length
     ? '<div class="stu-side-panel"><div class="stu-tabs">'+tabs
       +'<span class="stu-dock-btns">'
+      +'<button class="stu-dockb" title="Dock left" onclick="stuDock(\\'left\\')">\\u25e7\\u25e8</button>'
       +'<button class="stu-dockb" title="Dock right" onclick="stuDock(\\'right\\')">\\u25e8</button>'
       +'<button class="stu-dockb" title="Dock bottom" onclick="stuDock(\\'bottom\\')">\\u25e7</button>'
       +'</span></div>'+tabpanels+'</div>'
@@ -1284,7 +1303,12 @@ function stuRender(d){
   stuWireSplit();
 }
 function stuOpenInExplorerBtn(id){
-  return '<button class="exp-btn" style="padding:5px 10px" onclick="switchView(\\'explorer\\');show(\\''+esc(id)+'\\')" title="Show this object in the Explorer">Open in Explorer</button>';
+  var exp='';
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN && (id.indexOf('phase:')===0||id.indexOf('em:')===0||id.indexOf('cm:')===0)){
+    exp='<button class="exp-btn" style="padding:5px 10px" onclick="window.location.href=\\'/export?token=\\'+encodeURIComponent(EXPORT_TOKEN)+\\'&fmt=excel&obj=\\'+encodeURIComponent(\\''+esc(id)+'\\')" title="Export this object to Excel">'+_EXCEL_ICON_RAW+'Excel</button>'
+      +'<button class="exp-btn" style="padding:5px 10px" onclick="window.location.href=\\'/export?token=\\'+encodeURIComponent(EXPORT_TOKEN)+\\'&fmt=word&obj=\\'+encodeURIComponent(\\''+esc(id)+'\\')" title="Export this object to Word">'+_WORD_ICON_RAW+'Word</button>';
+  }
+  return exp+'<button class="exp-btn" style="padding:5px 10px" onclick="switchView(\\'explorer\\');show(\\''+esc(id)+'\\')" title="Show this object in the Explorer">Open in Explorer</button>';
 }
 function stuTab(el,t){
   var sp=el.closest('.stu-side-panel');
@@ -1298,8 +1322,9 @@ function stuToggleSide(){
 function stuDock(where){
   STU.dock=where;
   var body=document.querySelector('#stuMain .stu-body'); if(!body) return;
-  body.classList.remove('stu-dock-right','stu-dock-bottom');
+  body.classList.remove('stu-dock-right','stu-dock-bottom','stu-dock-left');
   body.classList.add('stu-dock-'+where);
+  body.style.gridTemplateColumns=''; body.style.gridTemplateRows=''; // reset any manual resize
 }
 // draggable splitter between diagram and side panel
 function stuWireSplit(){
@@ -1307,14 +1332,18 @@ function stuWireSplit(){
   var body=split.parentElement;
   split.onmousedown=function(e){
     e.preventDefault();
-    var horiz=body.classList.contains('stu-dock-right');
+    var isRight=body.classList.contains('stu-dock-right');
+    var isLeft=body.classList.contains('stu-dock-left');
+    var horiz=isRight||isLeft;
     var rect=body.getBoundingClientRect();
     function mv(ev){
       if(horiz){
-        var w=ev.clientX-rect.left; var pct=Math.max(25,Math.min(80,100*w/rect.width));
+        var w=ev.clientX-rect.left; var pct=Math.max(20,Math.min(85,100*w/rect.width));
+        // right dock: diagram | split | panel  (first col = diagram)
+        // left dock:  panel   | split | diagram (first col = panel)
         body.style.gridTemplateColumns=pct+'% 5px 1fr';
       } else {
-        var hh=ev.clientY-rect.top; var pctv=Math.max(25,Math.min(80,100*hh/rect.height));
+        var hh=ev.clientY-rect.top; var pctv=Math.max(20,Math.min(85,100*hh/rect.height));
         body.style.gridTemplateRows=pctv+'% 5px 1fr';
       }
     }
@@ -1373,6 +1402,7 @@ function recShow(name){
   var v=RECWS.views[name]||'';
   var o=(typeof DB!=='undefined'&&DB.objs['recipe:'+name])||{};
   var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span>'
+    +' <a class="link rec-xl" href="javascript:void 0" onclick="recViewPfc(\\''+esc(name)+'\\')">\u2317 PFC diagram</a>'
     +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadPfc(\\''+esc(name)+'\\')">\u2b07 PFC report (.xlsx)</a>'
     +' <a class="link rec-xl" href="javascript:void 0" onclick="downloadDeferrals(\\''+esc(name)+'\\',this)">\u2b07 Deferrals (.xlsx)</a></h2>';
   if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
@@ -1391,6 +1421,27 @@ function recShowStep(parent, step, layer){
 function recDownloadPfc(name){
   if(!RECWS.token) return;
   window.location.href='/recipe_pfc_xlsx?t='+encodeURIComponent(RECWS.token)+'&n='+encodeURIComponent(name);
+}
+// #7: open the recipe's PFC (procedure flow) diagram in a large standalone overlay,
+// away from the cramped detail pane — a dedicated visual view with pan/zoom.
+function recViewPfc(name){
+  var v=RECWS.views[name]||'';
+  // pull just the PFC diagram wrapper out of the recipe view
+  var tmp=document.createElement('div'); tmp.innerHTML=v;
+  var wrap=tmp.querySelector('.pfc-wrap');
+  var ov=document.getElementById('pfcOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='pfcOverlay'; ov.className='pfc-overlay'; document.body.appendChild(ov); }
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  var body = wrap ? wrap.outerHTML
+    : '<div class="pfc-ov-empty">This recipe has no procedure-flow diagram (it may be an operation or a phase-level object).</div>';
+  ov.innerHTML='<div class="pfc-ov-card"><div class="pfc-ov-h">'
+    +'<b>\\u2317 '+esc(name)+' \\u2014 Procedure Flow Chart</b>'
+    +'<span class="pfc-ov-hint">drag to pan \\u00b7 scroll to zoom</span>'
+    +'<span style="flex:1"></span>'
+    +'<button class="exp-btn" onclick="recDownloadPfc(\\''+esc(name).replace(/'/g,"\\\\'")+'\\')">\\u2b07 PFC report (.xlsx)</button>'
+    +'<button class="pfc-ov-x" onclick="var o=document.getElementById(\\'pfcOverlay\\');if(o)o.remove();">\\u00d7</button>'
+    +'</div><div class="pfc-ov-body">'+body+'</div></div>';
+  // re-enable pan/zoom on the cloned wrap (the delegated handlers work on any .pfc-wrap)
 }
 function downloadAllDeferrals(){
   if(!RECWS.token) return;
@@ -1599,7 +1650,7 @@ function renderObj(id){
   if(o._type==='CM Class' || o._type==='Composite'){
     if(FBD_VIEWS[o.name]){
       h+='<div class="card" style="max-width:none">'+FBD_VIEWS[o.name]+'</div>';
-      setTimeout(wireFbdLinks, 0);
+      setTimeout(function(){wireFbdLinks(); try{makeCardsCollapsible();}catch(e){}}, 0);
     } else if(typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(o.name)>=0 && typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
       h+='<div class="card" style="max-width:none" id="fbdLazy"><h3>Detail</h3><span class="empty">Loading diagram…</span></div>';
       (function(nm){ setTimeout(function(){ lazyFbd(nm); },0); })(o.name);
@@ -1677,8 +1728,17 @@ function aliasCardHTML(als){
   h+='<input class="alias-filter" id="aliasFilter" placeholder="Filter aliases\\u2026" oninput="filterAliases()">';
   h+='<table class="fbd-table" id="aliasTable"><thead><tr><th>Alias</th><th>Resolves to</th><th>Description</th></tr></thead><tbody>';
   als.forEach(function(a){
-    var tgt=a.value?('<span class="link" onclick="showTag(\\''+esc(a.value)+'\\')"><code>'+esc(a.value)+'</code></span>'):'<span style="color:#94a3b8">(unresolved)</span>';
-    h+='<tr'+(a.ignore?' style="opacity:.5"':'')+'><td><code>#'+esc(a.alias)+'#</code></td><td>'+tgt+'</td><td style="font-size:12px;color:var(--ink-2)">'+esc(a.desc||'')+'</td></tr>';
+    var tgt;
+    if(a.value){
+      tgt='<span class="link" onclick="showTag(\\''+esc(a.value)+'\\')"><code>'+esc(a.value)+'</code></span>';
+    } else if(a.ignore){
+      // #2: these aren't truly unresolved — they're flagged IGNORE=T in the export
+      // (commissioned-out / not wired), so label them as such rather than "unresolved".
+      tgt='<span class="alias-ignored" title="Marked IGNORE=T in the export \\u2014 intentionally not wired">Ignored</span>';
+    } else {
+      tgt='<span class="alias-unres">(unresolved)</span>';
+    }
+    h+='<tr'+(a.ignore?' class="alias-row-ign"':'')+'><td><code>#'+esc(a.alias)+'#</code></td><td>'+tgt+'</td><td style="font-size:12px;color:var(--ink-2)">'+esc(a.desc||'')+'</td></tr>';
   });
   h+='</tbody></table></div>';
   return h;
@@ -2033,8 +2093,13 @@ if(!window._ctxWired){
     }
     if(kind==='em' || kind==='cm' || kind==='fbtype' || kind==='composite'){
       acts.push(ctxItem('Open', function(){ show(id); }));
-      if(kind==='em' || kind==='cm')
+      if(kind==='em' || kind==='cm'){
         acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen(id); },0); }));
+        if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+          acts.push(ctxItem('Export (.xlsx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=excel&obj='+encodeURIComponent(id); }, {sep:true}));
+          acts.push(ctxItem('Export (.docx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=word&obj='+encodeURIComponent(id); }));
+        }
+      }
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
       return acts;
     }
@@ -2276,7 +2341,7 @@ function lazyFbd(name){
     .then(function(r){return r.json();})
     .then(function(d){
       if(!box) box=document.getElementById('fbdLazy');
-      if(d && d.html){ FBD_VIEWS[name]=d.html; if(box){ box.outerHTML='<div class="card" style="max-width:none">'+d.html+'</div>'; setTimeout(wireFbdLinks,0);} }
+      if(d && d.html){ FBD_VIEWS[name]=d.html; if(box){ box.outerHTML='<div class="card" style="max-width:none">'+d.html+'</div>'; setTimeout(function(){wireFbdLinks(); try{makeCardsCollapsible();}catch(e){}},0);} }
       else if(box){ box.innerHTML='<h3>Detail</h3><span class="empty">Could not load diagram'+(d&&d.error?': '+d.error:'')+'.</span>'; }
     })
     .catch(function(){ if(box) box.innerHTML='<h3>Detail</h3><span class="empty">Could not load diagram.</span>'; });
@@ -2684,14 +2749,14 @@ function wireFbdLinks(){
                                    f'data-tag="{html.escape(real)}" data-dep="1" data-role="{html.escape(itag)}" '
                                    f'onclick="showDeployed(this.dataset.tag, this.dataset.role)" '
                                    f'title="{html.escape(real)} ({html.escape(itag)} \u2014 instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
-                                   f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(real)}</span>{own_ico}'
+                                   f'{_nav_badge("inst", own)}<span class="inst-tag">{html.escape(real)}</span>{own_ico}'
                                    f'<span class="inst-cls">({html.escape(itag)})</span></div>')
                     else:
                         nav.append(f'<div class="navitem {_ncls(lvl + 2)} navinst" '
                                    f'data-parent="{html.escape(cls)}" data-tag="{html.escape(itag)}" '
                                    f'onclick="showInst(this.dataset.parent,this.dataset.tag)" '
                                    f'title="{html.escape(itag)} (instance of {html.escape(icls)}){(" · "+own.title()) if own else ""}">'
-                                   f'{_nav_badge("inst")}<span class="inst-tag">{html.escape(itag)}</span>{own_ico}'
+                                   f'{_nav_badge("inst", own)}<span class="inst-tag">{html.escape(itag)}</span>{own_ico}'
                                    f'<span class="inst-cls">({html.escape(icls)})</span></div>')
                 nav.append('</div></div>')
             else:

@@ -1166,6 +1166,15 @@ RECIPE_CSS = """
 .rf-defup{color:#2563eb;font-weight:600;font-size:11px}
 .rf-defun{color:#dc2626;font-size:10.5px;font-style:italic}
 .pfc-wrap{overflow:auto;border:1px solid var(--border,#e2e8f0);border-radius:9px;background:#fff;padding:10px;max-height:520px;cursor:grab;position:relative}
+.pfc-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:60;display:grid;place-items:center;padding:26px}
+.pfc-ov-card{background:var(--surface,#fff);border-radius:14px;width:min(1200px,94vw);height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.pfc-ov-h{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.pfc-ov-hint{font-size:11px;color:var(--ink-3)}
+.pfc-ov-x{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:var(--ink-3);padding:0 4px}
+.pfc-ov-x:hover{color:var(--ink)}
+.pfc-ov-body{flex:1;overflow:hidden;padding:14px;display:flex}
+.pfc-ov-body .pfc-wrap{flex:1;max-height:none;height:100%}
+.pfc-ov-empty{padding:40px;text-align:center;color:var(--ink-3)}
 .pfc-wrap.panning{cursor:grabbing}
 .pfc-zoomlayer{transform-origin:0 0;transition:transform .05s linear;display:inline-block}
 .pfc-toolbar{display:flex;align-items:center;gap:5px;margin-bottom:7px}
