@@ -129,6 +129,9 @@ button{font-family:inherit}
 .stu-grid td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:top}
 .stu-grid .stu-desc{color:var(--ink-2);max-width:280px}
 .stu-empty{color:var(--ink-3);font-size:12.5px;padding:14px 4px}
+.stu-io{font-size:11px;font-weight:600;font-family:'IBM Plex Mono';padding:1px 7px;border-radius:20px;white-space:nowrap}
+.stu-io-input{background:#e0f2fe;color:#0369a1}
+.stu-io-output{background:#fef3c7;color:#92600a}
 .stu-split{cursor:col-resize;width:5px;background:transparent}
 @media(max-width:1100px){.stu-body.stu-dock-right{grid-template-columns:minmax(0,1fr);grid-template-rows:1.2fr 5px 1fr}.stu-body.stu-dock-right .stu-pane.stu-diagram{border-right:0;border-bottom:1px solid var(--border)}}
 #view-converter.on{display:block}
@@ -229,6 +232,10 @@ button{font-family:inherit}
 .cmdp-enter{font-size:13px;color:var(--accent);flex:0 0 auto;opacity:0}
 .cmdp-item.act .cmdp-enter{opacity:1}
 .cmdp-empty{padding:14px 12px;font-size:12.5px;color:var(--ink-3)}
+.cmdp-action .cn{font-weight:600}
+.cmdp-action{border-bottom:1px dashed var(--border)}
+.cmdp-refbtn{flex:0 0 auto;font-size:11px;color:var(--ink-3);border:1px solid var(--border);border-radius:6px;padding:1px 6px;margin-right:4px;cursor:pointer}
+.cmdp-refbtn:hover{border-color:var(--accent);color:var(--accent)}
 @media(max-width:900px){.cmdp-wrap{display:none}}
 .hdr-theme{display:flex;align-items:center;gap:7px}
 .hdr-theme label{font-size:10.5px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -297,6 +304,11 @@ button{font-family:inherit}
 .navitem .ic-badge svg{display:block}
 .ic-area{color:var(--b-area)}.ic-cell{color:var(--b-cell)}.ic-unit{color:var(--b-unit)}.ic-uclass{color:var(--b-uclass)}
 .ic-em{color:var(--b-em)}.ic-cm{color:var(--b-cm)}.ic-phase{color:var(--b-phase)}.ic-recipe{color:var(--b-recipe)}
+.ic-inst{color:var(--ink-3)}
+/* #5: EM/CM letter badge for Studio instance rows */
+.stu-litem .ic-badge .ic-lett{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font-size:10px;font-weight:800;color:#fff;font-family:'IBM Plex Mono'}
+.stu-litem .ic-em .ic-lett{background:var(--b-em)}
+.stu-litem .ic-cm .ic-lett{background:var(--b-cm)}
 .alias-ignored{font-size:11px;font-weight:600;color:#92600a;background:#fef3c7;padding:1px 8px;border-radius:20px}
 .alias-unres{color:#94a3b8}
 .alias-row-ign td:first-child code{opacity:.6}
@@ -778,7 +790,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260707-1940"
+_BUILD_ID = "20260707-2230"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -995,6 +1007,12 @@ function cmdpSubtitle(e){
   if(e.desc) return e.desc;
   return e.type||'';
 }
+function _cmdpRefCount(name){
+  var n=0;
+  if(DB.logic_xref&&DB.logic_xref[name]) DB.logic_xref[name].forEach(function(r){ n+=(r.count||1); });
+  if(DB.used_by&&DB.used_by[name]) n+=DB.used_by[name].length;
+  return n;
+}
 function cmdpSearch(q){
   var pop=document.getElementById('cmdpPop'); if(!pop) return;
   q=(q||'').trim();
@@ -1010,29 +1028,76 @@ function cmdpSearch(q){
     else if((e.type||'').toLowerCase().indexOf(ql)>=0) typ.push(e);
     if(pre.length>=40) break;
   }
-  out=pre.concat(sub).concat(typ).slice(0,40);
+  var objs=pre.concat(sub).concat(typ).slice(0,30);
+  // #8: turn object hits into rows; annotate each with its reference count so the user
+  // can jump straight into "what references this". Also add explicit action rows:
+  //  - "Find references to <exact match>"  (opens the floating references window)
+  //  - "Search logic/expressions for <q>"  (deep expression search in the rail)
+  out=objs.map(function(e){ return {kind:'obj', e:e, refs:_cmdpRefCount(e.name)}; });
+  // exact (case-insensitive) name match → offer a dedicated references action at the top
+  var exact=objs.filter(function(e){ return e.name.toLowerCase()===ql; })[0]
+          || (objs[0] && objs[0].name.toLowerCase().indexOf(ql)===0 ? objs[0] : null);
+  var actions=[];
+  if(exact && _cmdpRefCount(exact.name)>0){
+    actions.push({kind:'refs', name:exact.name, refs:_cmdpRefCount(exact.name)});
+  }
+  actions.push({kind:'expr', q:q});
+  out=actions.concat(out).slice(0,40);
   CMDP_RES=out; CMDP_SEL=out.length?0:-1;
   if(!out.length){ pop.innerHTML='<div class="cmdp-empty">No object matches \\u201c'+esc(q)+'\\u201d</div>'; pop.style.display='block'; return; }
-  var h='<div class="cmdp-hint">'+out.length+(out.length===40?'+':'')+' match'+(out.length===1?'':'es')+' \\u2014 \\u2191\\u2193 to move, \\u21b5 to open, esc to close</div>';
-  out.forEach(function(e,k){
-    var col=badgeColor(e.type);
-    var bl=(e.type||'').toUpperCase();
-    if(bl==='EM INSTANCE')bl='EM'; else if(bl==='CM INSTANCE')bl='CM'; else if(bl==='UNIT INSTANCE')bl='UNIT';
-    else if(bl==='PARAMETER')bl='PARAM'; else if(bl==='EM CLASS')bl='EM'; else if(bl==='CM CLASS')bl='CM';
-    else if(bl==='PHASE CLASS')bl='PHASE'; else if(bl==='NAMED SET')bl='SET';
-    h+='<div class="cmdp-item'+(k===0?' act':'')+'" data-i="'+k+'" onmousedown="cmdpPick('+k+')">'
-      +'<span class="cmdp-badge" style="background:'+col+'">'+esc(bl)+'</span>'
-      +'<span class="cmdp-nm"><span class="cn">'+hiQ(e.name,q)+'</span>'
-      +'<span class="cs">'+esc(cmdpSubtitle(e))+'</span></span>'
-      +'<span class="cmdp-enter">\\u21b5</span></div>';
+  var nobj=out.filter(function(r){return r.kind==='obj';}).length;
+  var h='<div class="cmdp-hint">'+nobj+(nobj>=30?'+':'')+' object'+(nobj===1?'':'s')+' \\u2014 \\u2191\\u2193 move, \\u21b5 open, esc close</div>';
+  out.forEach(function(r,k){
+    var act=(k===CMDP_SEL?' act':'');
+    if(r.kind==='refs'){
+      h+='<div class="cmdp-item cmdp-action'+act+'" data-i="'+k+'" onmousedown="cmdpPick('+k+')">'
+        +'<span class="cmdp-badge" style="background:#0891b2">REFS</span>'
+        +'<span class="cmdp-nm"><span class="cn">Find references to '+esc(r.name)+'</span>'
+        +'<span class="cs">'+r.refs+' reference'+(r.refs===1?'':'s')+' across logic & members</span></span>'
+        +'<span class="cmdp-enter">\\u21b5</span></div>';
+    } else if(r.kind==='expr'){
+      h+='<div class="cmdp-item cmdp-action'+act+'" data-i="'+k+'" onmousedown="cmdpPick('+k+')">'
+        +'<span class="cmdp-badge" style="background:#7c3aed">LOGIC</span>'
+        +'<span class="cmdp-nm"><span class="cn">Search logic & values for \\u201c'+esc(r.q)+'\\u201d</span>'
+        +'<span class="cs">deep search across expressions and configured values</span></span>'
+        +'<span class="cmdp-enter">\\u21b5</span></div>';
+    } else {
+      var e=r.e, col=badgeColor(e.type);
+      var bl=(e.type||'').toUpperCase();
+      if(bl==='EM INSTANCE')bl='EM'; else if(bl==='CM INSTANCE')bl='CM'; else if(bl==='UNIT INSTANCE')bl='UNIT';
+      else if(bl==='PARAMETER')bl='PARAM'; else if(bl==='EM CLASS')bl='EM'; else if(bl==='CM CLASS')bl='CM';
+      else if(bl==='PHASE CLASS')bl='PHASE'; else if(bl==='NAMED SET')bl='SET';
+      var refBtn=r.refs>0 ? '<span class="cmdp-refbtn" title="'+r.refs+' reference(s) \\u2014 open references window" onmousedown="event.stopPropagation();event.preventDefault();cmdpOpenRefs(\\''+esc(e.name).replace(/'/g,"\\\\'")+'\\')">\\u2922 '+r.refs+'</span>' : '';
+      h+='<div class="cmdp-item'+act+'" data-i="'+k+'" onmousedown="cmdpPick('+k+')">'
+        +'<span class="cmdp-badge" style="background:'+col+'">'+esc(bl)+'</span>'
+        +'<span class="cmdp-nm"><span class="cn">'+hiQ(e.name,q)+'</span>'
+        +'<span class="cs">'+esc(cmdpSubtitle(e))+'</span></span>'
+        +refBtn
+        +'<span class="cmdp-enter">\\u21b5</span></div>';
+    }
   });
   pop.innerHTML=h; pop.style.display='block';
 }
+function cmdpOpenRefs(name){
+  var inp=document.getElementById('cmdpInput'); if(inp){ inp.blur(); }
+  cmdpClose();
+  showReferencesFloat(name);
+}
 function cmdpPick(k){
-  var e=CMDP_RES[k]; if(!e) return;
+  var r=CMDP_RES[k]; if(!r) return;
   var inp=document.getElementById('cmdpInput'); if(inp){ inp.value=''; inp.blur(); }
   cmdpClose();
-  show(e.id);
+  if(r.kind==='refs'){ showReferencesFloat(r.name); return; }
+  if(r.kind==='expr'){ cmdpDeepSearch(r.q); return; }
+  show(r.e.id);
+}
+function cmdpDeepSearch(q){
+  // route into the rail's expression/value search
+  switchView('explorer');
+  var exprBtn=document.querySelector('.navmode .nm-btn:nth-child(2)');
+  if(exprBtn && typeof navMode==='function'){ try{ navMode(exprBtn,'expr'); }catch(_e){} }
+  var nq=document.getElementById('navq');
+  if(nq){ nq.value=q; nq.focus(); try{ navSearch(nq.value); }catch(_e){} }
 }
 function cmdpKey(ev){
   if(ev.key==='Escape'){ cmdpClose(); ev.target.value=''; ev.target.blur(); return; }
@@ -1387,11 +1452,16 @@ function stuBuildList(){
       var icons={Phases:'ic-phase','Equipment Module classes':'ic-em','Control Module classes':'ic-cm'};
       var h='';
       groups.forEach(function(g){
-        var gi=icons[g.group]|| (g.is_instances?'ic-cm':'');
+        var gi=icons[g.group]|| (g.is_instances?'ic-inst':'');
         h+='<div class="stu-grp"><div class="stu-grp-h">'+esc(g.group)+' <span class="stu-grp-n">'+g.items.length+'</span></div>';
         g.items.forEach(function(it){
+          // #5: per-instance icon — EM vs CM — from the item's resolved kind
+          var ic = it.kind==='em' ? 'ic-em' : it.kind==='cm' ? 'ic-cm' : gi;
+          var kb = it.kind==='em' ? 'E' : it.kind==='cm' ? 'C' : '';
           h+='<div class="stu-litem" data-id="'+esc(it.id)+'" onclick="stuOpen(\\''+esc(it.id).replace(/'/g,"\\\\'")+'\\')">'
-            +'<span class="ic-badge '+gi+'"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>'
+            +'<span class="ic-badge '+ic+'">'+(kb
+                ? '<span class="ic-lett">'+kb+'</span>'
+                : '<svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>')+'</span>'
             +esc(it.name)
             +(it.cls?'<span class="stu-litem-cls">'+esc(it.cls)+'</span>':'')+'</div>';
         });
@@ -1415,7 +1485,10 @@ function stuFilterList(inp){
 }
 function stuOpen(id){
   STU.open=id;
-  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){ it.classList.toggle('sel', it.dataset.id===id); });
+  document.querySelectorAll('#stuList .stu-litem').forEach(function(it){
+    var on=(it.dataset.id===id); it.classList.toggle('sel', on);
+    if(on){ try{ it.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(_e){} }
+  });
   var main=document.getElementById('stuMain');
   main.innerHTML='<div class="stu-welcome">'+dvLoader('Opening\u2026')+'</div>';
   fetch('/studio_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(id))
@@ -2197,7 +2270,9 @@ function markSelectedObject(e){
   else if(e.k==='rstep'||e.k==='recipe') sel='.rec-item[data-rec="'+cssEsc(e.parent||e.rec||'')+'"]';
   if(!sel) return;
   var row=document.querySelector(sel);
-  if(row){ row.classList.add('obj-selected'); }
+  if(row){ row.classList.add('obj-selected');
+    try{ row.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(_e){ try{ row.scrollIntoView(); }catch(_e2){} }
+  }
 }
 function cssEsc(s){ return String(s==null?'':s).replace(/["\\\\]/g,'\\\\$&'); }
 // #3/#5: collapse any card OR sub-card by clicking its header. Handles top-level

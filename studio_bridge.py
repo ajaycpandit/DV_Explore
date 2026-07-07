@@ -91,6 +91,52 @@ def list_studio_phases(text):
         return []
 
 
+def _class_io_html(text, cls_name):
+    """Parameter / I/O connection list for a MODULE_CLASS (EM or CM), for the Studio
+    side pane (#4). Reads ATTRIBUTE definitions: name, connection direction, type,
+    description. Gives the right pane real content instead of blank."""
+    m = _re.search(r'MODULE_CLASS\s+NAME="' + _re.escape(cls_name) + r'"', text)
+    if not m:
+        return '<div class="stu-empty">Class definition not found.</div>'
+    try:
+        blk = db_parser.extract_block(text, text.index('{', m.start()))
+    except Exception:
+        return '<div class="stu-empty">Could not read class definition.</div>'
+    rows = []
+    for am in _re.finditer(r'ATTRIBUTE\s+NAME="([^"]+)"([^{]*)\{', blk):
+        name = am.group(1)
+        inline = am.group(2)  # CONNECTION/TYPE often sit here, before the brace body
+        try:
+            abody = db_parser.extract_block(blk, am.end() - 1)
+        except Exception:
+            abody = ''
+        scope = inline + abody
+        conn = _re.search(r'CONNECTION=(\w+)', scope)
+        typ = _re.search(r'TYPE=(\w+)', scope)
+        desc = _re.search(r'DESCRIPTION="([^"]*)"', scope)
+        # skip pure-graphics/version pseudo-attributes with no connection & no desc
+        if not conn and not (desc and desc.group(1)) and name in (
+                'VERSION_CLASS', 'VERSION', 'FRAME'):
+            continue
+        direction = conn.group(1).title() if conn else ''
+        arrow = {'Input': '\u2190 read', 'Output': '\u2192 write'}.get(direction, '')
+        rows.append((name, direction, arrow, typ.group(1) if typ else '',
+                     desc.group(1) if desc else ''))
+    if not rows:
+        return '<div class="stu-empty">No parameters or I/O connections defined on this class.</div>'
+    h = ['<table class="stu-grid"><thead><tr><th>Parameter</th><th>Direction</th>'
+         '<th>Type</th><th>Description</th></tr></thead><tbody>']
+    for name, direction, arrow, typ, desc in rows:
+        dcell = (f'<span class="stu-io stu-io-{direction.lower()}">{_html.escape(arrow)}</span>'
+                 if arrow else _html.escape(direction))
+        h.append('<tr><td><code>' + _html.escape(name) + '</code></td>'
+                 '<td>' + dcell + '</td>'
+                 '<td>' + _html.escape(typ) + '</td>'
+                 '<td class="stu-desc">' + _html.escape(desc) + '</td></tr>')
+    h.append('</tbody></table>')
+    return ''.join(h)
+
+
 def _param_grid(params):
     """The phase's recipe/parameter list as a full grid — richer than the browse
     pane: direction, default, range and units side by side."""
@@ -174,88 +220,128 @@ def studio_object_list(text, catalog=None):
                            'items': [{'id': 'cm:' + c, 'name': c} for c in cms]})
     # deployed instances (EM + CM) with their unit path, grouped by unit
     try:
-        insts = _deployed_instances(text)
+        insts = _deployed_instances(text, catalog)
     except Exception:
         insts = {}
     if insts:
         for unit in sorted(insts.keys()):
-            items = [{'id': it['id'], 'name': it['name'], 'cls': it.get('cls', '')}
+            items = [{'id': it['id'], 'name': it['name'], 'cls': it.get('cls', ''),
+                      'kind': it.get('kind', '')}
                      for it in sorted(insts[unit], key=lambda x: x['name'])]
             label = ('Instances \u00b7 ' + unit) if unit else 'Instances (unassigned)'
             groups.append({'group': label, 'items': items, 'is_instances': True})
     return groups
 
 
-def _deployed_instances(text):
-    """{ unit_name: [ {id:'dep:TAG', name:TAG, cls} ] } for all MODULE_INSTANCEs,
-    grouped by their S88 unit (from the authoritative opening line)."""
+def _deployed_instances(text, catalog=None):
+    """{ unit_name: [ {id:'dep:TAG', name:TAG, cls, kind} ] } for all MODULE_INSTANCEs,
+    grouped by their S88 unit. `kind` is 'em' or 'cm' (#5), resolved via catalog
+    membership of the instance's class."""
     idx = _deployed_line_index(text)
+    em_names, cm_names = set(), set()
+    if catalog is not None:
+        em_names = {e['name'] for e in catalog.get('em_classes', [])}
+        cm_names = {c['name'] for c in catalog.get('cm_classes', [])}
     out = {}
     for tag, info in idx.items():
+        cls = info.get('cls', '')
+        kind = 'em' if cls in em_names else ('cm' if cls in cm_names else '')
         out.setdefault(info.get('unit', ''), []).append(
-            {'id': 'dep:' + tag, 'name': tag, 'cls': info.get('cls', '')})
+            {'id': 'dep:' + tag, 'name': tag, 'cls': cls, 'kind': kind})
     return out
 
 
 def build_em_studio(text, em_name):
     """Studio payload for an EM class: command/state logic diagram in the main panel,
-    plus its resolved control modules and members in the side panels."""
+    plus its resolved control modules and members in the side panels.
+
+    Builds directly from command_state_html / build_fbd_views / em_cm_members rather
+    than em_bridge.build_em_views, because that path filters through em_modules() which
+    misclassifies FBD-only EMs (names not starting with 'EM', no state logic) as CMs and
+    returns empty — the cause of blank/missing EM diagrams for classes like
+    TOTALIZER_EM_C, CHT_DHT_EM_C, etc."""
     try:
-        ev = em_bridge.build_em_views(text, only=em_name).get(em_name, {})
-    except Exception as e:
-        return {'error': f'Could not build EM view: {e}'}
-    cms = ev.get('cms') or []
-    members = ev.get('members') or []
-    # side: control modules grid
-    cm_html = '<div class="stu-empty">No control modules.</div>'
-    if cms:
-        rows = ''.join(
-            '<tr><td><code>' + _html.escape(c.get('name', '')) + '</code></td><td>'
-            + _html.escape(str(c.get('n_blocks', ''))) + '</td></tr>' for c in cms)
-        cm_html = ('<table class="stu-grid"><thead><tr><th>Control Module</th>'
-                   '<th>Blocks</th></tr></thead><tbody>' + rows + '</tbody></table>')
-    mem_html = '<div class="stu-empty">No members.</div>'
+        state = em_bridge.command_state_html(text, em_name) or ''
+    except Exception:
+        state = ''
+    try:
+        fbd = fbd_bridge.build_fbd_views(text, only=em_name).get(em_name, '') or ''
+    except Exception:
+        fbd = ''
+    try:
+        members = em_bridge.em_cm_members(text, em_name) or []
+    except Exception:
+        members = []
+    if not state and not fbd and not members:
+        return {'error': f'No command logic, diagram, or members found for EM "{em_name}".'}
+    has_state = bool(state)
+    mem_html = '<div class="stu-empty">No control modules resolved for this EM.</div>'
     if members:
         rows = ''.join(
             '<tr><td><code>' + _html.escape(m.get('name', '')) + '</code></td><td>'
             + _html.escape(m.get('type', '') or m.get('cls', '')) + '</td><td>'
             + _html.escape(m.get('desc', '')) + '</td></tr>' for m in members)
-        mem_html = ('<table class="stu-grid"><thead><tr><th>Member</th><th>Type</th>'
+        mem_html = ('<table class="stu-grid"><thead><tr><th>Member (CM)</th><th>Type</th>'
                     '<th>Description</th></tr></thead><tbody>' + rows + '</tbody></table>')
-
+    panels = [{'key': 'members', 'label': f'Control Modules ({len(members)})',
+               'html': mem_html},
+              {'key': 'params', 'label': 'Parameters & I/O',
+               'html': _class_io_html(text, em_name)}]
     return {
         'name': em_name, 'kind': 'Equipment Module',
-        'diagram_url': 'em', 'obj': em_name,  # main loads via /studio_diagram (see note in phase builder)
-        'panels': [{'key': 'cms', 'label': 'Control Modules', 'html': cm_html},
-                   {'key': 'members', 'label': 'Members', 'html': mem_html}],
-        'counts': {'Control modules': len(cms), 'Members': len(members)},
+        'diagram_url': 'em', 'obj': em_name,
+        'has_state': has_state, 'has_fbd': bool(fbd),
+        'panels': panels,
+        'counts': {'Members': len(members),
+                   'Logic': 'state+FBD' if (has_state and fbd) else ('state' if has_state else 'FBD')},
     }
 
 
 def build_em_diagram_html(text, em_name):
-    """Standalone HTML doc (for the Studio iframe) with an EM's state logic + FBD."""
+    """Standalone HTML doc (for the Studio iframe) with an EM's state logic + FBD.
+    Builds directly (see note in build_em_studio) so FBD-only EMs render too."""
     try:
-        ev = em_bridge.build_em_views(text, only=em_name).get(em_name, {})
-    except Exception as e:
-        ev = {}
-    state = ev.get('state') or ''
-    fbd = ev.get('fbd') or ''
+        state = em_bridge.command_state_html(text, em_name) or ''
+    except Exception:
+        state = ''
+    try:
+        fbd = fbd_bridge.build_fbd_views(text, only=em_name).get(em_name, '') or ''
+    except Exception:
+        fbd = ''
     body = ''
     if state:
-        body += '<div class="stu-embed">' + state + '</div>'
+        body += ('<div class="stu-embed"><div class="stu-embed-h">Command / State logic</div>'
+                 + state + '</div>')
     if fbd:
-        body += '<div class="stu-embed">' + fbd + '</div>'
+        body += ('<div class="stu-embed"><div class="stu-embed-h">Function block diagram</div>'
+                 + fbd + '</div>')
     if not body:
         body = '<p style="padding:20px;color:#64748b">No command logic or diagram for this EM.</p>'
     return _diagram_doc(em_name, body)
 
 
 def _diagram_doc(title, body):
-    return ('<!DOCTYPE html><html><head><meta charset="utf-8">'
-            '<style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;'
-            'background:#fff;color:#16202c}.stu-embed{padding:8px}'
-            'table{border-collapse:collapse;font-size:12px}td,th{padding:4px 8px;border:1px solid #e2e8f0}'
-            'svg{max-width:100%}</style></head><body>' + body + '</body></html>')
+    """Wrap Studio diagram fragments (which carry their own <style> blocks) in a doc
+    with a layout that gives them room — full width, generous padding, horizontal
+    scroll instead of squeezing, and clear separation between stacked sections (state
+    logic vs FBD). Fixes the cramped SFC/action layout inside the Studio iframe."""
+    return (
+        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<style>'
+        '*{box-sizing:border-box}'
+        'html,body{margin:0;padding:0}'
+        'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;'
+        'background:#f8fafc;color:#16202c;line-height:1.4}'
+        '.stu-doc{padding:14px 16px 40px;min-width:0}'
+        '.stu-embed{background:#fff;border:1px solid #e2e8f0;border-radius:10px;'
+        'padding:14px 16px;margin:0 0 16px;overflow-x:auto;box-shadow:0 1px 3px rgba(15,23,42,.05)}'
+        '.stu-embed-h{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;'
+        'color:#64748b;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #eef2f6}'
+        'table{border-collapse:collapse;font-size:12px}'
+        'td,th{padding:4px 8px;border:1px solid #e2e8f0}'
+        'svg{max-width:none;height:auto}'          # don't shrink SFC/FBD SVGs to fit
+        '.fbd-wrap,.fbd-svg-holder{overflow:auto;max-width:100%}'
+        '</style></head><body><div class="stu-doc">' + body + '</div></body></html>')
 
 
 def build_cm_studio(text, cm_name):
@@ -271,7 +357,9 @@ def build_cm_studio(text, cm_name):
     return {
         'name': cm_name, 'kind': 'Control Module',
         'diagram_url': 'cm', 'obj': cm_name,
-        'panels': [], 'counts': {},
+        'panels': [{'key': 'params', 'label': 'Parameters & I/O',
+                    'html': _class_io_html(text, cm_name)}],
+        'counts': {},
     }
 
 

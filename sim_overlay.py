@@ -152,6 +152,10 @@ body.sim-on.mode-right.sim-min{padding-right:0!important}
 .alias-row .al-arrow{color:#94a3b8}
 .alias-row .al-t{color:#0369a1;font-weight:600}
 .alias-row .al-d{color:#94a3b8;font-size:11px;margin-left:4px}
+.alias-hdr{font:12px 'IBM Plex Sans';color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;padding:7px 10px;margin-bottom:8px;line-height:1.5}
+.alias-hdr .al-ign-n{color:#b45309}
+.alias-row.alias-ign{opacity:.6}
+.alias-row .al-ignlbl{font:11px 'IBM Plex Sans';color:#b45309;background:#fef3c7;border-radius:4px;padding:1px 7px}
 .sim-atoggle{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#46566b;cursor:pointer;margin-bottom:2px}
 .sim-atoggle input{margin:0}
 /* narrow docks (left/right/float): stack everything, tabs become section headers */
@@ -621,13 +625,28 @@ function buildAliases(filter){{
   const el=document.getElementById('sim-aliases'); if(!el) return; el.innerHTML='';
   const al=PAYLOAD.aliases||{{}};
   const keys=Object.keys(al); const f=(filter||'').toLowerCase();
-  if(!keys.length){{ el.innerHTML='<div class="sim-phint">No alias resolutions for this unit.</div>'; return; }}
+  if(!keys.length){{ el.innerHTML='<div class="sim-phint">This phase references no aliases \\u2014 it can run standalone.</div>'; return; }}
+  // #9: a phase CLASS can't actuate anything on its own; its device references are
+  // aliases that only resolve when the phase is mounted on a unit. This sim runs
+  // against the unit's ALIAS_RESOLUTION table, so show that context explicitly and
+  // flag any aliases that are unresolved / commissioned-out (they won't actuate).
+  let nres=0, nign=0;
+  keys.forEach(function(a){{ const t=aliasTag(al[a]); if(t) nres++; else nign++; }});
+  el.insertAdjacentHTML('beforeend',
+    '<div class="alias-hdr">Running as mounted on the deployed unit \\u2014 '
+    +'<b>'+nres+'</b> alias'+(nres===1?'':'es')+' resolved to real devices'
+    +(nign?(', <b class="al-ign-n">'+nign+'</b> unresolved / commissioned-out'):'')
+    +'. Steps that target an unresolved alias won\\'t actuate (expected).</div>');
   keys.sort().forEach(function(a){{
     const entry=al[a];
     const tgt=aliasTag(entry)||'';
     const desc=(entry&&typeof entry==='object'&&entry.desc)?entry.desc:'';
     if(f && a.toLowerCase().indexOf(f)<0 && String(tgt).toLowerCase().indexOf(f)<0 && desc.toLowerCase().indexOf(f)<0) return;
-    el.insertAdjacentHTML('beforeend','<div class="alias-row"><code class="al-a">#'+esc(a)+'#</code><span class="al-arrow">\\u2192</span><code class="al-t">'+esc(tgt)+'</code>'+(desc?'<span class="al-d">'+esc(desc)+'</span>':'')+'</div>');
+    const ign=!tgt;
+    el.insertAdjacentHTML('beforeend','<div class="alias-row'+(ign?' alias-ign':'')+'">'
+      +'<code class="al-a">#'+esc(a)+'#</code><span class="al-arrow">\\u2192</span>'
+      +(ign?'<span class="al-ignlbl">unresolved / ignored</span>':'<code class="al-t">'+esc(tgt)+'</code>')
+      +(desc?'<span class="al-d">'+esc(desc)+'</span>':'')+'</div>');
   }});
 }}
 function buildEdit(){{ buildRParams(''); buildLevers(); buildPParams(); buildAliases('');
