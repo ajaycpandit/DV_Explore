@@ -78,6 +78,19 @@ button{font-family:inherit}
 .stu-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
 .stu-head h2{margin:0;font-size:17px}
 .stu-kind{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:20px}
+.stu-instof{font-size:11px;font-weight:600;color:var(--ink-3);font-family:'IBM Plex Mono'}
+/* #3: S88 path breadcrumb bar */
+.stu-pathbar{display:flex;align-items:center;flex-wrap:wrap;gap:2px;padding:8px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px}
+.stu-crumb{display:inline-flex;flex-direction:column;line-height:1.25;padding:3px 9px;border-radius:7px}
+.stu-crumb-cur{background:var(--accent-soft)}
+.stu-crumb-k{font-size:9.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.stu-crumb-n{font-size:12.5px;color:var(--ink);font-weight:600}
+.stu-crumb-sub{font-size:10px;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.stu-crumb-sep{color:var(--ink-3);margin:0 2px;font-size:15px}
+.stu-path-warn{margin-left:8px;font-size:10.5px;color:#9a6700;background:#fdf0d5;border:1px solid #f0d9a8;border-radius:20px;padding:2px 8px}
+.stu-browse-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;margin:2px 0 8px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.stu-browse-btn:hover{filter:brightness(1.06)}
+.stu-litem .stu-litem-cls{font-size:10.5px;color:var(--ink-3);font-family:'IBM Plex Mono';margin-left:6px}
 .stu-chip{font-size:11px;font-weight:600;background:var(--surface-2);color:var(--ink-2);padding:3px 9px;border-radius:20px}
 .stu-body{flex:1 1 auto;display:grid;overflow:hidden;min-height:0}
 .stu-body.stu-dock-right{grid-template-columns:1.35fr 5px 1fr;grid-template-rows:minmax(0,1fr)}
@@ -137,6 +150,10 @@ button{font-family:inherit}
 .ctx-it.ctx-danger:hover{background:#fef2f2;color:#dc2626}
 .ctx-sep{height:1px;background:var(--border,#e2e8f0);margin:4px 6px}
 .ctx-target{outline:2px solid var(--accent,#7c3aed);outline-offset:-2px;border-radius:4px}
+/* #1: persistent "currently open object" indicator on nav rows — a soft accent bar +
+   tint, nicer than a hard outline, and it moves to whatever object is open. */
+.obj-selected{position:relative;background:var(--accent-soft)!important;border-radius:6px}
+.obj-selected::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:3px;border-radius:3px;background:var(--accent)}
 .rec-empty{color:var(--ink-3);font-size:13px;padding:16px 8px;line-height:1.6}
 .rec-src{font-size:11px;color:var(--ink-3);margin:0 4px 10px;line-height:1.5}
 .rec-xl{font-size:11.5px;font-weight:600;margin-left:10px;vertical-align:middle}
@@ -402,6 +419,19 @@ body[data-density="compact"] .kv{gap:3px 12px}
 .ruse-empty{color:var(--ink-3);font-size:13px;padding:14px 4px}
 .ref-uses-btn{margin-left:5px;font-size:11px;color:var(--ink-3);border:1px solid var(--border);border-radius:6px;padding:0 6px;line-height:16px;cursor:pointer}
 .ref-uses-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* #2: floating references window groups */
+.refs-card{width:560px}
+.refs-grp{margin:4px 0 12px}
+.refs-grp-h{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin:8px 0 4px}
+.refs-owner{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin:5px 0;background:var(--surface-2)}
+.refs-owner-hd{background:var(--accent-soft);border-color:var(--border-strong)}
+.refs-owner:not(.refs-noopen){cursor:pointer}
+.refs-owner:not(.refs-noopen):hover{border-color:var(--accent)}
+.refs-oname{font-weight:600;font-size:13px;color:var(--ink)}
+.refs-role{font-size:11px;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.refs-go{margin-left:auto;font-size:11px;color:var(--accent);font-weight:600}
+.refs-noopen .refs-go{display:none}
+.refs-use{border-left:2px solid var(--border);margin:6px 0 6px 10px;padding:4px 0 4px 10px}
 .cm-group{margin:6px 0}
 .cm-group>summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 0;list-style:none;user-select:none;display:flex;align-items:center;gap:7px}
 .cm-group>summary::-webkit-details-marker{display:none}
@@ -748,7 +778,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260707-0430"
+_BUILD_ID = "20260707-1940"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1354,14 +1384,16 @@ function stuBuildList(){
     .then(function(d){
       var groups=d.groups||[];
       if(!groups.length){ box.innerHTML='<div class="stu-empty">No objects in this import.</div>'; return; }
-      var icons={Phases:'ic-phase','Equipment Modules':'ic-em','Control Modules':'ic-cm'};
+      var icons={Phases:'ic-phase','Equipment Module classes':'ic-em','Control Module classes':'ic-cm'};
       var h='';
       groups.forEach(function(g){
+        var gi=icons[g.group]|| (g.is_instances?'ic-cm':'');
         h+='<div class="stu-grp"><div class="stu-grp-h">'+esc(g.group)+' <span class="stu-grp-n">'+g.items.length+'</span></div>';
         g.items.forEach(function(it){
           h+='<div class="stu-litem" data-id="'+esc(it.id)+'" onclick="stuOpen(\\''+esc(it.id).replace(/'/g,"\\\\'")+'\\')">'
-            +'<span class="ic-badge '+(icons[g.group]||'')+'"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>'
-            +esc(it.name)+'</div>';
+            +'<span class="ic-badge '+gi+'"><svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg></span>'
+            +esc(it.name)
+            +(it.cls?'<span class="stu-litem-cls">'+esc(it.cls)+'</span>':'')+'</div>';
         });
         h+='</div>';
       });
@@ -1424,10 +1456,13 @@ function stuRender(d){
       +'</span></div>'+tabpanels+'</div>'
     : '';
   var h='<div class="stu-head"><button class="stu-toggle" onclick="stuToggleSide()" title="Show / hide the object list">\\u2630</button>'
-    +'<h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'+chips
+    +'<h2>'+esc(d.name)+'</h2><span class="stu-kind">'+esc(d.kind||'')+'</span>'
+    +(d.instance_of?'<span class="stu-instof" title="Instance of class">\\u2192 '+esc(d.instance_of)+'</span>':'')
+    +chips
     +'<div class="stu-head-sp"></div>'
     + stuOpenInExplorerBtn(d._id)
     +'</div>'
+    + stuPathBar(d.path)
     +'<div class="stu-body stu-dock-'+STU.dock+'">'
     +'<div class="stu-pane stu-diagram">'+mainInner+'</div>'
     + (sidePanel ? '<div class="stu-split" id="stuSplit"></div>'+sidePanel : '')
@@ -1435,13 +1470,36 @@ function stuRender(d){
   document.getElementById('stuMain').innerHTML=h;
   stuWireSplit();
 }
+// #3: full S88 path breadcrumb — the equipment hierarchy needed for the FHX round-trip.
+function stuPathBar(path){
+  if(!path || !path.crumbs || !path.crumbs.length) return '';
+  var kicon={'Plant Area':'\\u25a3','Process Cell':'\\u25a6','Unit':'\\u25a4',
+             'Equipment Module':'\\u25c9','Equipment Module class':'\\u25c9',
+             'Control Module':'\\u25ce','Control Module class':'\\u25ce',
+             'Instance':'\\u25c8','Phase':'\\u25b8'};
+  var parts=path.crumbs.map(function(c,i){
+    var last=(i===path.crumbs.length-1);
+    return '<span class="stu-crumb'+(last?' stu-crumb-cur':'')+'" title="'+esc(c.kind)+'">'
+      +'<span class="stu-crumb-k">'+(kicon[c.kind]||'\\u00b7')+' '+esc(c.kind)+'</span>'
+      +'<span class="stu-crumb-n">'+esc(c.name)+'</span>'
+      +(c.sub?'<span class="stu-crumb-sub">'+esc(c.sub)+'</span>':'')+'</span>';
+  }).join('<span class="stu-crumb-sep">\\u203a</span>');
+  var warn = path.found ? '' :
+    '<span class="stu-path-warn" title="No deployed instance path found — class shown without equipment context">class only</span>';
+  return '<div class="stu-pathbar">'+parts+warn+'</div>';
+}
 function stuOpenInExplorerBtn(id){
   var exp='';
-  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN && (id.indexOf('phase:')===0||id.indexOf('em:')===0||id.indexOf('cm:')===0)){
+  var canExport=(id.indexOf('phase:')===0||id.indexOf('em:')===0||id.indexOf('cm:')===0||id.indexOf('dep:')===0);
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN && canExport){
     exp='<button class="exp-btn" style="padding:5px 10px" onclick="window.location.href=\\'/export?token=\\'+encodeURIComponent(EXPORT_TOKEN)+\\'&fmt=excel&obj=\\'+encodeURIComponent(\\''+esc(id)+'\\')" title="Export this object to Excel">'+_EXCEL_ICON_RAW+'Excel</button>'
       +'<button class="exp-btn" style="padding:5px 10px" onclick="window.location.href=\\'/export?token=\\'+encodeURIComponent(EXPORT_TOKEN)+\\'&fmt=word&obj=\\'+encodeURIComponent(\\''+esc(id)+'\\')" title="Export this object to Word">'+_WORD_ICON_RAW+'Word</button>';
   }
-  return exp+'<button class="exp-btn" style="padding:5px 10px" onclick="switchView(\\'explorer\\');show(\\''+esc(id)+'\\')" title="Show this object in the Explorer">Open in Explorer</button>';
+  // deployed instances open in the Explorer's deployed view; classes/phases via show()
+  var openCall = (id.indexOf('dep:')===0)
+    ? ("switchView('explorer');show('"+esc(id)+"')")
+    : ("switchView('explorer');show('"+esc(id)+"')");
+  return exp+'<button class="exp-btn" style="padding:5px 10px" onclick="'+openCall+'" title="Show this object in the Explorer">Open in Explorer</button>';
 }
 function stuTab(el,t){
   var sp=el.closest('.stu-side-panel');
@@ -2124,8 +2182,24 @@ function renderEntry(e){
     else if(e.k==='rstep') renderRecipeStep(e.parent, e.step, e.layer);
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
+    try{ markSelectedObject(e); }catch(_e){}
   });
 }
+// #1: keep a single persistent "currently open" highlight on the matching nav row.
+// Moves to the newly opened object and clears the previously selected one.
+function markSelectedObject(e){
+  document.querySelectorAll('.obj-selected').forEach(function(n){ n.classList.remove('obj-selected'); });
+  if(!e) return;
+  var sel=null;
+  if(e.k==='obj') sel='.navitem[data-id="'+cssEsc(e.id)+'"]';
+  else if(e.k==='dep') sel='.navinst[data-tag="'+cssEsc(e.tag)+'"][data-dep="1"]';
+  else if(e.k==='inst'){ var tg=(e.iid||'').split('\\u0001').pop(); sel='.navinst[data-tag="'+cssEsc(tg)+'"]'; }
+  else if(e.k==='rstep'||e.k==='recipe') sel='.rec-item[data-rec="'+cssEsc(e.parent||e.rec||'')+'"]';
+  if(!sel) return;
+  var row=document.querySelector(sel);
+  if(row){ row.classList.add('obj-selected'); }
+}
+function cssEsc(s){ return String(s==null?'':s).replace(/["\\\\]/g,'\\\\$&'); }
 // #3/#5: collapse any card OR sub-card by clicking its header. Handles top-level
 // .card > h3 and nested sub-cards / h4 headers, so a master card (e.g. Diagram) with
 // internal sub-sections can each collapse independently. Pure CSS affordance + one
@@ -2196,7 +2270,7 @@ if(!window._pfcPanWired){
 // object, navigation between the Explorer and Recipes views is one step.
 if(!window._ctxWired){
   window._ctxWired=1;
-  function ctxClose(){ var m=document.getElementById('ctxMenu'); if(m) m.remove(); }
+  function ctxClose(){ var m=document.getElementById('ctxMenu'); if(m){ if(m._target) m._target.classList.remove('ctx-target'); m.remove(); } }
   function ctxItem(label, fn, opts){
     opts=opts||{};
     return {label:label, fn:fn, disabled:opts.disabled, sep:opts.sep, danger:opts.danger};
@@ -2238,13 +2312,14 @@ if(!window._ctxWired){
           acts.push(ctxItem('Export (.docx)', function(){ window.location.href='/export?t='+encodeURIComponent(EXPORT_TOKEN)+'&fmt=word&obj='+encodeURIComponent(id); }));
         }
       }
-      acts.push(ctxItem('Find references', function(){ showReferences(name); }));
+      acts.push(ctxItem('Find references', function(){ showReferencesFloat(name); }));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(name); }, {sep:true}));
       return acts;
     }
     if(tag){
       acts.push(ctxItem('Open instance', function(){ if(typeof showDeployed==='function') showDeployed(tag); }));
-      acts.push(ctxItem('Find references', function(){ showReferences(tag); }));
+      acts.push(ctxItem('Open in Studio', function(){ switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen('dep:'+tag); },0); }));
+      acts.push(ctxItem('Find references', function(){ showReferencesFloat(tag); }));
       acts.push(ctxItem('Copy tag', function(){ ctxCopy(tag); }, {sep:true}));
       return acts;
     }
@@ -2655,8 +2730,72 @@ function _ruseDrag(card){
   });
   document.addEventListener('mouseup',function(){ drag=false; });
 }
-function showReferences(tag){ navTo({k:'references', tag:tag}); }
-function renderReferences(tag){
+// #2: floating "references" window — lists every logic use-site of a tag across all
+// owners, each row showing the full expression/path and navigating to that owner on click.
+function _ownerNav(owner){
+  // returns a JS call string that navigates to the owning object, or '' if not openable
+  if(DB.deployed_modules&&DB.deployed_modules[owner]) return "show('dep:"+owner.replace(/'/g,"\\\\'")+"')";
+  if(DB.objs&&DB.objs['em:'+owner]) return "show('em:"+owner.replace(/'/g,"\\\\'")+"')";
+  if(DB.objs&&DB.objs['cm:'+owner]) return "show('cm:"+owner.replace(/'/g,"\\\\'")+"')";
+  if(DB.objs&&DB.objs['phase:'+owner]) return "show('phase:"+owner.replace(/'/g,"\\\\'")+"')";
+  return '';
+}
+function showReferencesFloat(tag){
+  var id='refs_'+tag.replace(/[^A-Za-z0-9]/g,'_');
+  var ex=document.getElementById(id); if(ex){ ex.remove(); return; }
+  var card=document.createElement('div'); card.className='ruse-card refs-card'; card.id=id;
+  var n=document.querySelectorAll('.ruse-card').length;
+  card.style.left=(Math.min(window.innerWidth-560, 140+n*26))+'px';
+  card.style.top=(84+n*26)+'px';
+  card.innerHTML='<div class="ruse-h"><b>References</b> <span class="ruse-sub">to '+esc(tag)+'</span>'
+    +'<span class="ruse-x" title="Close" onclick="var c=document.getElementById(\\''+id+'\\');if(c)c.remove();">\\u00d7</span></div>'
+    +'<div class="ruse-body"><div class="ruse-empty"><span class="dv-dots"><i></i><i></i><i></i></span> Finding all references\\u2026</div></div>';
+  document.body.appendChild(card);
+  _ruseDrag(card);
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){
+    card.querySelector('.ruse-body').innerHTML='<div class="ruse-empty">Reference lookup needs the loaded database session.</div>'; return;
+  }
+  fetch('/references_all?t='+encodeURIComponent(EXPORT_TOKEN)+'&tag='+encodeURIComponent(tag))
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var body=card.querySelector('.ruse-body'); if(!body) return;
+      var groups=(j&&j.groups)||[];
+      // also fold in member-usage (used_by) so the window is the full picture
+      var usedBy=(DB.used_by&&DB.used_by[tag])||[];
+      if(!groups.length && !usedBy.length){ body.innerHTML='<div class="ruse-empty">No references found \\u2014 this tag isn\\'t used as a member and isn\\'t referenced in any module\\'s logic.</div>'; return; }
+      var h='';
+      if(usedBy.length){
+        h+='<div class="refs-grp"><div class="refs-grp-h">Used as a member by ('+usedBy.length+')</div>';
+        usedBy.forEach(function(u){
+          h+='<div class="refs-owner" onclick="show(\\'em:'+esc(u.parent)+'\\')"><span class="refs-oname">'+esc(u.parent)+'</span>'
+            +(u.instance?'<span class="refs-role">role: '+esc(u.instance)+'</span>':'')+'<span class="refs-go">open \\u2192</span></div>';
+        });
+        h+='</div>';
+      }
+      groups.forEach(function(g){
+        var nav=_ownerNav(g.owner);
+        h+='<div class="refs-grp"><div class="refs-owner refs-owner-hd'+(nav?'':' refs-noopen')+'"'+(nav?(' onclick="'+nav+'"'):'')+'>'
+          +'<span class="refs-oname">'+esc(g.owner)+'</span><span class="ref-cnt">\\u00d7'+g.count+'</span>'
+          +(nav?'<span class="refs-go">open \\u2192</span>':'')+'</div>';
+        (g.uses||[]).forEach(function(u){
+          h+='<div class="refs-use">';
+          if(u.context&&u.context.length){
+            h+='<div class="ruse-ctx">';
+            u.context.forEach(function(c){ var sp=c.indexOf(' '); var kind=sp>0?c.slice(0,sp):''; var nm=sp>0?c.slice(sp+1):c;
+              h+='<span class="ruse-crumb"><span class="rc-kind">'+esc(kind)+'</span>'+esc(nm)+'</span>'; });
+            h+='</div>';
+          }
+          if(u.description) h+='<div class="ruse-desc">'+esc(u.description)+'</div>';
+          if(u.key) h+='<div class="ruse-key">'+esc(u.key)+'</div>';
+          h+='<div class="ruse-expr">'+esc(u.line||'')+'</div></div>';
+        });
+        h+='</div>';
+      });
+      body.innerHTML=h;
+    })
+    .catch(function(){ var b=card.querySelector('.ruse-body'); if(b) b.innerHTML='<div class="ruse-empty">Could not load references.</div>'; });
+}
+function showReferences(tag){ navTo({k:'references', tag:tag}); }function renderReferences(tag){
   var d=document.getElementById('detail'); if(!d) return;
   var card=refCardHTML(tag);
   var h='<h2 class="dt">'+esc(tag)+' <span class="dt-type b-composite">References</span> '
@@ -3506,12 +3645,12 @@ function wireFbdLinks(){
   <div class="stu-shell">
     <div class="stu-side">
       <div class="stu-side-h">Studio</div>
-      <div class="stu-side-sub">Open one object \u2014 phase, EM or CM \u2014 in a focused, multi-panel workspace. Panels are dockable and the list is hideable.</div>
-      <input class="alias-filter" id="stuFilter" placeholder="Filter phases\u2026" oninput="stuFilterList(this)" style="margin:8px 0">
+      <div class="stu-side-sub">Open a phase, class, or deployed instance in a focused, multi-panel workspace. Instances show their full equipment path (Plant Area \u203a Cell \u203a Unit).</div>
+      <input class="alias-filter" id="stuFilter" placeholder="Filter objects & instances\u2026" oninput="stuFilterList(this)" style="margin:8px 0">
       <div id="stuList"></div>
     </div>
     <div class="stu-main" id="stuMain">
-      <div class="stu-welcome"><h2>Studio</h2><p>Select a phase on the left to open it here. The diagram is fully interactive \u2014 the simulator runs inside the Studio too.</p></div>
+      <div class="stu-welcome"><h2>Studio</h2><p>Pick an object on the left \u2014 or right-click any instance in the Explorer and choose \u201cOpen in Studio\u201d to bring it here with its full S88 path. The diagram is fully interactive; the simulator runs inside the Studio too.</p></div>
     </div>
   </div>
 </div>

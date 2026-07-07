@@ -618,6 +618,24 @@ def em_members():
         return jsonify({'error': str(e), 'members': {}})
 
 
+@app.route('/references_all')
+def references_all():
+    """All logic use-sites of `tag`, grouped by owner, for the floating references
+    window (#2). Each owner group carries navigable kind + exact expressions."""
+    token = request.args.get('t', '')
+    tag = request.args.get('tag', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'expired', 'groups': []})
+    try:
+        import xref_bridge
+        groups = xref_bridge.all_reference_uses(text, tag)
+        return jsonify({'tag': tag, 'groups': groups})
+    except Exception as e:
+        app.logger.exception('references_all failed')
+        return jsonify({'error': str(e), 'groups': []})
+
+
 @app.route('/reference_uses')
 def reference_uses():
     """Exact use-sites of `tag` inside `owner`'s logic (block/action/expression), for

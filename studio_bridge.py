@@ -7,11 +7,80 @@ Additive: core/ untouched; this composes existing parsed data + existing rendere
 """
 
 import html as _html
+import re as _re
 
 import db_parser
 import phase_bridge
 import em_bridge
 import fbd_bridge
+
+
+# ── #3: S88 path resolution (Plant Area → Process Cell → Unit → EM/CM) ──
+# The round-trip export back to DeltaV needs the full equipment path, not just a class
+# name. We derive it from the UNIT_MODULE instances: each carries PLANT_AREA="AREA/CELL"
+# and its block body lists the equipment/control modules it contains.
+_UNIT_CACHE = {}
+
+
+def _deployed_line_index(text):
+    """{ tag: {'cls','area','cell','unit','path'} } parsed from the authoritative
+    MODULE_INSTANCE opening line (TAG/PLANT_AREA/MODULE_CLASS all live there)."""
+    key = id(text)
+    if key in _UNIT_CACHE:
+        return _UNIT_CACHE[key]
+    idx = {}
+    for m in _re.finditer(
+            r'MODULE_INSTANCE\s+TAG="([^"]+)"\s+PLANT_AREA="([^"]*)"\s+MODULE_CLASS="([^"]*)"',
+            text):
+        tag, path, cls = m.group(1), m.group(2), m.group(3)
+        parts = path.split('/')
+        idx[tag] = {
+            'cls': cls, 'path': path,
+            'area': parts[0] if parts else '',
+            'cell': parts[1] if len(parts) >= 2 else '',
+            'unit': parts[2] if len(parts) >= 3 else '',
+        }
+    _UNIT_CACHE.clear()
+    _UNIT_CACHE[key] = idx
+    return idx
+
+
+def resolve_path(text, obj_id):
+    """Full S88 breadcrumb for a Studio object id ('phase:X' / 'em:X' / 'cm:X' /
+    'dep:TAG'). Returns { 'crumbs': [ {kind,name}... ], 'unit', 'found' }."""
+    kind_pref, _, name = (obj_id or '').partition(':')
+    kind_label = {'phase': 'Phase', 'em': 'Equipment Module class',
+                  'cm': 'Control Module class',
+                  'dep': 'Instance'}.get(kind_pref, 'Object')
+    idx = _deployed_line_index(text)
+    crumbs = []
+    unit = ''
+    if kind_pref == 'dep' and name in idx:
+        info = idx[name]
+        unit = info['unit']
+        if info['area']:
+            crumbs.append({'kind': 'Plant Area', 'name': info['area']})
+        if info['cell']:
+            crumbs.append({'kind': 'Process Cell', 'name': info['cell']})
+        if info['unit']:
+            crumbs.append({'kind': 'Unit', 'name': info['unit']})
+        crumbs.append({'kind': 'Instance', 'name': name,
+                       'sub': 'class ' + info['cls'] if info['cls'] else ''})
+        return {'crumbs': crumbs, 'unit': unit, 'found': True,
+                'cls': info['cls'], 'path': info['path']}
+    # classes/phases: find any deployed instance of this class to borrow the path
+    if kind_pref in ('em', 'cm'):
+        for tag, info in idx.items():
+            if info['cls'] == name:
+                if info['area']:
+                    crumbs.append({'kind': 'Plant Area', 'name': info['area']})
+                if info['cell']:
+                    crumbs.append({'kind': 'Process Cell', 'name': info['cell']})
+                if info['unit']:
+                    crumbs.append({'kind': 'Unit', 'name': info['unit']})
+                break
+    crumbs.append({'kind': kind_label, 'name': name})
+    return {'crumbs': crumbs, 'unit': unit, 'found': bool(crumbs[:-1])}
 
 
 def list_studio_phases(text):
@@ -83,8 +152,9 @@ def _monitor_grid(mons):
 
 
 def studio_object_list(text, catalog=None):
-    """Typed, grouped list of objects openable in the Studio: Phases, EMs, CMs.
-    Returns [{'group':label, 'items':[{id,name}]}] for the left browser."""
+    """Typed, grouped list of objects openable in the Studio: Phases, EM/CM classes,
+    and their deployed instances (#3). Instances carry their resolved S88 path so the
+    round-trip export can reference the full equipment hierarchy."""
     groups = []
     try:
         phases = sorted(phase_bridge.parse_phases_from_export(text).keys())
@@ -96,13 +166,35 @@ def studio_object_list(text, catalog=None):
     if catalog is not None:
         ems = sorted(e['name'] for e in catalog.get('em_classes', []))
         if ems:
-            groups.append({'group': 'Equipment Modules',
+            groups.append({'group': 'Equipment Module classes',
                            'items': [{'id': 'em:' + e, 'name': e} for e in ems]})
         cms = sorted(c['name'] for c in catalog.get('cm_classes', []))
         if cms:
-            groups.append({'group': 'Control Modules',
+            groups.append({'group': 'Control Module classes',
                            'items': [{'id': 'cm:' + c, 'name': c} for c in cms]})
+    # deployed instances (EM + CM) with their unit path, grouped by unit
+    try:
+        insts = _deployed_instances(text)
+    except Exception:
+        insts = {}
+    if insts:
+        for unit in sorted(insts.keys()):
+            items = [{'id': it['id'], 'name': it['name'], 'cls': it.get('cls', '')}
+                     for it in sorted(insts[unit], key=lambda x: x['name'])]
+            label = ('Instances \u00b7 ' + unit) if unit else 'Instances (unassigned)'
+            groups.append({'group': label, 'items': items, 'is_instances': True})
     return groups
+
+
+def _deployed_instances(text):
+    """{ unit_name: [ {id:'dep:TAG', name:TAG, cls} ] } for all MODULE_INSTANCEs,
+    grouped by their S88 unit (from the authoritative opening line)."""
+    idx = _deployed_line_index(text)
+    out = {}
+    for tag, info in idx.items():
+        out.setdefault(info.get('unit', ''), []).append(
+            {'id': 'dep:' + tag, 'name': tag, 'cls': info.get('cls', '')})
+    return out
 
 
 def build_em_studio(text, em_name):
@@ -196,15 +288,57 @@ def build_cm_diagram_html(text, cm_name):
 
 
 def build_studio(text, obj_id, catalog=None):
-    """Dispatch a Studio open by object id (phase:X / em:X / cm:X)."""
+    """Dispatch a Studio open by object id (phase:X / em:X / cm:X / dep:TAG).
+    Always attaches the resolved S88 path breadcrumb (#3)."""
     if obj_id.startswith('phase:'):
-        return build_phase_studio(text, obj_id.split(':', 1)[1])
-    if obj_id.startswith('em:'):
-        return build_em_studio(text, obj_id.split(':', 1)[1])
-    if obj_id.startswith('cm:'):
-        return build_cm_studio(text, obj_id.split(':', 1)[1])
-    # bare name -> assume phase for backward compat
-    return build_phase_studio(text, obj_id)
+        payload = build_phase_studio(text, obj_id.split(':', 1)[1])
+    elif obj_id.startswith('em:'):
+        payload = build_em_studio(text, obj_id.split(':', 1)[1])
+    elif obj_id.startswith('cm:'):
+        payload = build_cm_studio(text, obj_id.split(':', 1)[1])
+    elif obj_id.startswith('dep:'):
+        payload = _build_deployed_studio(text, obj_id.split(':', 1)[1], catalog)
+    else:
+        payload = build_phase_studio(text, obj_id)
+    try:
+        payload['path'] = resolve_path(text, obj_id)
+    except Exception:
+        payload['path'] = {'crumbs': [], 'unit': '', 'found': False}
+    return payload
+
+
+def _build_deployed_studio(text, tag, catalog=None):
+    """Studio payload for a deployed MODULE_INSTANCE. Resolves its class from the
+    authoritative instance line, then renders the class diagram (EM state/command
+    logic or CM FBD) relabelled with the instance identity."""
+    idx = _deployed_line_index(text)
+    info = idx.get(tag)
+    cls = info['cls'] if info else ''
+    if not cls:
+        return {'name': tag, 'kind': 'Deployed instance',
+                'error': f'Could not resolve the class for instance "{tag}".'}
+    # decide EM vs CM by catalog membership (robust), falling back to a name heuristic
+    is_em = None
+    if catalog is not None:
+        em_names = {e['name'] for e in catalog.get('em_classes', [])}
+        cm_names = {c['name'] for c in catalog.get('cm_classes', [])}
+        if cls in em_names:
+            is_em = True
+        elif cls in cm_names:
+            is_em = False
+    if is_em is None:
+        is_em = bool(_re.search(
+            r'MODULE_CLASS\s+NAME="' + _re.escape(cls) + r'"[^{]*\{[^}]*BATCH_EQUIPMENT',
+            text))
+    try:
+        payload = build_em_studio(text, cls) if is_em else build_cm_studio(text, cls)
+    except Exception as e:
+        return {'name': tag, 'kind': 'Deployed instance',
+                'error': f'Could not build view for class "{cls}": {e}'}
+    payload['name'] = tag
+    payload['kind'] = ('Equipment Module instance' if is_em else 'Control Module instance')
+    payload['instance_of'] = cls
+    return payload
 
 
 def build_phase_studio(text, phase_name):

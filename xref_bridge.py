@@ -166,6 +166,26 @@ def reference_uses(text, target_tag, owner_name, logic_xref=None, max_uses=40):
     return uses
 
 
+def all_reference_uses(text, target_tag, logic_xref=None, max_per_owner=25):
+    """Every logic use-site of `target_tag`, grouped by owner, for the floating
+    references window. Returns [ {owner, owner_kind, uses:[...] } ] ordered by
+    reference count (heaviest first)."""
+    if logic_xref is None:
+        logic_xref = build_logic_xref(text)
+    refs = logic_xref.get(target_tag, [])
+    # figure out each owner's object kind (phase / em / cm / deployed) for navigation
+    groups = []
+    for r in sorted(refs, key=lambda x: -x.get('count', 0)):
+        owner = r.get('owner')
+        if not owner:
+            continue
+        uses = reference_uses(text, target_tag, owner, logic_xref=logic_xref,
+                              max_uses=max_per_owner)
+        groups.append({'owner': owner, 'count': r.get('count', len(uses)),
+                       'kind': r.get('kind', ''), 'uses': uses})
+    return groups
+
+
 def references_for(tag, logic_xref, class_used_by=None):
     """Assemble both reference kinds for one tag/class:
     { 'member_of': [ {parent, instance} ], 'logic_refs': [ {owner, kind, count} ] }."""
