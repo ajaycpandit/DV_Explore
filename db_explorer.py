@@ -169,6 +169,17 @@ button{font-family:inherit}
 .rec-parent{display:flex;align-items:center;gap:2px}
 .rec-parent .tog{cursor:pointer;font-size:10px;color:var(--ink-3);width:14px;flex-shrink:0;text-align:center}
 .rec-parent .rec-open{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ip-pop-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--border)}
+.exp-btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.exp-btn.primary:hover{filter:brightness(1.05)}
+.rec-imp-pop{max-width:460px}
+.rec-imp-body{padding:16px 18px}
+.rec-imp-q{margin:0 0 12px;font-size:13px;color:var(--ink-2)}
+.rec-imp-choice{display:flex;align-items:flex-start;gap:9px;cursor:pointer;padding:9px 11px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px}
+.rec-imp-choice span{display:flex;flex-direction:column;line-height:1.3}
+.rec-imp-choice span b{font-size:13px}.rec-imp-choice span small{font-size:11px;color:var(--ink-3)}
+.rec-imp-choice:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.rec-imp-exp{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);margin-top:6px;cursor:pointer}
 .rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -855,7 +866,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-2023"
+_BUILD_ID = "20260708-2159"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1701,10 +1712,13 @@ function stuWireSplit(){
         var w=ev.clientX-rect.left; var pct=Math.max(20,Math.min(85,100*w/rect.width));
         // right dock: diagram | split | panel  (first col = diagram)
         // left dock:  panel   | split | diagram (first col = panel)
-        body.style.gridTemplateColumns=pct+'% 5px 1fr';
+        // minmax(0,1fr) lets the second column actually shrink; a bare 1fr refuses to go
+        // below its min-content width, which made dragging toward the panel (left, in the
+        // default right-dock) feel stuck (#4).
+        body.style.gridTemplateColumns=pct+'% 5px minmax(0,1fr)';
       } else {
         var hh=ev.clientY-rect.top; var pctv=Math.max(20,Math.min(85,100*hh/rect.height));
-        body.style.gridTemplateRows=pctv+'% 5px 1fr';
+        body.style.gridTemplateRows=pctv+'% 5px minmax(0,1fr)';
       }
     }
     function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
@@ -1721,10 +1735,48 @@ var _REC_BADGE='<span class="ic-badge ic-recipe"><svg viewBox="0 0 15 15" width=
 function recImportFile(inp){
   if(!inp.files||!inp.files.length) return;
   var file=inp.files[0];
-  var toExplorer=(document.getElementById('recImpToExplorer')||{}).checked;
+  inp.value='';
+  // #4: per-import prompt — Replace the workspace, or Merge with what's already here.
+  // Either choice can also push into the Explorer session.
+  var hasExisting = RECWS.views && Object.keys(RECWS.views).length>0;
+  var ov=document.getElementById('recImpOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='recImpOverlay'; ov.className='ip-pop-overlay'; document.body.appendChild(ov); }
+  ov.innerHTML=''
+    +'<div class="ip-pop rec-imp-pop">'
+    +'<div class="ip-pop-h">Import '+esc(file.name)
+    +'<span class="ip-pop-x" onclick="var o=document.getElementById(\\'recImpOverlay\\');if(o)o.remove();">\\u00d7</span></div>'
+    +'<div class="rec-imp-body">'
+    +(hasExisting
+       ?'<p class="rec-imp-q">You already have recipes loaded in the workspace. How should this file be brought in?</p>'
+        +'<label class="rec-imp-choice"><input type="radio" name="recImpMode" value="merge" checked>'
+        +'<span><b>Merge</b><small>keep the current recipes and add the ones from this file</small></span></label>'
+        +'<label class="rec-imp-choice"><input type="radio" name="recImpMode" value="replace">'
+        +'<span><b>Replace</b><small>clear the workspace and show only this file</small></span></label>'
+       :'<p class="rec-imp-q">Import this recipe file into the workspace.</p>'
+        +'<input type="hidden" id="recImpModeSolo" value="replace">')
+    +'<label class="rec-imp-exp"><input type="checkbox" id="recImpToExplorer" checked> '
+    +'also add to the Explorer session</label>'
+    +'</div>'
+    +'<div class="ip-pop-foot">'
+    +'<button class="exp-btn" onclick="var o=document.getElementById(\\'recImpOverlay\\');if(o)o.remove();">Cancel</button>'
+    +'<button class="exp-btn primary" id="recImpGo">Import</button>'
+    +'</div></div>';
+  document.getElementById('recImpGo').onclick=function(){
+    var mode='replace';
+    var r=document.querySelector('input[name=recImpMode]:checked');
+    if(r) mode=r.value;
+    var toExp=(document.getElementById('recImpToExplorer')||{}).checked;
+    ov.remove();
+    recDoImport(file, mode, toExp);
+  };
+}
+function recDoImport(file, mode, toExplorer){
   var src=document.getElementById('recSrc');
   src.innerHTML='<span class="dv-dots"><i></i><i></i><i></i></span> Importing '+esc(file.name)+'\u2026';
-  var fd=new FormData(); fd.append('file', file);
+  var fd=new FormData();
+  fd.append('file', file);
+  fd.append('mode', mode);
+  fd.append('token', RECWS.token||'');
   fetch('/recipe_import',{method:'POST',body:fd})
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(res){
@@ -1733,18 +1785,14 @@ function recImportFile(inp){
       recBuildList(res.j.tree||[]);
       var first=(res.j.tree[0]&&res.j.tree[0].items[0])?res.j.tree[0].items[0].name:'';
       if(first) recShow(first);
-      // #2: also merge into the Explorer session so the recipe shows in the main tree.
-      // We pass the just-imported file itself as the merge base fallback, so this works
-      // even if the Explorer's original stash was evicted by a host restart (#5).
       if(toExplorer){
-        src.innerHTML='Imported. Merging into the Explorer\u2026';
+        src.innerHTML='Imported'+esc((res.j.name||'').indexOf('merged')>=0?' & merged':'')+'. Adding to the Explorer\u2026';
         recMergeIntoExplorer(file, res.j.name||file.name, src);
       } else {
         src.textContent='Showing recipes from '+res.j.name+' (workspace only \u2014 Explorer untouched).';
       }
     })
     .catch(function(e){ src.innerHTML='<span style="color:#dc2626">Import error: '+esc(e.message)+'</span>'; });
-  inp.value='';
 }
 // Merge an uploaded recipe FHX into the Explorer session. Uses /append with the
 // current token; if that token is gone (free-host restart), the same uploaded file is
@@ -1891,16 +1939,51 @@ function recViewPfc(name){
   var ov=document.getElementById('pfcOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='pfcOverlay'; ov.className='pfc-overlay'; document.body.appendChild(ov); }
   ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
-  var body = wrap ? wrap.outerHTML
+  var panelId='pfcOvPanel';
+  if(wrap){
+    // point the diagram's click handlers at our popup panel (they look up
+    // data-pfc-panel first, then fall back to a .pfc-panel sibling — we set both).
+    wrap.setAttribute('data-pfc-panel', panelId);
+  }
+  var diagram = wrap ? wrap.outerHTML
     : '<div class="pfc-ov-empty">This recipe has no procedure-flow diagram (it may be an operation or a phase-level object).</div>';
+  // #3: step-detail card on the RIGHT, resizable via a drag bar. #2: it's a permanent
+  // pane in the popup (never a collapsible section), so it can't get stuck closed.
+  var bodyHtml=''
+    +'<div class="pfc-ov-split">'
+    +  '<div class="pfc-ov-diagram">'+diagram+'</div>'
+    +  '<div class="pfc-ov-divider" id="pfcOvDivider" title="Drag to resize"></div>'
+    +  '<div class="pfc-panel pfc-ov-panel" id="'+panelId+'">'
+    +    '<div class="pfc-hint">Click a step or transition in the diagram to see its details here.</div>'
+    +  '</div>'
+    +'</div>';
   ov.innerHTML='<div class="pfc-ov-card"><div class="pfc-ov-h">'
     +'<b>\\u2317 '+esc(name)+' \\u2014 Procedure Flow Chart</b>'
     +'<span class="pfc-ov-hint">drag to pan \\u00b7 scroll to zoom</span>'
     +'<span style="flex:1"></span>'
     +'<button class="exp-btn" onclick="recDownloadPfc(\\''+esc(name).replace(/'/g,"\\\\'")+'\\')">\\u2b07 PFC report (.xlsx)</button>'
     +'<button class="pfc-ov-x" onclick="var o=document.getElementById(\\'pfcOverlay\\');if(o)o.remove();">\\u00d7</button>'
-    +'</div><div class="pfc-ov-body">'+body+'</div></div>';
+    +'</div><div class="pfc-ov-body">'+bodyHtml+'</div></div>';
+  // wire the resize bar (drag left/right to size the detail panel)
+  pfcWireDivider();
   // re-enable pan/zoom on the cloned wrap (the delegated handlers work on any .pfc-wrap)
+}
+// #3: drag the divider to resize the PFC popup's right-hand detail panel.
+function pfcWireDivider(){
+  var d=document.getElementById('pfcOvDivider'); if(!d) return;
+  var split=d.parentElement, panel=document.getElementById('pfcOvPanel');
+  d.onmousedown=function(e){
+    e.preventDefault();
+    var rect=split.getBoundingClientRect();
+    function mv(ev){
+      var w=rect.right-ev.clientX;                 // width of the right panel
+      w=Math.max(220,Math.min(rect.width-260,w));  // clamp: keep both sides usable
+      panel.style.flex='0 0 '+w+'px';
+    }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none';
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+  };
 }
 function downloadAllDeferrals(){
   if(!RECWS.token) return;
@@ -4169,10 +4252,8 @@ function wireFbdLinks(){
     <div class="rec-list">
       <div class="rec-toolbar">
         <button class="exp-btn" onclick="document.getElementById('recFile').click()"
-          title="Import a recipe FHX into this workspace">\u2b06 Import recipe FHX\u2026</button>
+          title="Import a recipe FHX \u2014 you'll be asked whether to replace or merge">\u2b06 Import recipe FHX\u2026</button>
         <input type="file" id="recFile" accept=".fhx" style="display:none" onchange="recImportFile(this)">
-        <label class="rec-imp-opt" title="Also merge the imported recipe into the Explorer session so it appears in the main tree">
-          <input type="checkbox" id="recImpToExplorer" checked> add to Explorer</label>
       </div>
       <div class="rec-src" id="recSrc">Showing recipes from the Explorer import.</div>
       <div id="recListBody">{recipes_pane}</div>

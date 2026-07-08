@@ -1272,8 +1272,14 @@ RECIPE_CSS = """
 .pfc-ov-hint{font-size:11px;color:var(--ink-3)}
 .pfc-ov-x{background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:var(--ink-3);padding:0 4px}
 .pfc-ov-x:hover{color:var(--ink)}
-.pfc-ov-body{flex:1;overflow:hidden;padding:14px;display:flex}
-.pfc-ov-body .pfc-wrap{flex:1;max-height:none;height:100%}
+.pfc-ov-body{flex:1;overflow:hidden;padding:14px;display:flex;min-height:0}
+/* #3: diagram on the left, a drag bar, then the detail panel pinned on the RIGHT */
+.pfc-ov-split{flex:1;display:flex;min-width:0;min-height:0;gap:0}
+.pfc-ov-diagram{flex:1 1 auto;min-width:0;overflow:hidden;display:flex}
+.pfc-ov-diagram .pfc-wrap{flex:1;max-height:none;height:100%}
+.pfc-ov-divider{flex:0 0 6px;cursor:col-resize;background:var(--border,#e2e8f0);border-radius:3px;margin:0 4px}
+.pfc-ov-divider:hover{background:var(--accent,#7c3aed)}
+.pfc-ov-panel{flex:0 0 320px;min-width:220px;overflow:auto;align-self:stretch;margin-top:0}
 .pfc-ov-empty{padding:40px;text-align:center;color:var(--ink-3)}
 .pfc-wrap.panning{cursor:grabbing}
 .pfc-zoomlayer{transform-origin:0 0;transition:transform .05s linear;display:inline-block}

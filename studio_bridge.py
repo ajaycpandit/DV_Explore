@@ -310,8 +310,8 @@ def build_em_diagram_html(text, em_name, theme='light'):
         fbd = ''
     body = ''
     if state:
-        body += ('<div class="stu-embed"><div class="stu-embed-h">Command / State logic</div>'
-                 + state + '</div>')
+        body += ('<div class="stu-embed stu-embed-cmd"><div class="stu-embed-h">Command / State logic</div>'
+                 '<div class="stu-cmd-host">' + state + '</div></div>')
     if fbd:
         body += ('<div class="stu-embed"><div class="stu-embed-h">Function block diagram</div>'
                  + fbd + '</div>')
@@ -357,6 +357,19 @@ def _diagram_doc(title, body, theme='light'):
         # with .wrap (SFC, flex:1) over .tablewrap (actions). Inside a short iframe 100vh
         # collapses everything to a sliver — so pin .main to a real height and keep flex.
         'html body .main{height:720px!important;min-height:720px!important;max-height:none!important}'
+        # ── #5/#6 fix: the Command/State fragment is a full mini-document (its own
+        # <style>+<script>) whose body is `.ctabs` + `#cv`, and it injects each command's
+        # SFC into `#cv` as a *nested* <iframe srcdoc=...>. That fragment's CSS sizes
+        # `#cv{height:calc(100% - 46px)}` and `html,body{height:100%}` — which only works
+        # when it fills a fixed-height host. Embedded in an auto-height `.stu-embed`, the
+        # 100% chain resolves against nothing, so `#cv` -> 0 and the nested SFC iframe
+        # collapses to a sliver (looks like "EM SFC not rendering"; and the outer app
+        # stylesheet can't reach the SFC because it lives in that nested iframe). Give the
+        # host and the nested iframe a real, fixed height so the chain resolves.
+        'html body .stu-cmd-host{height:760px;min-height:760px;position:relative;overflow:hidden}'
+        'html body #cv{height:calc(100% - 46px)!important;min-height:0!important}'
+        'html body #cv iframe{width:100%!important;height:100%!important;border:0!important;display:block}'
+        'html body .stu-embed-cmd{overflow:visible!important}'
         'html body .wrap{min-height:0!important;overflow:hidden!important}'
         'html body .diagram{min-height:300px!important}'
         'html body .tablewrap{flex:0 0 320px!important;resize:vertical!important;overflow:auto!important}'

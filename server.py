@@ -843,11 +843,25 @@ def recipe_import():
     f = request.files.get('file')
     if not f:
         return jsonify({'error': 'No file uploaded.'}), 400
+    mode = request.form.get('mode', 'replace')   # 'replace' | 'merge'
+    prev_token = request.form.get('token', '')
     try:
         text = db_parser.decode_fhx(f.read())
     except Exception as e:
         app.logger.exception('recipe import decode failed')
         return jsonify({'error': f'Could not decode the file: {e}'}), 400
+    # #4: merge mode combines the new recipe FHX with the workspace's current stash so
+    # previously-imported recipes stay. Falls back to replace if the prior stash is gone.
+    merged_note = ''
+    if mode == 'merge' and prev_token:
+        prev = _read_stash(prev_token)
+        if prev:
+            try:
+                text = _merge_fhx(prev, text, 'skip')
+                merged_note = ' (merged with the existing workspace recipes)'
+            except Exception:
+                app.logger.exception('recipe merge failed; using new file only')
+                merged_note = ' (merge failed \u2014 showing the new file only)'
     try:
         views, step_views, children, recs = _recipe_views_bundle(text)
         if not recs:
@@ -875,7 +889,7 @@ def recipe_import():
             phases = list(phase_bridge.parse_phases_from_export(text).keys())
         except Exception:
             phases = []
-        return jsonify({'token': token, 'name': f.filename or 'recipes.fhx',
+        return jsonify({'token': token, 'name': (f.filename or 'recipes.fhx') + merged_note,
                         'views': views, 'step_views': step_views, 'tree': tree,
                         'phases': phases})
     except Exception as e:
