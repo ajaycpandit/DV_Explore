@@ -866,7 +866,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-2159"
+_BUILD_ID = "20260708-2311"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1707,21 +1707,28 @@ function stuWireSplit(){
     var isLeft=body.classList.contains('stu-dock-left');
     var horiz=isRight||isLeft;
     var rect=body.getBoundingClientRect();
+    // The diagram pane is an <iframe>. Once the cursor crosses into it, mouse events go
+    // to the iframe's document and the parent stops getting mousemove/mouseup — so the
+    // drag freezes over the diagram and only resumes (or a stray click ends it) back on
+    // the parent. Disabling pointer-events on all iframes for the duration of the drag
+    // keeps every event on the parent, fixing the stuck/one-directional feel (#4).
+    var frames=Array.prototype.slice.call(document.querySelectorAll('iframe'));
+    frames.forEach(function(f){ f.style.pointerEvents='none'; });
+    document.body.style.userSelect='none';
     function mv(ev){
       if(horiz){
         var w=ev.clientX-rect.left; var pct=Math.max(20,Math.min(85,100*w/rect.width));
-        // right dock: diagram | split | panel  (first col = diagram)
-        // left dock:  panel   | split | diagram (first col = panel)
-        // minmax(0,1fr) lets the second column actually shrink; a bare 1fr refuses to go
-        // below its min-content width, which made dragging toward the panel (left, in the
-        // default right-dock) feel stuck (#4).
         body.style.gridTemplateColumns=pct+'% 5px minmax(0,1fr)';
       } else {
         var hh=ev.clientY-rect.top; var pctv=Math.max(20,Math.min(85,100*hh/rect.height));
         body.style.gridTemplateRows=pctv+'% 5px minmax(0,1fr)';
       }
     }
-    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
+    function up(){
+      document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+      frames.forEach(function(f){ f.style.pointerEvents=''; });
+      document.body.style.userSelect='';
+    }
     document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
   };
 }
@@ -1794,16 +1801,17 @@ function recDoImport(file, mode, toExplorer){
     })
     .catch(function(e){ src.innerHTML='<span style="color:#dc2626">Import error: '+esc(e.message)+'</span>'; });
 }
-// Merge an uploaded recipe FHX into the Explorer session. Uses /append with the
-// current token; if that token is gone (free-host restart), the same uploaded file is
-// sent as the base so the merge still succeeds and nothing is lost (#5/#6).
+// Merge the ENTIRE recipe workspace into the Explorer session. Uses /append with the
+// workspace's own stash token as the add-content (add_token) so ALL imported recipes go
+// across, not just the most recent file (#4). The single file is still sent as a base
+// fallback in case a host restart evicted the stash.
 function recMergeIntoExplorer(file, label, src){
   var fd=new FormData();
   fd.append('token', (typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''));
   fd.append('mode', 'skip');
-  fd.append('file', file);
-  // provide the file as base fallback too, so an expired original stash still merges
-  fd.append('base', file);
+  fd.append('add_token', RECWS.token||'');   // the whole workspace (all recipes)
+  fd.append('name', label||'recipes');
+  if(file){ fd.append('file', file); fd.append('base', file); }  // fallbacks only
   fetch('/append',{method:'POST',body:fd})
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(res){
@@ -2644,6 +2652,32 @@ if(!window._pfcPanWired){
     panW.scrollLeft=psl-(e.clientX-psx); panW.scrollTop=pst-(e.clientY-psy);
   });
   document.addEventListener('mouseup',function(){ if(panW){ panW.classList.remove('panning'); panW=null; } });
+  // #3: inline PFC step-detail panel resize. Delegated + document-level so it works in
+  // both the Explorer and the Studio recipe view, and doesn't get stuck if the cursor
+  // leaves the bar mid-drag.
+  var pfcDiv=null, pfcLayout=null, pfcPanel=null, pfcRect=null, pfcFrames=null;
+  document.addEventListener('mousedown',function(e){
+    var d=e.target.closest && e.target.closest('.pfc-divider'); if(!d) return;
+    pfcDiv=d; pfcLayout=d.closest('.pfc-layout');
+    pfcPanel=pfcLayout?pfcLayout.querySelector('.pfc-panel'):null;
+    pfcRect=pfcLayout?pfcLayout.getBoundingClientRect():null;
+    if(pfcPanel){
+      pfcFrames=Array.prototype.slice.call(document.querySelectorAll('iframe'));
+      pfcFrames.forEach(function(f){ f.style.pointerEvents='none'; });
+      document.body.style.userSelect='none'; e.preventDefault();
+    }
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!pfcDiv||!pfcPanel||!pfcRect) return;
+    var w=pfcRect.right-e.clientX;                          // panel is on the right
+    w=Math.max(200,Math.min(pfcRect.width-260,w));
+    pfcPanel.style.flex='0 0 '+w+'px';
+  });
+  document.addEventListener('mouseup',function(){
+    if(pfcDiv){ pfcDiv=null; pfcPanel=null; pfcRect=null;
+      if(pfcFrames){ pfcFrames.forEach(function(f){ f.style.pointerEvents=''; }); pfcFrames=null; }
+      document.body.style.userSelect=''; }
+  });
   // scroll-to-zoom over the diagram
   document.addEventListener('wheel',function(e){
     var wrap=e.target.closest && e.target.closest('.pfc-wrap');

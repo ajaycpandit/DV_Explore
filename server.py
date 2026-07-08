@@ -340,8 +340,11 @@ def append():
     import time
     token = request.form.get('token', '')
     mode = request.form.get('mode', 'skip')  # 'skip' | 'overwrite'
+    add_token = request.form.get('add_token', '')   # #4: merge a stashed export (e.g. the
+    #                                                  whole recipe workspace) rather than
+    #                                                  a single uploaded file
     f = request.files.get('file')
-    if not f:
+    if not f and not add_token:
         return "No file uploaded.", 400
     base = _read_stash(token)
     if not base:
@@ -356,13 +359,30 @@ def append():
                 return _explore_error('Could not decode the base file', e, 'base'), 500
         else:
             return "Original import not found or expired — please reimport the base file.", 409
-    raw = f.read()
-    fname = (f.filename or 'append.fhx').rsplit('.', 1)[0]
-    try:
-        add = db_parser.decode_fhx(raw)
-    except Exception as e:
-        app.logger.exception('append decode failed')
-        return _explore_error('Could not decode the appended file', e, fname), 500
+    # Resolve the add-content: prefer a stashed token (carries ALL workspace recipes),
+    # else the uploaded file.
+    if add_token:
+        add = _read_stash(add_token)
+        fname = request.form.get('name', 'recipes') or 'recipes'
+        if not add:
+            # workspace stash gone — fall back to the uploaded file if present
+            if f:
+                raw = f.read(); fname = (f.filename or 'append.fhx').rsplit('.', 1)[0]
+                try:
+                    add = db_parser.decode_fhx(raw)
+                except Exception as e:
+                    app.logger.exception('append decode failed')
+                    return _explore_error('Could not decode the appended file', e, fname), 500
+            else:
+                return "The workspace import has expired — please re-import.", 409
+    else:
+        raw = f.read()
+        fname = (f.filename or 'append.fhx').rsplit('.', 1)[0]
+        try:
+            add = db_parser.decode_fhx(raw)
+        except Exception as e:
+            app.logger.exception('append decode failed')
+            return _explore_error('Could not decode the appended file', e, fname), 500
     try:
         merged = _merge_fhx(base, add, mode)
     except Exception as e:

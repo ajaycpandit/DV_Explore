@@ -541,13 +541,14 @@ def build_recipe_html(recipe, known_recipes=None, deferral_map=None, formulas=No
             # so a selected step/transition's parameters sit beside the diagram instead
             # of pushing everything down.
             h.append('<div class="pfc-layout">')
-            h.append('<div class="pfc-panel" id="' + pid
-                     + '"><span class="pfc-hint">Click a step or transition in the diagram to see its detail. '
-                     'Steps marked \u25c9 have a child object you can drill into (click the link, or right-click the step).</span></div>')
             h.append('<div class="pfc-wrap" data-pfc-expr="'
                      + html.escape(_json.dumps(texpr), quote=True)
                      + '" data-pfc-steps="' + html.escape(_json.dumps(sinfo), quote=True)
                      + '" data-pfc-panel="' + pid + '"><div class="pfc-zoomlayer">' + diagram + '</div></div>')
+            h.append('<div class="pfc-divider" title="Drag to resize"></div>')
+            h.append('<div class="pfc-panel" id="' + pid
+                     + '"><span class="pfc-hint">Click a step or transition in the diagram to see its detail. '
+                     'Steps marked \u25c9 have a child object you can drill into (click the link, or right-click the step).</span></div>')
             h.append('</div>')
         else:
             h.append('<span class="empty">Diagram coordinates unavailable; see the flow below.</span>')
@@ -1294,10 +1295,12 @@ RECIPE_CSS = """
 .pfc-drillable:hover text{fill:#7c3aed}
 .pfc-trans:hover rect{fill:#f5f3ff}
 .pfc-panel{margin-top:10px;padding:10px 12px;border:1px solid var(--border,#e2e8f0);border-radius:8px;background:#f8fafc;min-height:24px}
-.pfc-layout{display:flex;gap:12px;align-items:flex-start}
-.pfc-layout .pfc-panel{margin-top:0;flex:0 0 300px;max-height:520px;overflow:auto;align-self:stretch}
-.pfc-layout .pfc-wrap{flex:1 1 auto;min-width:0}
-@media(max-width:900px){.pfc-layout{flex-direction:column}.pfc-layout .pfc-panel{flex:none;width:100%;max-height:none}}
+.pfc-layout{display:flex;gap:0;align-items:stretch}
+.pfc-layout .pfc-wrap{flex:1 1 auto;min-width:0;order:1}
+.pfc-divider{flex:0 0 6px;cursor:col-resize;background:var(--border,#e2e8f0);border-radius:3px;margin:0 6px;order:2}
+.pfc-divider:hover{background:var(--accent,#7c3aed)}
+.pfc-layout .pfc-panel{margin-top:0;flex:0 0 320px;min-width:200px;max-height:520px;overflow:auto;align-self:stretch;order:3}
+@media(max-width:900px){.pfc-layout{flex-direction:column}.pfc-divider{display:none}.pfc-layout .pfc-panel{flex:none;width:100%;max-height:none;order:3}}
 .pfc-hint{color:#94a3b8;font-size:12px}
 .pfc-tname{font-weight:700;color:#7c3aed;font-size:12px;margin-bottom:4px}
 .pfc-texpr{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#334155;white-space:pre-wrap;word-break:break-word}

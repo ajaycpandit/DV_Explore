@@ -370,6 +370,46 @@ def _diagram_doc(title, body, theme='light'):
         'html body #cv{height:calc(100% - 46px)!important;min-height:0!important}'
         'html body #cv iframe{width:100%!important;height:100%!important;border:0!important;display:block}'
         'html body .stu-embed-cmd{overflow:visible!important}'
+        # ── #6 fix (FBD): the Function-Block-Diagram fragment's chrome (info cards, head
+        # bar, actions table, chips, the DeltaV/Auto layout toggle, the legend, wires/pins)
+        # is styled by the MAIN explorer stylesheet + fbd_bridge.EXPR_MODAL_CSS, neither of
+        # which is present in this standalone Studio iframe. Only the SVG boxes (inline
+        # fills) rendered; the surrounding cards showed as raw/unstyled (bare buttons, no
+        # borders, wrong table alignment). Re-declare that chrome here, theme-aware, so the
+        # FBD looks the same in Studio as inline in the Explorer.
+          '.fbd-wrap{display:flex;flex-direction:column;gap:14px}'
+          '.fbd-diagram-card{border:1px solid ' + border + ';border-radius:10px;background:' + card_bg + ';overflow:hidden}'
+          '.fbd-head{padding:10px 14px;background:' + ('#0b1220' if dark else '#f1f5f9') + ';font-weight:600;font-size:13px;'
+          'border-bottom:1px solid ' + border + ';color:' + ink + '}'
+          '.fbd-sub{color:' + ink2 + ';font-weight:400;font-size:12px}'
+          '.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh;background:' + card_bg + '}'
+          '.fbd-info-card{border:1px solid ' + border + ';border-radius:10px;padding:12px 14px;background:' + card_bg + '}'
+          '.fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:' + ink2 + '}'
+          '.fbd-collapse>h4,.fbd-collapse>.fbd-head{cursor:pointer;user-select:none}'
+          '.fbd-collapse.collapsed>*:not(h4):not(.fbd-head){display:none!important}'
+          '.fbd-comp-link{cursor:pointer}'
+          '.fbd-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}'
+          '.fbd-table th{text-align:left;padding:7px 12px;color:' + ink2 + ';font-size:11px;text-transform:uppercase;'
+          'letter-spacing:.04em;border-bottom:1px solid ' + border + ';font-weight:600}'
+          '.fbd-table td{padding:7px 12px;border-bottom:1px solid ' + border + ';vertical-align:top;font-size:12px}'
+          '.fbd-table tr:last-child td{border-bottom:0}'
+          '.chips{display:flex;flex-wrap:wrap;gap:6px}'
+          '.chip{padding:4px 10px;border:1px solid ' + border + ';border-radius:8px;font-size:12px;cursor:pointer;'
+          'background:' + ('#0b1220' if dark else '#f3f6fa') + ';color:' + ink + '}'
+          # layout toggle (DeltaV / Auto-arrange) — was rendering as raw browser buttons
+          '.fbd-layout-toggle{display:inline-flex;gap:0;margin:0 0 8px;border:1px solid ' + border + ';'
+          'border-radius:7px;overflow:hidden;font-size:12px}'
+          '.fbd-layout-toggle .lay-btn{padding:5px 12px;background:' + card_bg + ';border:0;cursor:pointer;'
+          'color:' + ink2 + ';font-weight:600}'
+          '.fbd-layout-toggle .lay-btn+.lay-btn{border-left:1px solid ' + border + '}'
+          '.fbd-layout-toggle .lay-btn.active{background:' + ('#334155' if dark else '#1e293b') + ';color:#fff}'
+          '.fbd-net-hint{font-size:11px;color:' + ink2 + ';margin-left:10px}'
+          '.fbd-legend{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:2px 0 8px;padding:6px 10px;'
+          'background:' + ('#0b1220' if dark else '#f8fafc') + ';border:1px solid ' + border + ';border-radius:7px;'
+          'font-size:11px;color:' + ink2 + '}'
+          '.fbd-leg-lbl{color:' + ink2 + ';font-weight:600}'
+          '.fbd-leg-item{display:inline-flex;align-items:center;gap:4px}.fbd-leg-item svg{flex:0 0 auto}'
+          '.fbd-wire{cursor:pointer}.fbd-pin{cursor:pointer}.fb{cursor:default}'
         'html body .wrap{min-height:0!important;overflow:hidden!important}'
         'html body .diagram{min-height:300px!important}'
         'html body .tablewrap{flex:0 0 320px!important;resize:vertical!important;overflow:auto!important}'
