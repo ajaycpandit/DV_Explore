@@ -251,6 +251,42 @@ function tgl(){var d=document.documentElement,m=d.dataset.theme==='dark'?'light'
 </body></html>"""
 
 
+@app.route('/alias_validate')
+def alias_validate():
+    """Alias resolution validator (unit tool): cross-checks each deployed unit's
+    phase-used aliases against its alias table and flags unresolved / ignored-but-used
+    / missing-module aliases for commissioning and Part 11 review."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'html': '<p>Session expired — re-open the export.</p>'})
+    try:
+        import alias_validator
+        cat = db_parser.parse_database(text)
+        return jsonify({'html': alias_validator.build_report_html(text, cat)})
+    except Exception as e:
+        app.logger.exception('alias_validate failed')
+        return jsonify({'html': f'<p>Could not build validation report: {e}</p>'})
+
+
+@app.route('/io_devices')
+def io_devices():
+    """DeviceNet hardware view: parse DEVICENET_DEVICE records into a
+    controller/card/port/device tree with signals. Returns empty markup when the
+    export has no DeviceNet data (the explorer gates the nav entry on this)."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'html': '', 'has_io': False})
+    try:
+        import io_bridge
+        html_out = io_bridge.build_devicenet_html(text)
+        return jsonify({'html': html_out, 'has_io': bool(html_out)})
+    except Exception as e:
+        app.logger.exception('io_devices failed')
+        return jsonify({'html': '', 'has_io': False, 'error': str(e)})
+
+
 @app.route('/version')
 def version():
     """Report the live build id so you can confirm exactly what the server is running,
@@ -547,6 +583,13 @@ def _render_explore(text, fname):
         app.logger.exception('io summary failed (non-fatal)')
         catalog['io_by_controller'] = {}
         catalog['io_flat'] = []
+
+    # DeviceNet hardware presence (drives the optional I/O Devices nav entry)
+    try:
+        import io_parser
+        catalog['has_devicenet'] = io_parser.is_io_export(text)
+    except Exception:
+        catalog['has_devicenet'] = False
 
     # cross-reference index: where each tag is referenced in other modules' logic
     # (built once, one pass; member-of relationships already in class_used_by).
@@ -1085,13 +1128,23 @@ def phase_view():
     token = request.args.get('t', '')
     name = request.args.get('p', '')
     with_sim = request.args.get('sim', '0') == '1'
+    unit = request.args.get('unit', '') or None
     text = _read_stash(token)
     if not text:
         return Response('<p>Session expired — please re-open the export.</p>', mimetype='text/html')
     if not _HAS_PHASE:
         return Response('<p>Phase view unavailable.</p>', mimetype='text/html')
     try:
-        vm = phase_bridge.phase_view_map(text, only=name, with_sim=with_sim)
+        unit_aliases = None
+        if unit:
+            try:
+                cat = db_parser.parse_database(text)
+                ui = (cat.get('unit_instances', {}) or {}).get(unit, {})
+                unit_aliases = ui.get('aliases') or None
+            except Exception:
+                unit_aliases = None
+        vm = phase_bridge.phase_view_map(text, only=name, with_sim=with_sim,
+                                         unit=unit, unit_aliases=unit_aliases)
         htmlv = vm.get(name)
         if not htmlv:
             return Response(f'<p>Phase "{_h.escape(name)}" not found.</p>', mimetype='text/html')

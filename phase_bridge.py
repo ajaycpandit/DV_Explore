@@ -113,7 +113,7 @@ def build_phase_view_html(phase_name, blocks, text=None):
     return _fix_sfc_chrome(sfc_html.build_sfc_html(blocks, phase_name))
 
 
-def phase_view_map(text, with_sim=True, only=None):
+def phase_view_map(text, with_sim=True, only=None, unit=None, unit_aliases=None):
     """Return {phase_name: interactive_html} for all phases in the export.
 
     When with_sim is True, each phase view gets the interactive simulator overlay
@@ -123,6 +123,9 @@ def phase_view_map(text, with_sim=True, only=None):
 
     If `only` is given, build just that one phase (used by the lazy /phase_view
     route so large exports don't pay to build every phase up front).
+
+    If `unit`/`unit_aliases` are given, the simulator resolves #aliases# against that
+    deployed unit instance (a phase-on-unit view), so the walk shows real device tags.
     """
     phases = parse_phases_from_export(text)
     if only is not None:
@@ -132,20 +135,21 @@ def phase_view_map(text, with_sim=True, only=None):
         try:
             html_doc = build_phase_view_html(pname, blocks, text)
             if with_sim:
-                html_doc = _maybe_add_sim(text, pname, html_doc)
+                html_doc = _maybe_add_sim(text, pname, html_doc, unit, unit_aliases)
             out[pname] = html_doc
         except Exception as e:
             out[pname] = f"<html><body><p>Could not render {pname}: {e}</p></body></html>"
     return out
 
 
-def _maybe_add_sim(text, phase_name, phase_html):
+def _maybe_add_sim(text, phase_name, phase_html, unit=None, unit_aliases=None):
     """Inject the simulator overlay for phase_name, or return phase_html unchanged
     if the phase has no steppable sequence / the sim modules aren't available."""
     try:
         import sim_export
         import sim_overlay
-        payload = sim_export.build_payload(text, phase_name)
+        payload = sim_export.build_payload(text, phase_name, unit=unit,
+                                           unit_aliases=unit_aliases)
         if not payload.get('order'):
             return phase_html
         return sim_overlay.inject(phase_html, payload)

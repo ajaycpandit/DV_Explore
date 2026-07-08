@@ -125,3 +125,84 @@ def io_summary_by_controller(text, controllers, module_controller=None):
                 counts['total'] += 1
         out[cn] = {'modules': mods, 'counts': counts}
     return out
+
+
+# ── DeviceNet hardware view (integrates the standalone io_parser) ────────────────
+def build_devicenet_html(text):
+    """Render a DeviceNet hardware download (DEVICENET_DEVICE records) as a
+    Controller -> Card -> Port -> Device tree with each device's signals. Returns
+    '' when the export carries no DeviceNet data, so callers can gate cleanly.
+
+    The io_parser module has long parsed these records; this bridge finally surfaces
+    them in the explorer without touching core.
+    """
+    import html as _h
+    try:
+        import io_parser
+    except Exception:
+        return ''
+    if not io_parser.is_io_export(text):
+        return ''
+    try:
+        devices = io_parser.parse_io_devices(text)
+    except Exception:
+        return ''
+    if not devices:
+        return ''
+    tree = io_parser.io_tree(devices)
+
+    def esc(s):
+        return _h.escape(str(s if s is not None else ''))
+
+    total_sig = sum(len(d.get('signals', [])) for d in devices)
+    parts = ['<div class="io-dnet">']
+    parts.append(
+        f'<div class="io-dnet-summary">{len(devices)} DeviceNet device(s) across '
+        f'{len(tree)} controller(s), {total_sig} signal(s).</div>')
+
+    for ctrl in sorted(tree):
+        cards = tree[ctrl]
+        ndev = sum(len(ds) for card in cards.values() for ds in card.values())
+        parts.append('<div class="io-info-card io-collapse">')
+        parts.append(f'<h4>Controller {esc(ctrl)} '
+                     f'<span class="io-sub">{ndev} device(s)</span></h4>')
+        for card in sorted(cards):
+            ports = cards[card]
+            parts.append(f'<div class="io-card-grp"><div class="io-card-h">Card {esc(card)}</div>')
+            for port in sorted(ports):
+                devs = ports[port]
+                parts.append(f'<div class="io-port-grp"><div class="io-port-h">Port {esc(port)} '
+                             f'<span class="io-sub">{len(devs)} device(s)</span></div>')
+                for d in sorted(devs, key=lambda x: x.get('address', '')):
+                    parts.append(_device_block(d, esc))
+                parts.append('</div>')
+            parts.append('</div>')
+        parts.append('</div>')
+    parts.append('</div>')
+    return ''.join(parts)
+
+
+def _device_block(d, esc):
+    sigs = d.get('signals', [])
+    head = (f'<div class="io-dev"><div class="io-dev-h">'
+            f'<b>{esc(d.get("name"))}</b> '
+            f'<span class="io-dev-addr">node {esc(d.get("address"))}</span> '
+            f'<span class="io-sub">{esc(d.get("model") or d.get("device_type"))}</span></div>')
+    meta = (f'<div class="io-dev-meta">{esc(d.get("description"))}'
+            f'{" · " + esc(d.get("eds_desc")) if d.get("eds_desc") else ""}'
+            f' · in {esc(d.get("input_size") or "0")}B / out {esc(d.get("output_size") or "0")}B</div>')
+    if sigs:
+        rows = ['<table class="io-sig-tbl"><thead><tr>'
+                '<th>Signal</th><th>Dir</th><th>Type</th><th>Tag</th>'
+                '<th>Byte.Bit</th><th>Description</th></tr></thead><tbody>']
+        for s in sigs:
+            bb = f'{esc(s.get("byte") or "0")}.{esc(s.get("bit") or "0")}'
+            rows.append(
+                f'<tr><td>{esc(s.get("name"))}</td><td>{esc(s.get("direction"))}</td>'
+                f'<td>{esc(s.get("type"))}</td><td class="io-tag">{esc(s.get("dst"))}</td>'
+                f'<td>{bb}</td><td>{esc(s.get("description"))}</td></tr>')
+        rows.append('</tbody></table>')
+        table = ''.join(rows)
+    else:
+        table = '<div class="io-sub">No signals.</div>'
+    return head + meta + table + '</div>'

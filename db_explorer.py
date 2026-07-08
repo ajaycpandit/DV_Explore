@@ -550,10 +550,66 @@ h2.dt{margin:0;font-size:21px;font-weight:600;letter-spacing:-.01em;font-family:
 .emtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .empanel{display:none}.empanel.on{display:block}
 .fbd-wrap{display:flex;flex-direction:column;gap:14px}
-.fbd-diagram-card{border:1px solid var(--border);border-radius:10px;background:#fcfcfd;overflow:hidden}
+.fbd-diagram-card{border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden}
 .fbd-head{padding:10px 14px;background:var(--surface-2);font-weight:600;font-size:13px;border-bottom:1px solid var(--border);color:var(--ink)}
 .fbd-sub{color:var(--ink-3);font-weight:400;font-size:12px}
-.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh;background:#fcfcfd}
+.fbd-svg-holder{padding:10px;overflow:auto;max-height:78vh;background:var(--surface)}
+/* The FBD SVG is drawn with a fixed light palette (white block fills, dark text).
+   In dark mode, recolor the holder and softly invert the SVG so it reads correctly
+   on a dark surface without rewriting the shared fbd_bridge renderer. */
+[data-theme="dark"] .fbd-diagram-card,[data-theme="dark"] .fbd-svg-holder{background:#0f1722}
+[data-theme="dark"] .fbd-svg-holder svg{filter:invert(0.92) hue-rotate(180deg)}
+.io-dnet{display:flex;flex-direction:column;gap:12px}
+.io-dnet-summary{color:var(--ink-3);font-size:12.5px}
+.io-info-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.io-info-card>h4{margin:0 0 10px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
+.io-info-card>h4::before{content:"\\25be";display:inline-block;margin-right:6px;font-size:10px;color:var(--ink-3);transition:transform .12s}
+.io-info-card.collapsed>h4::before{transform:rotate(-90deg)}
+.io-info-card.collapsed>*:not(h4){display:none!important}
+.io-sub{color:var(--ink-3);font-weight:400;font-size:11.5px}
+.io-card-grp{margin:8px 0 8px 6px;padding-left:10px;border-left:2px solid var(--border)}
+.io-card-h{font-weight:600;font-size:12.5px;color:var(--ink-2);margin-bottom:5px}
+.io-port-grp{margin:6px 0 6px 8px}
+.io-port-h{font-size:12px;color:var(--ink-3);margin-bottom:5px}
+.io-dev{border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin:6px 0;background:var(--surface-2)}
+.io-dev-h{font-size:13px;margin-bottom:3px}
+.io-dev-addr{color:#0891b2;font-family:'IBM Plex Mono';font-size:11.5px;margin:0 6px}
+.io-dev-meta{color:var(--ink-3);font-size:11.5px;margin-bottom:7px}
+.io-sig-tbl{width:100%;border-collapse:collapse;font-size:11.5px;font-family:'IBM Plex Mono'}
+.io-sig-tbl th{text-align:left;padding:4px 8px;color:var(--ink-3);font-family:'IBM Plex Sans';font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border)}
+.io-sig-tbl td{padding:4px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.io-sig-tbl tr:last-child td{border-bottom:0}
+.io-tag{color:#0369a1}
+.av-report{display:flex;flex-direction:column;gap:12px}
+.av-summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.av-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);color:var(--ink-2)}
+.av-err-c{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.av-warn-c{background:#fffbeb;border-color:#fde68a;color:#b45309}
+.av-info-c{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+[data-theme="dark"] .av-err-c{background:#3b1a1a;border-color:#7f1d1d;color:#fca5a5}
+[data-theme="dark"] .av-warn-c{background:#3a2f15;border-color:#78511a;color:#fcd34d}
+[data-theme="dark"] .av-info-c{background:#1e293b;border-color:#334155;color:#93c5fd}
+.av-unit{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.av-unit>h4{margin:0 0 10px;font-size:13px;color:var(--ink);cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px}
+.av-unit>h4::after{content:"\\25be";margin-left:auto;font-size:10px;color:var(--ink-3);transition:transform .12s}
+.av-unit.collapsed>h4::after{transform:rotate(-90deg)}
+.av-unit.collapsed>*:not(h4){display:none!important}
+.av-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.av-dot-err{background:#dc2626}.av-dot-warn{background:#d97706}.av-dot-ok{background:#16a34a}
+.av-sub{color:var(--ink-3);font-weight:400;font-size:11.5px}
+.av-unit-counts{color:var(--ink-3);font-family:'IBM Plex Mono';font-size:11px}
+.av-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.av-tbl th{text-align:left;padding:5px 9px;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border)}
+.av-tbl td{padding:5px 9px;border-bottom:1px solid var(--border);vertical-align:top}
+.av-tbl tr:last-child td{border-bottom:0}
+.av-alias{font-family:'IBM Plex Mono';color:#7c3aed}
+.av-detail{color:var(--ink-2)}
+.av-sev{font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.04em}
+.av-err{background:#fee2e2;color:#b91c1c}.av-warn{background:#fef3c7;color:#b45309}.av-info{background:#dbeafe;color:#1d4ed8}
+[data-theme="dark"] .av-err{background:#7f1d1d;color:#fecaca}
+[data-theme="dark"] .av-warn{background:#78511a;color:#fde68a}
+[data-theme="dark"] .av-info{background:#1e3a5f;color:#bfdbfe}
+.av-clean{color:#16a34a;font-size:12.5px}
 .fbd-info-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface)}
 .fbd-info-card h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-3)}
 .fbd-collapse>h4,.fbd-collapse>.fbd-head{cursor:pointer;user-select:none}
@@ -790,7 +846,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-0533"
+_BUILD_ID = "20260708-1230"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -866,6 +922,7 @@ def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_
                             'named_sets': {s['name']: s for s in catalog.get('named_sets', [])},
                             'em_state_set': catalog.get('em_state_set', {}),
                             'controllers': catalog.get('controllers', {}),
+                            'has_devicenet': catalog.get('has_devicenet', False),
                             'module_controller': catalog.get('module_controller', {}),
                             'module_params': catalog.get('module_params', {}),
                             'area_tree': catalog.get('area_tree', {})})
@@ -2291,6 +2348,9 @@ function renderEntry(e){
     else if(e.k==='iotable') renderIoTable(e.ctrl);
     else if(e.k==='references') renderReferences(e.tag);
     else if(e.k==='rstep') renderRecipeStep(e.parent, e.step, e.layer);
+    else if(e.k==='uphase') renderUnitPhase(e.unit, e.phase);
+    else if(e.k==='iodev') renderIoDevices();
+    else if(e.k==='aliasval') renderAliasValidator();
     var dd=document.getElementById('detail'); if(dd) dd.scrollTop=0;
     makeCardsCollapsible();
     try{ markSelectedObject(e); }catch(_e){}
@@ -2306,6 +2366,7 @@ function markSelectedObject(e){
   else if(e.k==='dep') sel='.navinst[data-tag="'+cssEsc(e.tag)+'"][data-dep="1"]';
   else if(e.k==='inst'){ var tg=(e.iid||'').split('\\u0001').pop(); sel='.navinst[data-tag="'+cssEsc(tg)+'"]'; }
   else if(e.k==='rstep'||e.k==='recipe') sel='.rec-item[data-rec="'+cssEsc(e.parent||e.rec||'')+'"]';
+  else if(e.k==='uphase') sel='.navitem[data-uphase="'+cssEsc(e.unit+'\\u241f'+e.phase)+'"]';
   if(!sel) return;
   var row=document.querySelector(sel);
   if(!row) return;
@@ -2599,6 +2660,81 @@ function show(id){
   if(DB.objs[id]) navTo({k:'obj',id:id});
 }
 function showFbd(def,label){ if(FBD_VIEWS[def] || (typeof FBD_NAMES!=='undefined' && FBD_NAMES.indexOf(def)>=0)) navTo({k:'fbd',def:def,label:label}); }
+
+// #6: a phase opened on a specific deployed unit instance. Same interactive phase
+// view as the class, but the simulator resolves #aliases# against THIS unit's wired
+// devices (server passes &unit=), so the walk actuates real modules — which is why
+// the Simulate button belongs here and not on the bare class.
+function showUnitPhase(unit, phase){ navTo({k:'uphase', unit:unit, phase:phase}); }
+function showIoDevices(){ navTo({k:'iodev'}); }
+function showAliasValidator(){ navTo({k:'aliasval'}); }
+function renderAliasValidator(){
+  var d=document.getElementById('detail'); if(!d) return;
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">\\u2190 back</span>':'';
+  d.innerHTML='<h2 class="dt">Alias Resolution Validator <span class="dt-type b-unit">Unit tool</span></h2>'
+    +'<p class="dt-desc">For each deployed unit, checks that every alias used in its phase '
+    +'logic resolves to a real deployed device \\u2014 flagging unresolved, ignored-but-used, '
+    +'and dangling references for commissioning and Part 11 review.'+back+'</p>'
+    +'<div class="card" style="max-width:none" id="avBox"><div class="frame-load">'
+    +'<span class="dv-dots"><i></i><i></i><i></i></span> Analyzing aliases\\u2026</div></div>';
+  d.scrollTop=0;
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){ var b0=document.getElementById('avBox'); if(b0) b0.innerHTML='<span class="empty">Unavailable.</span>'; return; }
+  fetch('/alias_validate?t='+encodeURIComponent(EXPORT_TOKEN))
+    .then(function(r){return r.json();})
+    .then(function(x){ var b=document.getElementById('avBox'); if(!b) return;
+      b.innerHTML=(x&&x.html)||'<span class="empty">No result.</span>';
+      try{ wireAvCollapse(); }catch(e){} })
+    .catch(function(){ var b=document.getElementById('avBox'); if(b) b.innerHTML='<span class="empty">Could not run the validator.</span>'; });
+}
+function wireAvCollapse(){
+  var box=document.getElementById('avBox'); if(!box) return;
+  box.querySelectorAll('.av-unit > h4').forEach(function(h){
+    h.onclick=function(){ h.parentElement.classList.toggle('collapsed'); };
+  });
+}
+function renderIoDevices(){
+  var d=document.getElementById('detail'); if(!d) return;
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">\\u2190 back</span>':'';
+  d.innerHTML='<h2 class="dt">DeviceNet I/O <span class="dt-type b-cm">Hardware</span></h2>'
+    +'<p class="dt-desc">Physical DeviceNet devices parsed from the export\\u2019s hardware '
+    +'records, grouped by controller \\u2192 card \\u2192 port.'+back+'</p>'
+    +'<div class="card" style="max-width:none" id="ioDevBox"><div class="frame-load">'
+    +'<span class="dv-dots"><i></i><i></i><i></i></span> Loading I/O devices\\u2026</div></div>';
+  d.scrollTop=0;
+  if(typeof EXPORT_TOKEN==='undefined'||!EXPORT_TOKEN){ var b0=document.getElementById('ioDevBox'); if(b0) b0.innerHTML='<span class="empty">Unavailable.</span>'; return; }
+  fetch('/io_devices?t='+encodeURIComponent(EXPORT_TOKEN))
+    .then(function(r){return r.json();})
+    .then(function(x){ var b=document.getElementById('ioDevBox'); if(!b) return;
+      if(x&&x.html){ b.innerHTML=x.html; try{ wireIoCollapse(); }catch(e){} }
+      else b.innerHTML='<span class="empty">No DeviceNet hardware records in this export.</span>'; })
+    .catch(function(){ var b=document.getElementById('ioDevBox'); if(b) b.innerHTML='<span class="empty">Could not load I/O devices.</span>'; });
+}
+function wireIoCollapse(){
+  var box=document.getElementById('ioDevBox'); if(!box) return;
+  box.querySelectorAll('.io-info-card > h4').forEach(function(h){
+    h.onclick=function(){ h.parentElement.classList.toggle('collapsed'); };
+  });
+}
+function renderUnitPhase(unit, phase){
+  var d=document.getElementById('detail'); if(!d) return;
+  var back=VIEW_STACK.length>1?' <span class="link" onclick="goBack()">\\u2190 back</span>':'';
+  var h='<h2 class="dt">'+esc(phase)+' <span class="dt-type b-phase">Phase on unit</span></h2>';
+  h+='<p class="dt-desc">Phase <b>'+esc(phase)+'</b> running on unit instance '
+    +'<span class="link" onclick="show(\\'unit:'+esc(unit)+'\\')">'+esc(unit)+'</span>. '
+    +'The simulator resolves this unit\\u2019s aliases to real device tags.'+back+'</p>';
+  h+='<div class="card" style="max-width:none">';
+  if(typeof EXPORT_TOKEN!=='undefined' && EXPORT_TOKEN){
+    var src='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(phase)
+      +'&sim=1&unit='+encodeURIComponent(unit);
+    h+='<div class="frame-wrap"><div class="frame-load" id="uphaseLoad"><span class="dv-dots"><i></i><i></i><i></i></span> Loading phase logic\\u2026</div>';
+    h+='<iframe id="phaseFrame" class="phaseframe" src="'+src+'" onload="var l=document.getElementById(\\'uphaseLoad\\');if(l)l.style.display=\\'none\\';"></iframe></div>';
+  } else {
+    h+='<span class="empty">Phase logic unavailable in this export.</span>';
+  }
+  h+='</div>';
+  d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
+  try{ markSelectedObject({k:'uphase',unit:unit,phase:phase}); }catch(_e){}
+}
 
 // ── lazy view loaders (large exports don't build FBD/EM views up front) ──
 function renderEmPanel(ev, stateSet){
@@ -3149,12 +3285,13 @@ function lazyInstDiagram(d){
   fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(d.tag))
     .then(function(r){return r.json();})
     .then(function(x){
-      if(x&&x.html){ box.innerHTML='<h3>Diagram</h3>'+x.html; setTimeout(wireFbdLinks,0); return; }
+      if(x&&x.html){ box.innerHTML='<h3>Diagram</h3>'+x.html; setTimeout(wireFbdLinks,0); try{makeCardsCollapsible();}catch(e){} return; }
       return fetch('/fbd_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(d.cls))
         .then(function(r){return r.json();})
         .then(function(y){
           if(y&&y.html){ box.innerHTML='<h3>Diagram <span style="font-weight:400;color:var(--ink-3);font-size:12px">\\u2014 from class '+esc(d.cls)+'</span></h3>'+y.html; setTimeout(wireFbdLinks,0); }
           else box.innerHTML='<h3>Diagram</h3><span class="empty">No function block diagram for this instance or its class.</span>';
+          try{makeCardsCollapsible();}catch(e){}
         });
     })
     .catch(function(){ box.innerHTML='<h3>Diagram</h3><span class="empty">Could not load diagram.</span>'; });
@@ -3394,8 +3531,9 @@ function wireFbdLinks(){
                            f'{_nav_badge(key)}<span class="inst-tag">{html.escape(tag)}</span>'
                            f'<span class="inst-cls">({html.escape(cls)})</span></div>')
         for ph in phs:
-            nav.append(f'<div class="navitem {_ncls(lvl + 1)}" data-id="phase:{html.escape(ph)}" '
-                       f'onclick="show(\'phase:{html.escape(ph)}\')">'
+            nav.append(f'<div class="navitem {_ncls(lvl + 1)}" data-uphase="{html.escape(un)}\u241f{html.escape(ph)}" '
+                       f'onclick="showUnitPhase(\'{html.escape(un)}\',\'{html.escape(ph)}\')" '
+                       f'title="{html.escape(ph)} on unit {html.escape(un)} \u2014 simulate with resolved aliases">'
                        f'{_nav_badge("phase")}{html.escape(ph)}</div>')
         nav.append('</div></div>')
 
@@ -3686,6 +3824,23 @@ function wireFbdLinks(){
         _endfold()  # Physical Network
     else:
         _ph('Physical Network')
+
+    # ── Unit Tools (analysis built on the parsed model) ──
+    _fold('Unit Tools', collapsed=True)
+    nav.append('<div class="navitem" data-id="tool:aliasval" '
+               'onclick="showAliasValidator()" title="Validate that every alias used '
+               'in each unit\u2019s phases resolves to a deployed device">'
+               + _nav_badge('unit') + 'Alias resolution validator</div>')
+    _endfold()  # Unit Tools
+
+    # ── DeviceNet I/O (only when the export carries hardware records) ──
+    if catalog.get('has_devicenet'):
+        _fold('I/O Devices', collapsed=True)
+        nav.append('<div class="navitem" data-id="io:devicenet" '
+                   'onclick="showIoDevices()" title="DeviceNet hardware: controllers, '
+                   'cards, ports, devices and their signals">'
+                   + _nav_badge('cm') + 'DeviceNet devices</div>')
+        _endfold()  # I/O Devices
     _endfold()  # System Configuration
 
     # ── standalone Recipes workspace (rail view, like the Converter) ──

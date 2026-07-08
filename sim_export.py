@@ -30,7 +30,13 @@ import sim_aliases        # noqa: E402
 import sim_timers         # noqa: E402
 
 
-def build_payload(text, phase_name):
+def build_payload(text, phase_name, unit=None, unit_aliases=None):
+    """Build the simulator payload for a phase.
+
+    When `unit` / `unit_aliases` are given (a deployed unit-instance context), the
+    phase's #aliases# resolve to that unit's actual wired device tags, so the walk
+    shows real modules instead of unresolved class-level alias names. Without a unit,
+    aliases resolve globally (class view)."""
     sim = sim_run.PhaseSim(text, phase_name)
 
     steps = {n: {'desc': sim.steps[n].get('description', ''),
@@ -107,7 +113,7 @@ def build_payload(text, phase_name):
         'prompts': prompts,
         'r_params': r_params,
         'p_params': p_params,
-        'aliases': _aliases_for(text, sim),
+        'aliases': _aliases_for(text, sim, unit, unit_aliases),
         'timers': sim_timers.detect_timers(
             sim.order, sim.actions,
             {n: list(sim.s2t.get(n, [])) for n in sim.order},
@@ -169,10 +175,38 @@ def _phase_params(text, phase_name, sim, raw_params):
     return out
 
 
-def _aliases_for(text, sim):
-    """Resolved alias metadata for aliases used in this phase's logic (item 10)."""
+def _aliases_for(text, sim, unit=None, unit_aliases=None):
+    """Resolved alias metadata for aliases used in this phase's logic (item 10).
+
+    If unit_aliases is supplied (the deployed unit instance's own alias table, as
+    parsed by db_parser into unit_instances[unit]['aliases']), those resolutions take
+    precedence — so #ALIAS# shows the device this specific unit wires it to."""
     try:
         all_aliases = sim_aliases.resolve_aliases(text)
+        # overlay the unit instance's concrete alias -> device resolutions.
+        # db_parser gives unit aliases as a LIST of {alias,value,desc,ignore};
+        # normalize to {alias: {'module': device, 'desc': ...}} before overlaying.
+        if unit_aliases:
+            norm = {}
+            if isinstance(unit_aliases, list):
+                for a in unit_aliases:
+                    if isinstance(a, dict) and a.get('alias'):
+                        norm[a['alias']] = {'module': a.get('value', ''),
+                                            'desc': a.get('desc', '')}
+            elif isinstance(unit_aliases, dict):
+                norm = unit_aliases
+            for a, resolved in norm.items():
+                rec = all_aliases.setdefault(a, {})
+                if isinstance(resolved, dict):
+                    if resolved.get('module'):
+                        rec['module'] = resolved['module']
+                    if resolved.get('desc') and not rec.get('desc'):
+                        rec['desc'] = resolved['desc']
+                elif resolved:
+                    rec['module'] = resolved
+        if unit:
+            all_aliases.setdefault('THISUNIT', {})['module'] = unit
+            all_aliases['THISUNIT']['desc'] = f'This unit ({unit})'
         used = sim_aliases.aliases_used(
             sim.order, sim.actions,
             {tn: sim.trans.get(tn, '') for tn in sim.trans})

@@ -319,12 +319,17 @@ def _parse_pfc(blk):
     transitions = {}
     for tm in re.finditer(r'TRANSITION\s+NAME="([^"]+)"\s*\{', pfc):
         tbody = db_parser.extract_block(pfc, tm.end() - 1)
-        expr = re.search(r'EXPRESSION="((?:[^"\\]|\\.)*)"', tbody)
-        desc = re.search(r'DESCRIPTION="([^"]*)"', tbody)
+        # FHX escapes a literal " inside a quoted string by DOUBLING it (""), not with
+        # a backslash. Use a doubled-quote-aware capture so expressions that compare
+        # against a string literal (e.g. != "") aren't truncated at the first embedded
+        # quote — the same fix applied to phase SFC transitions via sfc_expr_fix.
+        expr = re.search(r'EXPRESSION="((?:[^"]|"")*)"', tbody, re.DOTALL)
+        desc = re.search(r'DESCRIPTION="((?:[^"]|"")*)"', tbody, re.DOTALL)
+        _expr = (expr.group(1) if expr else '').replace('""', '"')
         transitions[tm.group(1)] = {
             'name': tm.group(1),
-            'expr': (expr.group(1) if expr else '').replace('\r\n', ' ').replace('\n', ' ').strip(),
-            'desc': desc.group(1) if desc else '',
+            'expr': _expr.replace('\r\n', ' ').replace('\n', ' ').strip(),
+            'desc': (desc.group(1) if desc else '').replace('""', '"'),
         }
 
     s2t, t2s = [], []
