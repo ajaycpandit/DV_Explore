@@ -361,18 +361,59 @@ def _diagram_doc(title, body, theme='light'):
         'html body .diagram{min-height:300px!important}'
         'html body .tablewrap{flex:0 0 320px!important;resize:vertical!important;overflow:auto!important}'
         + (
-            # ── Dark mode: the fragment hard-codes white backgrounds on .diagram,
-            # .tablewrap, .wrap and light SVG strokes. Recolor the surfaces and softly
-            # invert the SVG so it's legible on dark, without editing the shared fragment.
-            ('html body .diagram,html body .tablewrap,html body .wrap{background:' + card_bg + '!important}'
-             'html body .diagram svg,html body .wrap svg{filter:invert(.92) hue-rotate(180deg)}'
-             'html body .tablewrap,html body .tablewrap *{color:' + ink + '!important}'
-             'html body .tablewrap table,html body .tablewrap td,html body .tablewrap th{border-color:' + border + '!important}'
-             'body{color-scheme:dark}')
+            # ── Dark mode ──
+            # The embedded EM/CM command fragment hard-codes light backgrounds on MANY
+            # elements — not just .diagram/.tablewrap but the whole command-tab UI:
+            # .ctabs/.ctab (command tab bar), .tabs/.tab (sub-tabs), .panel (side panel),
+            # .act .expr (action expressions), .special, .sfc-ipanel. A phase view only
+            # has the SFC (.diagram/.tablewrap), which is why phases looked fine but EMs/
+            # CMs stayed white. Recolor the full surface set, recolor text/borders, and
+            # softly invert the SVG diagrams so they read on dark. High specificity
+            # (html body …) beats the fragment's own later <style>.
+            (
+              # surfaces -> dark card
+              'html body .diagram,html body .tablewrap,html body .wrap,'
+              'html body .panel,html body .tabs,html body .tab,html body .ctab,'
+              'html body .sfc-ipanel'
+              '{background:' + card_bg + '!important}'
+              # tab bars / secondary strips -> slightly deeper
+              'html body .ctabs,html body .act .expr'
+              '{background:#0b1220!important}'
+              # generic text + borders inside the fragment
+              'html body .diagram,html body .diagram *,'
+              'html body .tablewrap,html body .tablewrap *,'
+              'html body .panel,html body .panel *,'
+              'html body .tabs,html body .tab,html body .ctab,html body .ctabs'
+              '{color:' + ink + '!important;border-color:' + border + '!important}'
+              # keep the "active/on" command highlight readable (orange stays, force white text)
+              'html body .on{color:#fff!important}'
+              # tables inside the fragment
+              'html body table td,html body table th{border-color:' + border + '!important}'
+              # invert the SVG diagrams (SFC + FBD) so their light palette works on dark
+              'html body .diagram svg,html body .wrap svg,html body .fbd-svg-holder svg,'
+              'html body .stu-embed svg{filter:invert(.92) hue-rotate(180deg)}'
+              'body{color-scheme:dark}'
+            )
             if dark else
             'svg{max-width:none;height:auto}'
         ) +
-        '</style></head><body><div class="stu-doc">' + body + '</div></body></html>')
+        '</style></head><body><div class="stu-doc">' + body + '</div>'
+        # Make the Studio embed section headers (Command/State logic, Function block
+        # diagram) collapsible inside the iframe — the parent page's collapse handler
+        # can't reach across the iframe boundary, so wire a tiny local one here.
+        '<script>(function(){'
+        'document.querySelectorAll(".stu-embed-h").forEach(function(h){'
+        'h.style.cursor="pointer";h.style.userSelect="none";'
+        'var c=document.createElement("span");c.textContent="\\u25be ";c.style.fontSize="10px";'
+        'c.style.color="' + ink2 + '";h.insertBefore(c,h.firstChild);'
+        'h.addEventListener("click",function(){'
+        'var card=h.parentElement,col=card.classList.toggle("stu-collapsed");'
+        'c.textContent=col?"\\u25b8 ":"\\u25be ";'
+        'Array.prototype.forEach.call(card.children,function(ch){'
+        'if(ch!==h) ch.style.display=col?"none":"";});'
+        '});});'
+        '})();</script>'
+        '</body></html>')
 
 
 def build_cm_studio(text, cm_name):
