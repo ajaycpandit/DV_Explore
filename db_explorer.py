@@ -790,7 +790,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-0018"
+_BUILD_ID = "20260708-0533"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1531,8 +1531,10 @@ function stuRender(d){
   var mainInner;
   if(d.diagram_url===true){
     var pn=d._id.indexOf(':')>=0?d._id.split(':')[1]:d._id;
-    // Studio resolves the phase's deployed unit path, so aliases resolve — enable sim.
-    var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(pn)+'&sim=1';
+    // #6: Studio opens a phase as its CLASS (no unit context here), so the Simulator
+    // is hidden — same rule as the Explorer's phase-class view. Simulation only makes
+    // sense on a phase reached through a deployed unit instance, where aliases resolve.
+    var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(pn);
     mainInner='<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering diagram\u2026')+'</div>'
       +'<iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
   } else if(d.diagram_url==='em' || d.diagram_url==='cm'){
@@ -3777,7 +3779,7 @@ function wireFbdLinks(){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2.5h9l4 4V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z"/><path d="M14.5 2.5V7H19M8.5 12h7M8.5 16h5"/></svg>
     <span class="tip">Recipes</span></a>
   <a class="rail-btn" id="rb-converter" href="javascript:void 0" title="FHX Converter" onclick="switchView('converter')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3.5h5.2L11 5.3v6.2H4z"/><path d="M9.2 3.5v1.8H11"/><path d="M13 12.5h5.2L20 14.3v6.2h-7z"/><path d="M18.2 12.5v1.8H20"/><path d="M12.5 6.5a6 6 0 0 1 5 5"/><path d="M17.5 9v2.7h-2.7"/></svg>
     <span class="tip">FHX Converter</span></a>
   <div class="spacer"></div>
   <a class="rail-btn" id="rb-append" href="javascript:void 0" title="Append another FHX" onclick="openAppend()">

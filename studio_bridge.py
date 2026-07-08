@@ -333,9 +333,6 @@ def _diagram_doc(title, body, theme='light'):
     else:
         page_bg, card_bg, ink, ink2, border, shadow = (
             '#f8fafc', '#ffffff', '#16202c', '#64748b', '#e2e8f0', 'rgba(15,23,42,.05)')
-    # In dark mode the embedded fragments hard-code light colors; a soft filter keeps
-    # SVG diagrams legible on a dark card without rewriting the (shared) fragment CSS.
-    svg_filter = 'filter:invert(.9) hue-rotate(180deg);' if dark else ''
     return (
         '<!DOCTYPE html><html data-theme="' + theme + '"><head><meta charset="utf-8">'
         '<style>'
@@ -350,16 +347,31 @@ def _diagram_doc(title, body, theme='light'):
         'color:' + ink2 + ';margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid ' + border + '}'
         'table{border-collapse:collapse;font-size:12px}'
         'td,th{padding:4px 8px;border:1px solid ' + border + '}'
-        'svg{max-width:none;height:auto;' + svg_filter + '}'
         '.fbd-wrap,.fbd-svg-holder{overflow:auto;max-width:100%}'
-        # The embedded command/state fragment hard-codes tiny heights (.wrap 120px,
-        # .tablewrap 90px) meant to be splitter-resized in its standalone page. Inside
-        # the Studio iframe there's no splitter, so give them real room and let the user
-        # drag to resize (CSS resize handle), which is what the SFC/actions need.
-        '.wrap{height:auto!important;min-height:340px!important;resize:vertical;overflow:auto!important}'
-        '.tablewrap{height:auto!important;min-height:220px!important;resize:vertical;overflow:auto!important}'
-        '.main{height:auto!important}'
-        + ('body{color-scheme:dark}' if dark else '') +
+        # ── Fix the embedded command/state fragment inside the iframe ──
+        # The fragment carries its OWN <style> that appears later in the document than
+        # this <head> block, so equal-specificity !important rules there would win. We
+        # therefore use higher-specificity selectors (html body …) so these overrides
+        # beat the fragment regardless of source order.
+        # The fragment lays out as a full-height flex column: .main{height:calc(100vh-96px)}
+        # with .wrap (SFC, flex:1) over .tablewrap (actions). Inside a short iframe 100vh
+        # collapses everything to a sliver — so pin .main to a real height and keep flex.
+        'html body .main{height:720px!important;min-height:720px!important;max-height:none!important}'
+        'html body .wrap{min-height:0!important;overflow:hidden!important}'
+        'html body .diagram{min-height:300px!important}'
+        'html body .tablewrap{flex:0 0 320px!important;resize:vertical!important;overflow:auto!important}'
+        + (
+            # ── Dark mode: the fragment hard-codes white backgrounds on .diagram,
+            # .tablewrap, .wrap and light SVG strokes. Recolor the surfaces and softly
+            # invert the SVG so it's legible on dark, without editing the shared fragment.
+            ('html body .diagram,html body .tablewrap,html body .wrap{background:' + card_bg + '!important}'
+             'html body .diagram svg,html body .wrap svg{filter:invert(.92) hue-rotate(180deg)}'
+             'html body .tablewrap,html body .tablewrap *{color:' + ink + '!important}'
+             'html body .tablewrap table,html body .tablewrap td,html body .tablewrap th{border-color:' + border + '!important}'
+             'body{color-scheme:dark}')
+            if dark else
+            'svg{max-width:none;height:auto}'
+        ) +
         '</style></head><body><div class="stu-doc">' + body + '</div></body></html>')
 
 

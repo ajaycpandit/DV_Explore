@@ -251,6 +251,20 @@ function tgl(){var d=document.documentElement,m=d.dataset.theme==='dark'?'light'
 </body></html>"""
 
 
+@app.route('/version')
+def version():
+    """Report the live build id so you can confirm exactly what the server is running,
+    independent of any browser/CDN cache. Send it uncached so a proxy can't stale it."""
+    try:
+        bid = db_explorer._BUILD_ID
+    except Exception:
+        bid = 'unknown'
+    resp = jsonify({'build': bid})
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['X-Workbench-Build'] = bid
+    return resp
+
+
 @app.route('/')
 def index():
     page = UPLOAD_PAGE.replace('<style>', '<style>' + fonts.FONT_CSS, 1)
