@@ -790,7 +790,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260707-2230"
+_BUILD_ID = "20260707-2354"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1667,6 +1667,8 @@ function recShow(name){
   var o=(typeof DB!=='undefined'&&DB.objs['recipe:'+name])||{};
   var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span>'
     +' <a class="link rec-xl" href="javascript:void 0" onclick="recViewPfc(\\''+esc(name)+'\\')">\u2317 PFC diagram</a>'
+    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadWord(\\''+esc(name)+'\\')" title="Formal DDS-style Word recipe document">\u2b07 Recipe doc (.docx)</a>'
+    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadExcel(\\''+esc(name)+'\\')" title="Excel workbook: overview, procedure, parameters, formulas">\u2b07 Workbook (.xlsx)</a>'
     +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadPfc(\\''+esc(name)+'\\')">\u2b07 PFC report (.xlsx)</a>'
     +' <a class="link rec-xl" href="javascript:void 0" onclick="downloadDeferrals(\\''+esc(name)+'\\',this)">\u2b07 Deferrals (.xlsx)</a></h2>';
   if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
@@ -1685,6 +1687,14 @@ function recShowStep(parent, step, layer){
 function recDownloadPfc(name){
   if(!RECWS.token) return;
   window.location.href='/recipe_pfc_xlsx?t='+encodeURIComponent(RECWS.token)+'&n='+encodeURIComponent(name);
+}
+function recDownloadWord(name){
+  if(!RECWS.token) return;
+  window.location.href='/recipe_word?t='+encodeURIComponent(RECWS.token)+'&n='+encodeURIComponent(name);
+}
+function recDownloadExcel(name){
+  if(!RECWS.token) return;
+  window.location.href='/recipe_excel?t='+encodeURIComponent(RECWS.token)+'&n='+encodeURIComponent(name);
 }
 // #7: open the recipe's PFC (procedure flow) diagram in a large standalone overlay,
 // away from the cramped detail pane — a dedicated visual view with pan/zoom.

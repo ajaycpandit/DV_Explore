@@ -594,11 +594,19 @@ def _extract_object_fhx(text, obj):
     elif typ in ('em', 'cm'):
         # both EM and CM classes are MODULE_CLASS blocks
         m = re.search(r'MODULE_CLASS\s+NAME="' + re.escape(name) + r'"', text)
+    elif typ == 'recipe':
+        m = re.search(r'BATCH_RECIPE\s+NAME="' + re.escape(name) + r'"', text)
     else:
         return None
     if not m:
         return None
-    return db_parser.extract_block(text, m.start())
+    block = db_parser.extract_block(text, m.start())
+    # extract_block returns the { … } body; re-parsers key off the opening
+    # "<KEYWORD> NAME=..." line, so prepend the matched header when it's missing.
+    header = m.group(0)
+    if not block.lstrip().startswith(header.strip()):
+        block = header + ' ' + block
+    return block
 
 
 @app.route('/em_members')
@@ -832,6 +840,66 @@ def recipe_pfc_xlsx():
     except Exception as e:
         app.logger.exception('pfc report failed')
         abort(500, f'Could not build PFC report: {e}')
+
+
+@app.route('/recipe_word')
+def recipe_word_dl():
+    """Download a formal DDS-style Word document for one recipe object (or the whole
+    import if no name is given). Fills the converter's gap: core builds only Excel for
+    recipes, so Word requests there fall back to a workbook; this emits a real .docx."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'That import has expired — please reimport the base file.')
+    try:
+        import recipe_word
+        sub = text
+        if name:
+            # slice to just the named recipe when we can, so the doc is focused
+            try:
+                s = _extract_object_fhx(text, 'recipe:' + name)
+                if s:
+                    sub = s
+            except Exception:
+                sub = text
+        buf = recipe_word.build_recipe_dds_word(sub, name or 'Recipe', {})
+        fname = re.sub(r'[^A-Za-z0-9_.-]', '_', name or 'Recipe') + '_RDD.docx'
+        return send_file(buf, as_attachment=True, download_name=fname,
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    except Exception as e:
+        app.logger.exception('recipe word failed')
+        abort(500, f'Could not build recipe document: {e}')
+
+
+@app.route('/recipe_excel')
+def recipe_excel_dl():
+    """Download the converter-core Excel workbook for one recipe object (or whole
+    import). Mirrors the Converter's Excel path, exposed from the Recipes workspace."""
+    token = request.args.get('t', '')
+    name = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'That import has expired — please reimport the base file.')
+    sub = text
+    if name:
+        try:
+            s = _extract_object_fhx(text, 'recipe:' + name)
+            if s:
+                sub = s
+        except Exception:
+            sub = text
+    try:
+        import phase_bridge as _pb
+        ns, _ = _pb._core()
+        buf, _sheets = ns['parse_and_build'](sub, 'recipe', name or 'Recipe',
+                                             _EXPORT_OPTS, 'excel')
+        fname = re.sub(r'[^A-Za-z0-9_.-]', '_', name or 'Recipe') + '.xlsx'
+        return send_file(buf, as_attachment=True, download_name=fname,
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        app.logger.exception('recipe excel failed')
+        abort(500, f'Could not build recipe workbook: {e}')
 
 
 @app.route('/recipe_deferrals_all_xlsx')

@@ -96,3 +96,53 @@ def _serve_diagram():
 
 capp.view_functions['index'] = _serve_index
 capp.view_functions['diagram_page'] = _serve_diagram
+
+# ── recipe Word in the wizard ────────────────────────────────────────────────────
+# The converter core only ever builds Excel for the 'recipe' type, so a Word request
+# through the wizard would download an Excel workbook mislabelled as .docx. Wrap the
+# core's /convert handler: intercept exactly the recipe+word case and emit a real DDS
+# Word document via recipe_word; delegate every other case to the untouched core
+# handler so core/ stays byte-identical.
+_core_convert = capp.view_functions['convert']
+
+
+def _convert_override():
+    try:
+        fmt = request.form.get('format', 'excel')
+        fhx_type = request.form.get('fhx_type', 'auto')
+        if fmt == 'word' and 'file' in request.files:
+            f = request.files['file']
+            raw = f.read()
+            # re-seat the stream so the core handler could still read it if we delegate
+            try:
+                f.stream.seek(0)
+            except Exception:
+                pass
+            import fhx_app as _fx
+            text = _fx.decode_fhx(raw)
+            detected = fhx_type if fhx_type != 'auto' else _fx.detect_fhx_type(text)
+            if detected == 'recipe':
+                import recipe_word
+                fname = _os_reamove_ext(f.filename)
+                opts = {
+                    'include_procedure': request.form.get('procedure', 'true') == 'true',
+                    'include_formulas': request.form.get('formulas', 'true') == 'true',
+                }
+                buf = recipe_word.build_recipe_dds_word(text, fname, opts)
+                from flask import send_file as _send
+                resp = _send(buf, as_attachment=True, download_name=fname + '_RDD.docx',
+                             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+                resp.headers['X-Detected-Type'] = 'recipe'
+                return resp
+    except Exception:
+        # if anything goes wrong, fall through to the core handler (never break /convert)
+        pass
+    return _core_convert()
+
+
+def _os_reamove_ext(filename):
+    import re as _re
+    return _re.sub(r'\.fhx$', '', filename or 'Recipe', flags=_re.IGNORECASE)
+
+
+capp.view_functions['convert'] = _convert_override
