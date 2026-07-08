@@ -35,8 +35,14 @@ _EXPLORER_SVG = (
     '<rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'
 )
 _CONVERTER_SVG = (
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">'
-    '<path d="M4 7h16M4 12h16M4 17h10"/><path d="M17 15l3 2-3 2"/></svg>'
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" '
+    'stroke-linejoin="round" stroke-linecap="round">'
+    # source document (top-left)
+    '<path d="M4 3.5h5.2L11 5.3v6.2H4z"/><path d="M9.2 3.5v1.8H11"/>'
+    # target document (bottom-right)
+    '<path d="M13 12.5h5.2L20 14.3v6.2h-7z"/><path d="M18.2 12.5v1.8H20"/>'
+    # conversion arrow sweeping from source to target
+    '<path d="M12.5 6.5a6 6 0 0 1 5 5"/><path d="M17.5 9v2.7h-2.7"/></svg>'
 )
 
 

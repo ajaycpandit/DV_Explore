@@ -297,7 +297,7 @@ def build_em_studio(text, em_name):
     }
 
 
-def build_em_diagram_html(text, em_name):
+def build_em_diagram_html(text, em_name, theme='light'):
     """Standalone HTML doc (for the Studio iframe) with an EM's state logic + FBD.
     Builds directly (see note in build_em_studio) so FBD-only EMs render too."""
     try:
@@ -317,30 +317,49 @@ def build_em_diagram_html(text, em_name):
                  + fbd + '</div>')
     if not body:
         body = '<p style="padding:20px;color:#64748b">No command logic or diagram for this EM.</p>'
-    return _diagram_doc(em_name, body)
+    return _diagram_doc(em_name, body, theme=theme)
 
 
-def _diagram_doc(title, body):
+def _diagram_doc(title, body, theme='light'):
     """Wrap Studio diagram fragments (which carry their own <style> blocks) in a doc
     with a layout that gives them room — full width, generous padding, horizontal
     scroll instead of squeezing, and clear separation between stacked sections (state
-    logic vs FBD). Fixes the cramped SFC/action layout inside the Studio iframe."""
+    logic vs FBD). Honors the parent app's light/dark theme so the diagram pane doesn't
+    stay white in dark mode."""
+    dark = (theme == 'dark')
+    if dark:
+        page_bg, card_bg, ink, ink2, border, shadow = (
+            '#0f172a', '#1e293b', '#e2e8f0', '#94a3b8', '#334155', 'rgba(0,0,0,.35)')
+    else:
+        page_bg, card_bg, ink, ink2, border, shadow = (
+            '#f8fafc', '#ffffff', '#16202c', '#64748b', '#e2e8f0', 'rgba(15,23,42,.05)')
+    # In dark mode the embedded fragments hard-code light colors; a soft filter keeps
+    # SVG diagrams legible on a dark card without rewriting the (shared) fragment CSS.
+    svg_filter = 'filter:invert(.9) hue-rotate(180deg);' if dark else ''
     return (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
+        '<!DOCTYPE html><html data-theme="' + theme + '"><head><meta charset="utf-8">'
         '<style>'
         '*{box-sizing:border-box}'
         'html,body{margin:0;padding:0}'
         'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;'
-        'background:#f8fafc;color:#16202c;line-height:1.4}'
+        'background:' + page_bg + ';color:' + ink + ';line-height:1.4}'
         '.stu-doc{padding:14px 16px 40px;min-width:0}'
-        '.stu-embed{background:#fff;border:1px solid #e2e8f0;border-radius:10px;'
-        'padding:14px 16px;margin:0 0 16px;overflow-x:auto;box-shadow:0 1px 3px rgba(15,23,42,.05)}'
+        '.stu-embed{background:' + card_bg + ';border:1px solid ' + border + ';border-radius:10px;'
+        'padding:14px 16px;margin:0 0 16px;overflow-x:auto;box-shadow:0 1px 3px ' + shadow + '}'
         '.stu-embed-h{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;'
-        'color:#64748b;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #eef2f6}'
+        'color:' + ink2 + ';margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid ' + border + '}'
         'table{border-collapse:collapse;font-size:12px}'
-        'td,th{padding:4px 8px;border:1px solid #e2e8f0}'
-        'svg{max-width:none;height:auto}'          # don't shrink SFC/FBD SVGs to fit
+        'td,th{padding:4px 8px;border:1px solid ' + border + '}'
+        'svg{max-width:none;height:auto;' + svg_filter + '}'
         '.fbd-wrap,.fbd-svg-holder{overflow:auto;max-width:100%}'
+        # The embedded command/state fragment hard-codes tiny heights (.wrap 120px,
+        # .tablewrap 90px) meant to be splitter-resized in its standalone page. Inside
+        # the Studio iframe there's no splitter, so give them real room and let the user
+        # drag to resize (CSS resize handle), which is what the SFC/actions need.
+        '.wrap{height:auto!important;min-height:340px!important;resize:vertical;overflow:auto!important}'
+        '.tablewrap{height:auto!important;min-height:220px!important;resize:vertical;overflow:auto!important}'
+        '.main{height:auto!important}'
+        + ('body{color-scheme:dark}' if dark else '') +
         '</style></head><body><div class="stu-doc">' + body + '</div></body></html>')
 
 
@@ -363,7 +382,7 @@ def build_cm_studio(text, cm_name):
     }
 
 
-def build_cm_diagram_html(text, cm_name):
+def build_cm_diagram_html(text, cm_name, theme='light'):
     """Standalone HTML doc (for the Studio iframe) with a CM's FBD diagram + info cards."""
     try:
         fv = fbd_bridge.build_fbd_views(text, only=cm_name)
@@ -372,7 +391,7 @@ def build_cm_diagram_html(text, cm_name):
         diagram = ''
     if not diagram:
         diagram = '<p style="padding:20px;color:#64748b">No diagram for this control module.</p>'
-    return _diagram_doc(cm_name, diagram)
+    return _diagram_doc(cm_name, diagram, theme=theme)
 
 
 def build_studio(text, obj_id, catalog=None):

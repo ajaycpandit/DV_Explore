@@ -490,6 +490,27 @@ def _parse_hierarchy(text, catalog):
     area_tree = {}
     for u in unit_instances.values():
         area_tree.setdefault(u['area'] or '(unassigned)', {}).setdefault(u['cell'] or '', []).append(u['name'])
+
+    # #3: deployed modules whose PLANT_AREA has no matching EQUIPMENT_UNIT_MODULE
+    # (i.e. they live directly under an area or process cell with no unit) are missed
+    # by the unit-driven tree above. Surface them so the Explorer isn't hiding real
+    # objects: group them under a synthetic "(modules — no unit)" bucket per area/cell,
+    # and record which tags are ungrouped so the tree renderer can list them.
+    unit_names = set(unit_instances.keys())
+    ungrouped = {}  # (area, cell) -> [tags]
+    for tag, info in deployed.items():
+        u = info.get('unit', '')
+        # a real unit is one that has an EQUIPMENT_UNIT_MODULE; otherwise it's ungrouped
+        if u and u in unit_names:
+            continue
+        area = info.get('area', '') or '(unassigned)'
+        cell = info.get('cell', '')
+        ungrouped.setdefault((area, cell), []).append(tag)
+    catalog['ungrouped_modules'] = {f'{a}\u241f{c}': sorted(tags)
+                                    for (a, c), tags in ungrouped.items()}
+    # register the synthetic bucket in area_tree so the area/cell nodes exist
+    for (area, cell), tags in ungrouped.items():
+        area_tree.setdefault(area, {}).setdefault(cell, [])  # ensure the node exists
     catalog['area_tree'] = area_tree
 
     # ── Named Sets (DeltaV "Named Sets", stored as ENUMERATION_SET) ──────────

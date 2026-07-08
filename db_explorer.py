@@ -790,7 +790,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260707-2354"
+_BUILD_ID = "20260708-0018"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1451,17 +1451,41 @@ function stuBuildList(){
       if(!groups.length){ box.innerHTML='<div class="stu-empty">No objects in this import.</div>'; return; }
       var icons={Phases:'ic-phase','Equipment Module classes':'ic-em','Control Module classes':'ic-cm'};
       var h='';
+      // #5: render the SAME themed icon the Explorer tree uses, and differentiate a
+      // class (em/cm/phase glyph) from an instance (the 'inst' glyph) — while tinting
+      // an instance by whether its class is an EM or CM.
+      function _activeIconTheme(){
+        try{ var t=localStorage.getItem('dvexp_icontheme'); if(t&&ICON_THEMES[t]) return t; }catch(e){}
+        return 'outline';
+      }
+      function _studioIconSvg(iconKey, colorKey){
+        var thm=_activeIconTheme();
+        var set=ICON_THEMES[thm]||ICON_THEMES.outline;
+        var cols=THEME_COLORS[thm]||{};
+        var glyph=set[iconKey]!==undefined?set[iconKey]:'';
+        var col=cols[colorKey]||'';
+        return '<span class="ic-badge" data-ic="'+iconKey+'" style="'+(col?('color:'+col):'')+'">'
+          +'<svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true">'+glyph+'</svg></span>';
+      }
       groups.forEach(function(g){
         var gi=icons[g.group]|| (g.is_instances?'ic-inst':'');
         h+='<div class="stu-grp"><div class="stu-grp-h">'+esc(g.group)+' <span class="stu-grp-n">'+g.items.length+'</span></div>';
         g.items.forEach(function(it){
-          // #5: per-instance icon — EM vs CM — from the item's resolved kind
-          var ic = it.kind==='em' ? 'ic-em' : it.kind==='cm' ? 'ic-cm' : gi;
-          var kb = it.kind==='em' ? 'E' : it.kind==='cm' ? 'C' : '';
+          var iconHtml;
+          if(g.is_instances){
+            // instance: use the 'inst' glyph, tinted by its EM/CM class kind
+            iconHtml=_studioIconSvg('inst', it.kind==='em'?'em':(it.kind==='cm'?'cm':'inst'));
+          } else if(g.group==='Phases'){
+            iconHtml=_studioIconSvg('phase','phase');
+          } else if(g.group==='Equipment Module classes'){
+            iconHtml=_studioIconSvg('em','em');
+          } else if(g.group==='Control Module classes'){
+            iconHtml=_studioIconSvg('cm','cm');
+          } else {
+            iconHtml=_studioIconSvg('inst','inst');
+          }
           h+='<div class="stu-litem" data-id="'+esc(it.id)+'" onclick="stuOpen(\\''+esc(it.id).replace(/'/g,"\\\\'")+'\\')">'
-            +'<span class="ic-badge '+ic+'">'+(kb
-                ? '<span class="ic-lett">'+kb+'</span>'
-                : '<svg viewBox="0 0 15 15" width="14" height="14"><rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>')+'</span>'
+            +iconHtml
             +esc(it.name)
             +(it.cls?'<span class="stu-litem-cls">'+esc(it.cls)+'</span>':'')+'</div>';
         });
@@ -1507,13 +1531,15 @@ function stuRender(d){
   var mainInner;
   if(d.diagram_url===true){
     var pn=d._id.indexOf(':')>=0?d._id.split(':')[1]:d._id;
-    var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(pn);
+    // Studio resolves the phase's deployed unit path, so aliases resolve — enable sim.
+    var diagUrl='/phase_view?t='+encodeURIComponent(EXPORT_TOKEN)+'&p='+encodeURIComponent(pn)+'&sim=1';
     mainInner='<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering diagram\u2026')+'</div>'
       +'<iframe src="'+diagUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
   } else if(d.diagram_url==='em' || d.diagram_url==='cm'){
-    var dUrl='/studio_diagram?t='+encodeURIComponent(EXPORT_TOKEN)+'&kind='+d.diagram_url+'&n='+encodeURIComponent(d.obj||d.name);
+    var _thm=(document.documentElement.dataset.theme==='dark')?'dark':'light';
+    var dUrl='/studio_diagram?t='+encodeURIComponent(EXPORT_TOKEN)+'&kind='+d.diagram_url+'&n='+encodeURIComponent(d.obj||d.name)+'&theme='+_thm;
     mainInner='<div class="stu-diagload" id="stuDiagLoad">'+dvLoader('Rendering diagram\u2026')+'</div>'
-      +'<iframe src="'+dUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
+      +'<iframe class="stu-diag-frame" src="'+dUrl+'" title="'+esc(d.name)+' diagram" onload="var l=document.getElementById(\\'stuDiagLoad\\'); if(l) l.remove();"></iframe>';
   } else {
     mainInner='<div class="stu-embed-wrap">'+(d.main||'<div class="stu-empty">No diagram.</div>')+'</div>';
   }
@@ -2280,9 +2306,40 @@ function markSelectedObject(e){
   else if(e.k==='rstep'||e.k==='recipe') sel='.rec-item[data-rec="'+cssEsc(e.parent||e.rec||'')+'"]';
   if(!sel) return;
   var row=document.querySelector(sel);
-  if(row){ row.classList.add('obj-selected');
-    try{ row.scrollIntoView({block:'nearest', behavior:'smooth'}); }catch(_e){ try{ row.scrollIntoView(); }catch(_e2){} }
-  }
+  if(!row) return;
+  // #4a: the row may be nested inside collapsed .navchildren (e.g. its unit isn't
+  // expanded). Walk up and open every collapsed ancestor group so the row is visible
+  // BEFORE we try to scroll to it.
+  try{
+    var anc=row.parentElement;
+    while(anc && anc!==document.body){
+      if(anc.classList && anc.classList.contains('navchildren') && anc.style.display==='none'){
+        anc.style.display='';
+        // flip the sibling toggle caret if present
+        var grp=anc.parentElement;
+        var head=grp&&grp.querySelector(':scope > .navitem');
+        var tog=head&&head.querySelector('.tog');
+        if(tog) tog.textContent='\\u25be';
+      }
+      anc=anc.parentElement;
+    }
+  }catch(_e){}
+  row.classList.add('obj-selected');
+  // #4b: scrollIntoView({block:'nearest'}) can tuck the row under the sticky search
+  // header at the top of the tree. Scroll the nav container manually with an offset
+  // that clears the sticky search box.
+  try{
+    var nav=row.closest('.nav')||row.closest('.navwrap')||row.closest('.sidebar');
+    var sticky=nav?nav.querySelector('.navsearch'):null;
+    if(nav){
+      var pad=(sticky?sticky.getBoundingClientRect().height:0)+12;
+      var nr=nav.getBoundingClientRect(), rr=row.getBoundingClientRect();
+      var delta=(rr.top-nr.top)-pad;
+      nav.scrollTop+=delta;
+    } else {
+      row.scrollIntoView({block:'center'});
+    }
+  }catch(_e){ try{ row.scrollIntoView({block:'center'}); }catch(_e2){} }
 }
 function cssEsc(s){ return String(s==null?'':s).replace(/["\\\\]/g,'\\\\$&'); }
 // #3/#5: collapse any card OR sub-card by clicking its header. Handles top-level
@@ -3238,6 +3295,7 @@ function wireFbdLinks(){
     unit_instances = catalog.get('unit_instances', {})
     deployed = catalog.get('deployed_modules', {})
     unit_modules = catalog.get('unit_modules', {})
+    ungrouped_modules = catalog.get('ungrouped_modules', {})
     ucph = catalog.get('unit_class_phases', {})
     em_class_names = {e['name'] for e in catalog['em_classes']}
     parent_instances = catalog.get('parent_instances', {})
@@ -3337,6 +3395,32 @@ function wireFbdLinks(){
             nav.append(f'<div class="navitem {_ncls(lvl + 1)}" data-id="phase:{html.escape(ph)}" '
                        f'onclick="show(\'phase:{html.escape(ph)}\')">'
                        f'{_nav_badge("phase")}{html.escape(ph)}</div>')
+        nav.append('</div></div>')
+
+    def _ungrouped_node(area, cell, lvl=1):
+        # #3: render deployed modules that live under an area/cell but no unit, as a
+        # collapsible "Modules (no unit)" node so they're reachable in the Explorer.
+        key = f'{area}\u241f{cell}'
+        tags = ungrouped_modules.get(key, [])
+        if not tags:
+            return
+        nav.append('<div class="navgroup">')
+        nav.append(f'<div class="navitem {_ncls(lvl)} navinst" style="cursor:pointer" '
+                   f'onclick="toggle(this.firstElementChild,event)" '
+                   f'title="Modules deployed here with no equipment unit">'
+                   f'<span class="tog">\u25b8</span>'
+                   f'{_nav_badge("unit")}<span class="inst-tag">Modules (no unit)</span>'
+                   f'<span class="inst-cls">({len(tags)})</span></div>')
+        nav.append('<div class="navchildren" style="display:none">')
+        for tag in tags:
+            d = deployed.get(tag, {})
+            cls = d.get('cls', '')
+            is_em = cls in em_class_names
+            key2 = 'em' if is_em else 'inst'
+            nav.append(f'<div class="navitem {_ncls(lvl + 1)} navinst" data-tag="{html.escape(tag)}" data-dep="1" '
+                       f'onclick="showDeployed(this.dataset.tag)" title="{html.escape(tag)} ({html.escape(cls)})">'
+                       f'{_nav_badge(key2)}<span class="inst-tag">{html.escape(tag)}</span>'
+                       f'<span class="inst-cls">({html.escape(cls)})</span></div>')
         nav.append('</div></div>')
 
     def _unit_class_node(uc):
@@ -3548,10 +3632,12 @@ function wireFbdLinks(){
                     nav.append('<div class="navchildren">')
                     for un in cells[cell]:
                         _unit_node(un, lvl=2)
+                    _ungrouped_node(aname, cell, lvl=2)
                     nav.append('</div></div>')
                 else:
                     for un in cells[cell]:
                         _unit_node(un, lvl=1)
+                    _ungrouped_node(aname, cell, lvl=1)
             nav.append('</div></div>')
     elif catalog['areas']:
         for a in catalog['areas']:
@@ -3788,7 +3874,13 @@ function skinTree(theme){{
 const _SUN='<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';
 const _MOON='<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
 function applyMode(m){{document.documentElement.dataset.theme=m;
-  var i=document.getElementById('themeIco'); if(i) i.innerHTML=(m==='dark'?_MOON:_SUN);}}
+  var i=document.getElementById('themeIco'); if(i) i.innerHTML=(m==='dark'?_MOON:_SUN);
+  // keep the Studio diagram iframe (its own document) in sync with the theme
+  try{{
+    var fr=document.querySelector('.stu-diag-frame');
+    if(fr&&fr.src){{ fr.src=fr.src.replace(/([?&]theme=)(dark|light)/,'$1'+m); }}
+  }}catch(e){{}}
+}}
 function toggleMode(){{var m=document.documentElement.dataset.theme==='dark'?'light':'dark';
   applyMode(m); try{{localStorage.setItem('dvexp_mode',m);}}catch(e){{}}}}
 (function(){{ try{{ var m=localStorage.getItem('dvexp_mode'); if(m) applyMode(m); }}catch(e){{}} }})();

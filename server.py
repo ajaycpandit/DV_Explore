@@ -1023,15 +1023,16 @@ def studio_diagram():
     token = request.args.get('t', '')
     kind = request.args.get('kind', '')
     name = request.args.get('n', '')
+    theme = request.args.get('theme', 'light')
     text = _read_stash(token)
     if not text:
         return Response('<p>Session expired — re-open the export.</p>', mimetype='text/html')
     try:
         import studio_bridge
         if kind == 'em':
-            doc = studio_bridge.build_em_diagram_html(text, name)
+            doc = studio_bridge.build_em_diagram_html(text, name, theme=theme)
         elif kind == 'cm':
-            doc = studio_bridge.build_cm_diagram_html(text, name)
+            doc = studio_bridge.build_cm_diagram_html(text, name, theme=theme)
         else:
             doc = '<p>Unknown diagram type.</p>'
         return Response(doc, mimetype='text/html')
@@ -1060,17 +1061,23 @@ def studio_view():
 @app.route('/phase_view')
 def phase_view():
     """Lazily build a single phase's interactive view on demand, so /explore
-    doesn't have to build every phase up front (the big cost on large exports)."""
+    doesn't have to build every phase up front (the big cost on large exports).
+
+    The interactive Simulator is only injected when sim=1 — i.e. when the phase is
+    opened in a deployed unit-instance context, where its aliases resolve to real
+    devices. A bare phase CLASS view omits the Simulate button, since a class can't
+    actuate anything on its own (its device references are unresolved aliases)."""
     import html as _h
     token = request.args.get('t', '')
     name = request.args.get('p', '')
+    with_sim = request.args.get('sim', '0') == '1'
     text = _read_stash(token)
     if not text:
         return Response('<p>Session expired — please re-open the export.</p>', mimetype='text/html')
     if not _HAS_PHASE:
         return Response('<p>Phase view unavailable.</p>', mimetype='text/html')
     try:
-        vm = phase_bridge.phase_view_map(text, only=name)
+        vm = phase_bridge.phase_view_map(text, only=name, with_sim=with_sim)
         htmlv = vm.get(name)
         if not htmlv:
             return Response(f'<p>Phase "{_h.escape(name)}" not found.</p>', mimetype='text/html')
