@@ -499,20 +499,36 @@ def build_recipe_html(recipe, known_recipes=None, deferral_map=None, formulas=No
             # so clicking a step in the diagram shows its info in the side panel — the
             # same interaction the SFC phase view offers.
             sinfo = {}
+            # step -> outgoing/incoming transitions (for sequence context in the panel)
+            s2t_map = {}
+            for a, b in (proc.get('s2t') or []):
+                s2t_map.setdefault(a, []).append(b)
+            t2s_map = {}
+            for a, b in (proc.get('t2s') or []):
+                t2s_map.setdefault(b, []).append(a)  # step b is fed by transition a
             for sn, s in proc['steps'].items():
                 if sn in ('START', 'END'):
                     continue
                 base_def = re.sub(r':\d+$', '', s.get('definition', ''))
                 params = []
+                n_def = 0
                 for p in (s.get('params') or []):
+                    isd = p.get('origin') == 'DEFERRED'
+                    if isd:
+                        n_def += 1
                     params.append({
                         'name': p.get('name', ''),
-                        'deferred': p.get('deferred_to', '') if p.get('origin') == 'DEFERRED' else '',
+                        'deferred': p.get('deferred_to', '') if isd else '',
                         'group': p.get('group', ''),
                     })
                 sinfo[sn] = {
                     'def': s.get('definition', ''),
+                    'layer': _layer_label(s.get('definition', '')),
                     'params': params,
+                    'n_def': n_def,
+                    'outs': s2t_map.get(sn, []),
+                    'ins': t2s_map.get(sn, []),
+                    'initial': bool(s.get('initial')),
                     'child': base_def if (known_recipes and base_def in known_recipes) else '',
                 }
             pid = 'pfcPanel_' + _safe_id(recipe['meta']['name'])
@@ -521,28 +537,30 @@ def build_recipe_html(recipe, known_recipes=None, deferral_map=None, formulas=No
                      '<button class="pfc-zbtn" data-pfc-zoom="reset" title="Reset">\u25a1</button>'
                      '<button class="pfc-zbtn" data-pfc-zoom="in" title="Zoom in">+</button>'
                      '<span class="pfc-hint2">click a step or transition for detail \u00b7 drag to pan \u00b7 scroll to zoom</span></div>')
+            # #5: two-column layout — detail panel on the LEFT, diagram on the RIGHT,
+            # so a selected step/transition's parameters sit beside the diagram instead
+            # of pushing everything down.
+            h.append('<div class="pfc-layout">')
+            h.append('<div class="pfc-panel" id="' + pid
+                     + '"><span class="pfc-hint">Click a step or transition in the diagram to see its detail. '
+                     'Steps marked \u25c9 have a child object you can drill into (click the link, or right-click the step).</span></div>')
             h.append('<div class="pfc-wrap" data-pfc-expr="'
                      + html.escape(_json.dumps(texpr), quote=True)
                      + '" data-pfc-steps="' + html.escape(_json.dumps(sinfo), quote=True)
                      + '" data-pfc-panel="' + pid + '"><div class="pfc-zoomlayer">' + diagram + '</div></div>')
-            h.append('<div class="pfc-panel" id="' + pid
-                     + '"><span class="pfc-hint">Click a step or transition in the diagram to see its detail. '
-                     'Steps with a \u25c9 marker have a child object you can drill into (right-click).</span></div>')
+            h.append('</div>')
         else:
             h.append('<span class="empty">Diagram coordinates unavailable; see the flow below.</span>')
         h.append('</div>')
 
-        # textual flow (steps + transitions interleaved) — collapsed by default (#4):
-        # the full step/transition dump is comprehensive but noisy, so it starts folded
-        # and the diagram above is the primary, interactive view.
-        h.append('<div class="card rec-flow-card collapsed" style="max-width:none">'
-                 '<h3 class="rec-flow-h" onclick="this.parentElement.classList.toggle(\'collapsed\')">'
-                 '<span class="rec-flow-chev">\u25b8</span> Procedure flow '
+        # textual flow (steps + transitions interleaved) — starts collapsed (#4). Uses
+        # the standard .card collapse mechanism (delegated h3 handler), not a custom
+        # onclick, so it expands/collapses reliably in both Explorer and workspace.
+        h.append('<div class="card collapsed" style="max-width:none"><h3>Procedure flow '
                  '<span style="font-weight:400;color:var(--ink-3);font-size:12px">'
-                 '\u2014 full step &amp; transition listing (click to expand)</span></h3>'
-                 '<div class="rec-flow-body">')
+                 '\u2014 full step &amp; transition listing</span></h3>')
         h.append(_render_flow(proc, known_recipes, {p['name']: p for p in recipe.get('params', [])}))
-        h.append('</div></div>')
+        h.append('</div>')
 
     # formula parameters — full grid matching the DeltaV Recipe Studio columns:
     # Name, Type, Description, Parameter Value, Filtering, Parameter Type, Group, Locked.
@@ -1270,6 +1288,10 @@ RECIPE_CSS = """
 .pfc-drillable:hover text{fill:#7c3aed}
 .pfc-trans:hover rect{fill:#f5f3ff}
 .pfc-panel{margin-top:10px;padding:10px 12px;border:1px solid var(--border,#e2e8f0);border-radius:8px;background:#f8fafc;min-height:24px}
+.pfc-layout{display:flex;gap:12px;align-items:flex-start}
+.pfc-layout .pfc-panel{margin-top:0;flex:0 0 300px;max-height:520px;overflow:auto;align-self:stretch}
+.pfc-layout .pfc-wrap{flex:1 1 auto;min-width:0}
+@media(max-width:900px){.pfc-layout{flex-direction:column}.pfc-layout .pfc-panel{flex:none;width:100%;max-height:none}}
 .pfc-hint{color:#94a3b8;font-size:12px}
 .pfc-tname{font-weight:700;color:#7c3aed;font-size:12px;margin-bottom:4px}
 .pfc-texpr{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#334155;white-space:pre-wrap;word-break:break-word}
@@ -1288,9 +1310,16 @@ RECIPE_CSS = """
 .pfc-sparams tr:last-child td{border-bottom:0}
 .pfc-sparams .pfc-pdef td{background:#fffbeb}
 .pfc-sparams code{font-size:11px;color:#b45309}
-.rec-flow-card.collapsed .rec-flow-body{display:none}
-.rec-flow-h{cursor:pointer;user-select:none}
-.rec-flow-chev{display:inline-block;font-size:10px;color:#94a3b8;transition:transform .12s}
-.rec-flow-card:not(.collapsed) .rec-flow-chev{transform:rotate(90deg)}
+.pfc-shead{margin-bottom:6px}
+.pfc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pfc-tag{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:1px 7px;border-radius:10px;background:#eef2f7;color:#475569}
+.pfc-tag-init{background:#dcfce7;color:#166534}
+.pfc-tag-def{background:#fef3c7;color:#b45309}
+.pfc-seq{margin:6px 0 8px;padding:6px 9px;background:#f1f5f9;border-radius:6px;font-size:11px}
+.pfc-seqrow{padding:1px 0;color:#475569}
+.pfc-seqlbl{display:inline-block;width:32px;color:#94a3b8;font-size:10px;text-transform:uppercase}
+.pfc-seqtrans{cursor:pointer;color:#7c3aed}
+.pfc-seqtrans:hover{text-decoration:underline}
+.pfc-plabel{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:#64748b;margin:6px 0 3px}
 """
 

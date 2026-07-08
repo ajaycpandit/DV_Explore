@@ -867,8 +867,17 @@ def recipe_import():
                              'items': [{'name': r['meta']['name'],
                                         'children': children.get(r['meta']['name'], [])}
                                        for r in grp]})
+        # #7: which phase classes exist in this stash, so the workspace can render a
+        # phase's SFC when a phase-layer child step is selected.
+        phases = []
+        try:
+            import phase_bridge
+            phases = list(phase_bridge.parse_phases_from_export(text).keys())
+        except Exception:
+            phases = []
         return jsonify({'token': token, 'name': f.filename or 'recipes.fhx',
-                        'views': views, 'step_views': step_views, 'tree': tree})
+                        'views': views, 'step_views': step_views, 'tree': tree,
+                        'phases': phases})
     except Exception as e:
         app.logger.exception('recipe import failed')
         return jsonify({'error': f'Could not parse recipes: {e}'}), 500

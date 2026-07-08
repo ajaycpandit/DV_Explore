@@ -166,6 +166,9 @@ button{font-family:inherit}
 .rec-dl-group{display:inline-flex;align-items:center;gap:2px;margin-left:14px;padding-left:14px;border-left:1px solid var(--border)}
 .rec-imp-opt{font-size:11.5px;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;margin-left:10px;cursor:pointer}
 .rec-imp-opt input{margin:0}
+.rec-parent{display:flex;align-items:center;gap:2px}
+.rec-parent .tog{cursor:pointer;font-size:10px;color:var(--ink-3);width:14px;flex-shrink:0;text-align:center}
+.rec-parent .rec-open{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -852,7 +855,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-1852"
+_BUILD_ID = "20260708-2023"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -973,6 +976,8 @@ function ensureSearchIndex(cb){
     .catch(function(){ SEARCH_IDX_LOADING=false; if(cb)cb(); });
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+// escape a value for embedding inside a single-quoted JS string in an inline handler
+function jsq(s){return (s||'').replace(/\\\\/g,'\\\\\\\\').replace(/'/g,"\\\\'");}
 function badge(t){const m={'Area':'b-area','Unit Instance':'b-unit','EM Class':'b-em','CM Class':'b-cm','Phase Class':'b-phase','Recipe':'b-recipe','Composite':'b-composite','Unit Class':'b-uclass','FB Type':'b-fbtype','Named Set':'b-nset'};return m[t]||'b-composite';}
 function badgeColor(t){const m={'b-area':'#0ea5e9','b-unit':'#6366f1','b-em':'#0f766e','b-cm':'#7c3aed','b-phase':'#b45309','b-recipe':'#be123c','b-composite':'#475569','b-uclass':'#2563eb','b-fbtype':'#334155'};if(t==='Parameter')return '#0891b2';if(t==='Instance')return '#6d28d9';if(t==='EM instance')return '#0f766e';if(t==='CM instance')return '#6d28d9';return m[badge(t)]||'#475569';}
 
@@ -1724,7 +1729,7 @@ function recImportFile(inp){
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(res){
       if(!res.ok||res.j.error){ src.innerHTML='<span style="color:#dc2626">'+esc(res.j.error||'Import failed')+'</span>'; return; }
-      RECWS={token:res.j.token, views:res.j.views||{}, stepViews:res.j.step_views||{}};
+      RECWS={token:res.j.token, views:res.j.views||{}, stepViews:res.j.step_views||{}, phases:res.j.phases||[]};
       recBuildList(res.j.tree||[]);
       var first=(res.j.tree[0]&&res.j.tree[0].items[0])?res.j.tree[0].items[0].name:'';
       if(first) recShow(first);
@@ -1772,24 +1777,61 @@ function recBuildList(tree){
   tree.forEach(function(cat){
     h+='<div class="rec-cat">'+esc(cat.cat)+' ('+cat.items.length+')</div>';
     cat.items.forEach(function(it){
-      var bases={}; (it.children||[]).forEach(function(k){ bases[k.name]=bases[k.name]||k.loaded; });
+      var kids=it.children||[];
+      var bases={}; kids.forEach(function(k){ bases[k.name]=bases[k.name]||k.loaded; });
       var nb=Object.keys(bases).length, nl=0; for(var b in bases){ if(bases[b]) nl++; }
       var sub=nb?(' <span class="inst-cls">('+nl+'/'+nb+' children imported)</span>'):'';
-      h+='<div class="navitem rec-item" data-rec="'+esc(it.name)+'" onclick="recShow(\\''+esc(it.name)+'\\')">'+_REC_BADGE+esc(it.name)+sub+'</div>';
-      (it.children||[]).forEach(function(k){
-        if(k.loaded){
-          h+='<div class="navitem navchild rec-item" onclick="recShow(\\''+esc(k.name)+'\\')">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
-        } else if(k.has_params){
-          h+='<div class="navitem navchild navghost rec-item" onclick="recShowStep(\\''+esc(it.name)+'\\',\\''+esc(k.step)+'\\',\\''+esc(k.layer)+'\\')">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
-        }
-      });
+      if(kids.length){
+        // #3: collapsible parent — a caret toggles the children group (like the
+        // Explorer tree). The recipe name itself still opens on click.
+        h+='<div class="navgroup">';
+        h+='<div class="navitem rec-item rec-parent" data-rec="'+esc(it.name)+'">'
+          +'<span class="tog" onclick="recTog(this,event)">\\u25b8</span>'
+          +'<span class="rec-open" onclick="recShow(\\''+jsq(it.name)+'\\')">'+_REC_BADGE+esc(it.name)+sub+'</span></div>';
+        h+='<div class="navchildren" style="display:none">';
+        kids.forEach(function(k){
+          if(k.loaded){
+            h+='<div class="navitem navchild rec-item" data-rec="'+esc(k.name)+'" onclick="recShow(\\''+jsq(k.name)+'\\',{fromChildEl:this})">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
+          } else if(k.has_params){
+            h+='<div class="navitem navchild navghost rec-item" onclick="recShowStep(\\''+jsq(it.name)+'\\',\\''+jsq(k.step)+'\\',\\''+jsq(k.layer)+'\\')">'+_REC_BADGE+esc(k.step)+' <span class="inst-cls">('+esc(k.layer)+')</span></div>';
+          }
+        });
+        h+='</div></div>';
+      } else {
+        h+='<div class="navitem rec-item" data-rec="'+esc(it.name)+'" onclick="recShow(\\''+jsq(it.name)+'\\')">'+_REC_BADGE+esc(it.name)+sub+'</div>';
+      }
     });
   });
   document.getElementById('recListBody').innerHTML=h||'<div class="rec-empty">No recipe objects found.</div>';
 }
-function recShow(name){
+// toggle a recipe workspace group open/closed without triggering the recipe open
+function recTog(el,ev){
+  if(ev){ ev.stopPropagation(); }
+  var grp=el.closest('.navgroup'); if(!grp) return;
+  var kids=grp.querySelector('.navchildren'); if(!kids) return;
+  var open=kids.style.display==='none';
+  kids.style.display=open?'':'none';
+  el.textContent=open?'\\u25be':'\\u25b8';
+}
+function recShow(name, opts){
   var d=document.getElementById('rdetail'); if(!d) return;
-  document.querySelectorAll('.rec-item').forEach(function(n){n.classList.toggle('sel',n.dataset.rec===name);});
+  // #6: a recipe object can appear twice in the tree — nested under its parent (as a
+  // child) AND standalone in its category section. Highlight only ONE. When we arrive
+  // via a drill-down from a parent (opts.fromChildEl given), select that nested row;
+  // otherwise prefer the standalone (top-level) row.
+  opts = opts || {};
+  document.querySelectorAll('.rec-item.sel').forEach(function(n){ n.classList.remove('sel'); });
+  var matches = Array.prototype.slice.call(document.querySelectorAll('.rec-item[data-rec="'+cssEsc(name)+'"]'));
+  var pick=null;
+  if(opts.fromChildEl && matches.indexOf(opts.fromChildEl)>=0){
+    pick=opts.fromChildEl;
+  } else {
+    // prefer a NON-child (standalone) row; fall back to the first match
+    for(var i=0;i<matches.length;i++){ if(!matches[i].classList.contains('navchild') && !matches[i].classList.contains('rec-parent')){ pick=matches[i]; break; } }
+    if(!pick){ for(var j=0;j<matches.length;j++){ if(!matches[j].classList.contains('navchild')){ pick=matches[j]; break; } } }
+    if(!pick) pick=matches[0];
+  }
+  if(pick) pick.classList.add('sel');
   var v=RECWS.views[name]||'';
   var o=(typeof DB!=='undefined'&&DB.objs['recipe:'+name])||{};
   var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span>'
@@ -1805,12 +1847,27 @@ function recShow(name){
 }
 function recShowStep(parent, step, layer){
   var d=document.getElementById('rdetail'); if(!d) return;
-  document.querySelectorAll('.rec-item').forEach(function(n){n.classList.remove('sel');});
+  document.querySelectorAll('.rec-item.sel').forEach(function(n){n.classList.remove('sel');});
   var v=RECWS.stepViews[parent+'||'+step]||'';
   var h='<h2 class="dt">'+esc(step)+' <span class="dt-type b-recipe">'+esc(layer||'recipe step')+'</span></h2>';
   h+='<p class="dt-desc">Instance under '+esc(parent)+' \u2014 parameters derived from the parent step.</p>';
+  // #7: an OP's children are phases. If this step is a phase that exists in the stash,
+  // render its SFC diagram above the deferral/parameter detail.
+  var base=(step||'').replace(/:\\d+$/,'');
+  var isPhase=(layer||'').toLowerCase().indexOf('phase')>=0
+    || (RECWS.phases && RECWS.phases.indexOf(base)>=0);
+  var phaseExists=RECWS.phases && RECWS.phases.indexOf(base)>=0;
+  if(isPhase && phaseExists && RECWS.token){
+    h+='<div class="card" style="max-width:none"><h3>Phase SFC \u2014 '+esc(base)+'</h3>'
+      +'<div class="frame-wrap"><div class="frame-load" id="recPhaseLoad"><span class="dv-dots"><i></i><i></i><i></i></span> Loading phase logic\u2026</div>'
+      +'<iframe class="phaseframe" src="/phase_view?t='+encodeURIComponent(RECWS.token)+'&p='+encodeURIComponent(base)
+      +'" onload="var l=document.getElementById(\\'recPhaseLoad\\');if(l)l.style.display=\\'none\\';"></iframe></div></div>';
+  } else if(isPhase && !phaseExists){
+    h+='<div class="card"><span class="empty">This phase\\u2019s SFC isn\\u2019t in the current import. '
+      +'Import the phase (or the unit that defines it) to see its diagram here.</span></div>';
+  }
   h+=v||'<div class="card"><span class="empty">No parameters found on this step.</span></div>';
-  d.innerHTML=h; d.scrollTop=0;
+  d.innerHTML=h; d.scrollTop=0; try{makeCardsCollapsible();}catch(e){}
 }
 function recDownloadPfc(name){
   if(!RECWS.token) return;
@@ -2591,9 +2648,11 @@ if(!window._ctxWired){
       if(!childName){ childName=(stepEl.getAttribute('data-drill')||''); }
       if(childName){
         ev.preventDefault(); ctxClose();
-        var loaded=DB.objs && DB.objs['recipe:'+childName];
+        var inWs=document.getElementById('view-recipes') && document.getElementById('view-recipes').classList.contains('on');
+        var loaded=inWs ? (RECWS.views && RECWS.views[childName]!==undefined) : (DB.objs && DB.objs['recipe:'+childName]);
+        var openFn=inWs ? function(){ recShow(childName); } : function(){ show('recipe:'+childName); };
         var acts2=[{label:(loaded?('Drill into '+childName):(childName+' (not loaded)')),
-                    disabled:!loaded, fn:function(){ show('recipe:'+childName); }}];
+                    disabled:!loaded, fn:openFn}];
         var m2=document.createElement('div'); m2.id='ctxMenu'; m2.className='ctx-menu';
         acts2.forEach(function(a){ var it=document.createElement('div');
           it.className='ctx-it'+(a.disabled?' ctx-dis':''); it.textContent=a.label;
@@ -2665,17 +2724,39 @@ if(!window._cardCollapseWired){
         var panelIdS=wrapS.getAttribute('data-pfc-panel');
         var panelS=panelIdS?document.getElementById(panelIdS):wrapS.parentElement.querySelector('.pfc-panel');
         var info=S[sn];
+        // in the Recipes workspace, child objects live in RECWS.views + recShow();
+        // in the Explorer they live in DB.objs + show(). Resolve for the active context.
+        var inWorkspace=document.getElementById('view-recipes') && document.getElementById('view-recipes').classList.contains('on');
         if(panelS){
           if(info){
-            var ph='<div class="pfc-tname">'+esc(sn)+'</div>';
+            var childLoaded = info.child && (inWorkspace
+              ? (RECWS.views && RECWS.views[info.child]!==undefined)
+              : (DB.objs && DB.objs['recipe:'+info.child]));
+            var openCall = inWorkspace
+              ? ("recShow('"+jsq(info.child)+"')")
+              : ("show('recipe:"+jsq(info.child)+"')");
+            var ph='<div class="pfc-shead"><div class="pfc-tname">'+esc(sn)+'</div>';
+            var tags='';
+            if(info.initial) tags+='<span class="pfc-tag pfc-tag-init">initial</span>';
+            if(info.layer) tags+='<span class="pfc-tag">'+esc(info.layer)+'</span>';
+            if(info.n_def) tags+='<span class="pfc-tag pfc-tag-def">'+info.n_def+' deferred</span>';
+            if(tags) ph+='<div class="pfc-tags">'+tags+'</div>';
+            ph+='</div>';
             if(info.def) ph+='<div class="pfc-sdef">instantiates <code>'+esc(info.def)+'</code></div>';
-            var child=info.child && DB.objs && DB.objs['recipe:'+info.child];
             if(info.child){
-              ph+='<div class="pfc-sdrill">'+(child
-                ?'<a class="link" onclick="show(\\'recipe:'+esc(info.child)+'\\')">\\u25c9 open child object '+esc(info.child)+' \\u2192</a>'
-                :'<span class="pfc-sdrill-ghost">\\u25c9 child object <b>'+esc(info.child)+'</b> not loaded \\u2014 import it to drill in</span>')+'</div>';
+              ph+='<div class="pfc-sdrill">'+(childLoaded
+                ?'<a class="link" onclick="'+openCall+'">\\u25c9 open child object '+esc(info.child)+' \\u2192</a>'
+                :'<span class="pfc-sdrill-ghost">\\u25c9 child <b>'+esc(info.child)+'</b> not loaded \\u2014 import it to drill in</span>')+'</div>';
+            }
+            // sequence context: what leads in, what leads out
+            if((info.ins&&info.ins.length)||(info.outs&&info.outs.length)){
+              ph+='<div class="pfc-seq">';
+              if(info.ins&&info.ins.length) ph+='<div class="pfc-seqrow"><span class="pfc-seqlbl">from</span> '+info.ins.map(function(x){return '<code>'+esc(x)+'</code>';}).join(', ')+'</div>';
+              if(info.outs&&info.outs.length) ph+='<div class="pfc-seqrow"><span class="pfc-seqlbl">via</span> '+info.outs.map(function(x){return '<code class="pfc-seqtrans" data-goto-trans="'+esc(x)+'">'+esc(x)+'</code>';}).join(', ')+'</div>';
+              ph+='</div>';
             }
             if(info.params && info.params.length){
+              ph+='<div class="pfc-plabel">Parameters ('+info.params.length+')</div>';
               ph+='<table class="pfc-sparams"><thead><tr><th>Parameter</th><th>Group</th><th>Deferred to</th></tr></thead><tbody>';
               info.params.forEach(function(p){
                 ph+='<tr'+(p.deferred?' class="pfc-pdef"':'')+'><td>'+esc(p.name)+'</td><td>'+esc(p.group||'')+'</td><td>'+(p.deferred?('<code>'+esc(p.deferred)+'</code>'):'\\u2014')+'</td></tr>';
