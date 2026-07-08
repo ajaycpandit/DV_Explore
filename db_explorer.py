@@ -160,6 +160,12 @@ button{font-family:inherit}
 .rec-empty{color:var(--ink-3);font-size:13px;padding:16px 8px;line-height:1.6}
 .rec-src{font-size:11px;color:var(--ink-3);margin:0 4px 10px;line-height:1.5}
 .rec-xl{font-size:11.5px;font-weight:600;margin-left:10px;vertical-align:middle}
+.pfc-diagram-btn{margin-left:12px;padding:5px 12px;font-size:12px;font-weight:600;vertical-align:middle;
+  border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:7px;cursor:pointer;transition:background .12s}
+.pfc-diagram-btn:hover{background:var(--accent);color:#fff}
+.rec-dl-group{display:inline-flex;align-items:center;gap:2px;margin-left:14px;padding-left:14px;border-left:1px solid var(--border)}
+.rec-imp-opt{font-size:11.5px;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;margin-left:10px;cursor:pointer}
+.rec-imp-opt input{margin:0}
 .rail{grid-row:1/3;background:var(--rail,#10202f);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:4px;z-index:6}
 .rail .brand{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;margin-bottom:14px;
   background:linear-gradient(140deg,#2563eb,#0e7490)}
@@ -846,7 +852,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-1338"
+_BUILD_ID = "20260708-1852"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1709,21 +1715,57 @@ var RECWS={token:(typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''),
 var _REC_BADGE='<span class="ic-badge ic-recipe"><svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true"><path d="M4 2.4h4.6l2.6 2.6v7.6h-7.2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.4 2.4v2.8h2.8M5.5 8h6M5.5 10h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span>';
 function recImportFile(inp){
   if(!inp.files||!inp.files.length) return;
+  var file=inp.files[0];
+  var toExplorer=(document.getElementById('recImpToExplorer')||{}).checked;
   var src=document.getElementById('recSrc');
-  src.innerHTML='<span class="dv-dots"><i></i><i></i><i></i></span> Importing '+esc(inp.files[0].name)+'\u2026';
-  var fd=new FormData(); fd.append('file', inp.files[0]);
+  src.innerHTML='<span class="dv-dots"><i></i><i></i><i></i></span> Importing '+esc(file.name)+'\u2026';
+  var fd=new FormData(); fd.append('file', file);
   fetch('/recipe_import',{method:'POST',body:fd})
     .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
     .then(function(res){
       if(!res.ok||res.j.error){ src.innerHTML='<span style="color:#dc2626">'+esc(res.j.error||'Import failed')+'</span>'; return; }
       RECWS={token:res.j.token, views:res.j.views||{}, stepViews:res.j.step_views||{}};
       recBuildList(res.j.tree||[]);
-      src.textContent='Showing recipes from '+res.j.name+' (imported here \u2014 Explorer untouched).';
       var first=(res.j.tree[0]&&res.j.tree[0].items[0])?res.j.tree[0].items[0].name:'';
       if(first) recShow(first);
+      // #2: also merge into the Explorer session so the recipe shows in the main tree.
+      // We pass the just-imported file itself as the merge base fallback, so this works
+      // even if the Explorer's original stash was evicted by a host restart (#5).
+      if(toExplorer){
+        src.innerHTML='Imported. Merging into the Explorer\u2026';
+        recMergeIntoExplorer(file, res.j.name||file.name, src);
+      } else {
+        src.textContent='Showing recipes from '+res.j.name+' (workspace only \u2014 Explorer untouched).';
+      }
     })
     .catch(function(e){ src.innerHTML='<span style="color:#dc2626">Import error: '+esc(e.message)+'</span>'; });
   inp.value='';
+}
+// Merge an uploaded recipe FHX into the Explorer session. Uses /append with the
+// current token; if that token is gone (free-host restart), the same uploaded file is
+// sent as the base so the merge still succeeds and nothing is lost (#5/#6).
+function recMergeIntoExplorer(file, label, src){
+  var fd=new FormData();
+  fd.append('token', (typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''));
+  fd.append('mode', 'skip');
+  fd.append('file', file);
+  // provide the file as base fallback too, so an expired original stash still merges
+  fd.append('base', file);
+  fetch('/append',{method:'POST',body:fd})
+    .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+    .then(function(res){
+      if(res.ok && res.j && res.j.token){
+        src.innerHTML='Imported and merged into the Explorer. '
+          +'<a class="link" href="/explore_stashed?t='+encodeURIComponent(res.j.token)
+          +'&name='+encodeURIComponent(label)+'">open in Explorer \u2192</a>';
+        // update the live Explorer token so subsequent workspace exports stay in sync
+        try{ EXPORT_TOKEN=res.j.token; RECWS.token=res.j.token; }catch(e){}
+      } else {
+        src.innerHTML='Imported to the workspace. (Could not merge into the Explorer: '
+          +esc((res.j&&res.j.error)||'unknown')+')';
+      }
+    })
+    .catch(function(e){ src.innerHTML='Imported to the workspace. (Explorer merge failed: '+esc(e.message)+')'; });
 }
 function recBuildList(tree){
   var h='';
@@ -1751,11 +1793,12 @@ function recShow(name){
   var v=RECWS.views[name]||'';
   var o=(typeof DB!=='undefined'&&DB.objs['recipe:'+name])||{};
   var h='<h2 class="dt">'+esc(name)+' <span class="dt-type b-recipe">Recipe</span>'
-    +' <a class="link rec-xl" href="javascript:void 0" onclick="recViewPfc(\\''+esc(name)+'\\')">\u2317 PFC diagram</a>'
-    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadWord(\\''+esc(name)+'\\')" title="Formal DDS-style Word recipe document">\u2b07 Recipe doc (.docx)</a>'
-    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadExcel(\\''+esc(name)+'\\')" title="Excel workbook: overview, procedure, parameters, formulas">\u2b07 Workbook (.xlsx)</a>'
-    +' <a class="link rec-xl" href="javascript:void 0" onclick="recDownloadPfc(\\''+esc(name)+'\\')">\u2b07 PFC report (.xlsx)</a>'
-    +' <a class="link rec-xl" href="javascript:void 0" onclick="downloadDeferrals(\\''+esc(name)+'\\',this)">\u2b07 Deferrals (.xlsx)</a></h2>';
+    +' <button class="pfc-diagram-btn" onclick="recViewPfc(\\''+esc(name)+'\\')" title="Open the interactive PFC diagram">\u2317 PFC diagram</button>'
+    +'<span class="rec-dl-group">'
+    +'<a class="link rec-xl" href="javascript:void 0" onclick="recDownloadWord(\\''+esc(name)+'\\')" title="Formal DDS-style Word recipe document">\u2b07 Recipe doc (.docx)</a>'
+    +'<a class="link rec-xl" href="javascript:void 0" onclick="recDownloadExcel(\\''+esc(name)+'\\')" title="Excel workbook: overview, procedure, parameters, formulas">\u2b07 Workbook (.xlsx)</a>'
+    +'<a class="link rec-xl" href="javascript:void 0" onclick="recDownloadPfc(\\''+esc(name)+'\\')" title="Structured report: overview, parameters, procedure walk, and the deferral audit">\u2b07 PFC report (.xlsx)</a>'
+    +'</span></h2>';
   if(o.description) h+='<p class="dt-desc">'+esc(o.description)+'</p>';
   h+=v||'<div class="card"><span class="empty">No detail parsed for this recipe.</span></div>';
   d.innerHTML=h; d.scrollTop=0;
@@ -2496,7 +2539,6 @@ if(!window._ctxWired){
       acts.push(ctxItem('Open recipe', function(){ if(typeof recShow==='function' && document.getElementById('view-recipes').classList.contains('on')){recShow(rn);} else {show('recipe:'+rn);} }));
       acts.push(ctxItem('Open in Recipes workspace', function(){ switchView('recipes'); if(typeof recShow==='function') recShow(rn); }));
       acts.push(ctxItem('Export PFC report (.xlsx)', function(){ RECWS.token=RECWS.token||EXPORT_TOKEN; recDownloadPfc(rn); }, {sep:true}));
-      acts.push(ctxItem('Export deferrals (.xlsx)', function(){ var t=RECWS.token||EXPORT_TOKEN; window.location.href='/recipe_deferrals_xlsx?t='+encodeURIComponent(t)+'&n='+encodeURIComponent(rn); }));
       acts.push(ctxItem('Copy name', function(){ ctxCopy(rn); }, {sep:true}));
       return acts;
     }
@@ -2539,6 +2581,30 @@ if(!window._ctxWired){
     try{document.execCommand('copy');}catch(e2){} ta.remove(); } }
 
   document.addEventListener('contextmenu', function(ev){
+    // #7: right-click a drillable PFC diagram step -> drill into its child object
+    var stepEl=ev.target.closest && ev.target.closest('.pfc-step[data-step]');
+    if(stepEl && stepEl.classList.contains('pfc-drillable')){
+      var wrapC=stepEl.closest('.pfc-wrap');
+      var sn=stepEl.getAttribute('data-step');
+      var childName='';
+      try{ var SS=JSON.parse(wrapC.getAttribute('data-pfc-steps')||'{}'); childName=(SS[sn]||{}).child||''; }catch(e){}
+      if(!childName){ childName=(stepEl.getAttribute('data-drill')||''); }
+      if(childName){
+        ev.preventDefault(); ctxClose();
+        var loaded=DB.objs && DB.objs['recipe:'+childName];
+        var acts2=[{label:(loaded?('Drill into '+childName):(childName+' (not loaded)')),
+                    disabled:!loaded, fn:function(){ show('recipe:'+childName); }}];
+        var m2=document.createElement('div'); m2.id='ctxMenu'; m2.className='ctx-menu';
+        acts2.forEach(function(a){ var it=document.createElement('div');
+          it.className='ctx-it'+(a.disabled?' ctx-dis':''); it.textContent=a.label;
+          if(!a.disabled) it.onclick=function(){ ctxClose(); a.fn(); }; m2.appendChild(it); });
+        document.body.appendChild(m2);
+        var vw2=window.innerWidth, vh2=window.innerHeight;
+        m2.style.left=Math.min(ev.clientX, vw2-m2.offsetWidth-6)+'px';
+        m2.style.top=Math.min(ev.clientY, vh2-m2.offsetHeight-6)+'px';
+        return;
+      }
+    }
     var el=ev.target.closest && ev.target.closest('.navitem[data-id], .rec-item[data-rec], .navinst[data-tag]');
     if(!el) return;  // fall through to the browser's native menu elsewhere
     var acts=ctxActionsFor(el);
@@ -2587,11 +2653,46 @@ if(!window._cardCollapseWired){
       if(rn && DB.objs['recipe:'+rn]){ show('recipe:'+rn); }
       return;
     }
-    // #6: clicking a drillable step box in the PFC opens that referenced object
-    var stepG=t.closest('.pfc-drillable');
+    // #4/#7: clicking a step box shows its detail (definition, parameters, deferred-to
+    // bindings) in the side panel — and if the step has a child object, offers a
+    // drill-down link. Left-click = show detail; the child link/right-click drills in.
+    var stepG=t.closest('.pfc-step');
     if(stepG){
-      var dr=stepG.getAttribute('data-drill');
-      if(dr && DB.objs['recipe:'+dr]){ show('recipe:'+dr); return; }
+      var wrapS=stepG.closest('.pfc-wrap');
+      var sn=stepG.getAttribute('data-step');
+      if(wrapS && sn){
+        var S={}; try{ S=JSON.parse(wrapS.getAttribute('data-pfc-steps')||'{}'); }catch(e){}
+        var panelIdS=wrapS.getAttribute('data-pfc-panel');
+        var panelS=panelIdS?document.getElementById(panelIdS):wrapS.parentElement.querySelector('.pfc-panel');
+        var info=S[sn];
+        if(panelS){
+          if(info){
+            var ph='<div class="pfc-tname">'+esc(sn)+'</div>';
+            if(info.def) ph+='<div class="pfc-sdef">instantiates <code>'+esc(info.def)+'</code></div>';
+            var child=info.child && DB.objs && DB.objs['recipe:'+info.child];
+            if(info.child){
+              ph+='<div class="pfc-sdrill">'+(child
+                ?'<a class="link" onclick="show(\\'recipe:'+esc(info.child)+'\\')">\\u25c9 open child object '+esc(info.child)+' \\u2192</a>'
+                :'<span class="pfc-sdrill-ghost">\\u25c9 child object <b>'+esc(info.child)+'</b> not loaded \\u2014 import it to drill in</span>')+'</div>';
+            }
+            if(info.params && info.params.length){
+              ph+='<table class="pfc-sparams"><thead><tr><th>Parameter</th><th>Group</th><th>Deferred to</th></tr></thead><tbody>';
+              info.params.forEach(function(p){
+                ph+='<tr'+(p.deferred?' class="pfc-pdef"':'')+'><td>'+esc(p.name)+'</td><td>'+esc(p.group||'')+'</td><td>'+(p.deferred?('<code>'+esc(p.deferred)+'</code>'):'\\u2014')+'</td></tr>';
+              });
+              ph+='</tbody></table>';
+            } else {
+              ph+='<div class="pfc-hint">No parameters on this step.</div>';
+            }
+            panelS.innerHTML=ph;
+          } else {
+            panelS.innerHTML='<div class="pfc-tname">'+esc(sn)+'</div><div class="pfc-hint">No detail for this step.</div>';
+          }
+        }
+        wrapS.querySelectorAll('.pfc-step.sel,.pfc-trans.sel').forEach(function(x){x.classList.remove('sel');});
+        stepG.classList.add('sel');
+      }
+      return;
     }
     // PFC (recipe) transition click -> show expression in the recipe's panel
     var g=t.closest('.pfc-trans');
@@ -3987,10 +4088,10 @@ function wireFbdLinks(){
     <div class="rec-list">
       <div class="rec-toolbar">
         <button class="exp-btn" onclick="document.getElementById('recFile').click()"
-          title="Import a recipe FHX here without touching the Explorer session">\u2b06 Import recipe FHX\u2026</button>
+          title="Import a recipe FHX into this workspace">\u2b06 Import recipe FHX\u2026</button>
         <input type="file" id="recFile" accept=".fhx" style="display:none" onchange="recImportFile(this)">
-        <button class="exp-btn" onclick="downloadAllDeferrals()"
-          title="One workbook, one sheet per recipe object">\u2b07 All deferrals (.xlsx)</button>
+        <label class="rec-imp-opt" title="Also merge the imported recipe into the Explorer session so it appears in the main tree">
+          <input type="checkbox" id="recImpToExplorer" checked> add to Explorer</label>
       </div>
       <div class="rec-src" id="recSrc">Showing recipes from the Explorer import.</div>
       <div id="recListBody">{recipes_pane}</div>

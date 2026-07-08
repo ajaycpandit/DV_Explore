@@ -443,6 +443,10 @@ def _render_pfc_svg(proc, known_recipes=None):
         if defn and n != 'START':
             svg.append(f'<text x="{sx(x) + w/2:.0f}" y="{sy(y) + 30:.0f}" text-anchor="middle" '
                        f'font-size="9" fill="#64748b">{defn[:22]}</text>')
+        if drill:
+            # marker showing this step has a child object to drill into
+            svg.append(f'<text x="{sx(x) + w - 9:.0f}" y="{sy(y) + 13:.0f}" text-anchor="middle" '
+                       f'font-size="11" fill="#7c3aed">\u25c9</text>')
         svg.append('</g>')
 
     # transition bars + labels
@@ -491,25 +495,54 @@ def build_recipe_html(recipe, known_recipes=None, deferral_map=None, formulas=No
             # via innerHTML would never execute).
             import json as _json
             texpr = {tn: td.get('expr', '') for tn, td in proc['transitions'].items()}
+            # #4: per-step detail (definition, params with deferred-to, child availability)
+            # so clicking a step in the diagram shows its info in the side panel — the
+            # same interaction the SFC phase view offers.
+            sinfo = {}
+            for sn, s in proc['steps'].items():
+                if sn in ('START', 'END'):
+                    continue
+                base_def = re.sub(r':\d+$', '', s.get('definition', ''))
+                params = []
+                for p in (s.get('params') or []):
+                    params.append({
+                        'name': p.get('name', ''),
+                        'deferred': p.get('deferred_to', '') if p.get('origin') == 'DEFERRED' else '',
+                        'group': p.get('group', ''),
+                    })
+                sinfo[sn] = {
+                    'def': s.get('definition', ''),
+                    'params': params,
+                    'child': base_def if (known_recipes and base_def in known_recipes) else '',
+                }
             pid = 'pfcPanel_' + _safe_id(recipe['meta']['name'])
             h.append('<div class="pfc-toolbar">'
                      '<button class="pfc-zbtn" data-pfc-zoom="out" title="Zoom out">\u2212</button>'
                      '<button class="pfc-zbtn" data-pfc-zoom="reset" title="Reset">\u25a1</button>'
                      '<button class="pfc-zbtn" data-pfc-zoom="in" title="Zoom in">+</button>'
-                     '<span class="pfc-hint2">drag to pan \u00b7 scroll to zoom</span></div>')
+                     '<span class="pfc-hint2">click a step or transition for detail \u00b7 drag to pan \u00b7 scroll to zoom</span></div>')
             h.append('<div class="pfc-wrap" data-pfc-expr="'
                      + html.escape(_json.dumps(texpr), quote=True)
+                     + '" data-pfc-steps="' + html.escape(_json.dumps(sinfo), quote=True)
                      + '" data-pfc-panel="' + pid + '"><div class="pfc-zoomlayer">' + diagram + '</div></div>')
             h.append('<div class="pfc-panel" id="' + pid
-                     + '"><span class="pfc-hint">Click a transition in the diagram to see its expression.</span></div>')
+                     + '"><span class="pfc-hint">Click a step or transition in the diagram to see its detail. '
+                     'Steps with a \u25c9 marker have a child object you can drill into (right-click).</span></div>')
         else:
             h.append('<span class="empty">Diagram coordinates unavailable; see the flow below.</span>')
         h.append('</div>')
 
-        # textual flow (steps + transitions interleaved)
-        h.append('<div class="card" style="max-width:none"><h3>Procedure flow</h3>')
+        # textual flow (steps + transitions interleaved) — collapsed by default (#4):
+        # the full step/transition dump is comprehensive but noisy, so it starts folded
+        # and the diagram above is the primary, interactive view.
+        h.append('<div class="card rec-flow-card collapsed" style="max-width:none">'
+                 '<h3 class="rec-flow-h" onclick="this.parentElement.classList.toggle(\'collapsed\')">'
+                 '<span class="rec-flow-chev">\u25b8</span> Procedure flow '
+                 '<span style="font-weight:400;color:var(--ink-3);font-size:12px">'
+                 '\u2014 full step &amp; transition listing (click to expand)</span></h3>'
+                 '<div class="rec-flow-body">')
         h.append(_render_flow(proc, known_recipes, {p['name']: p for p in recipe.get('params', [])}))
-        h.append('</div>')
+        h.append('</div></div>')
 
     # formula parameters — full grid matching the DeltaV Recipe Studio columns:
     # Name, Type, Description, Parameter Value, Filtering, Parameter Type, Group, Locked.
@@ -794,10 +827,9 @@ def build_deferrals_html(recipe, rows=None):
     n_deferred = sum(1 for r in rows if r['deferred_to'])
     pct = round(100 * n_deferred / n_params) if n_params else 0
 
-    h = ['<div class="card" style="max-width:none"><h3>Deferrals']
-    h.append('<a class="link def-xl" style="font-weight:600;margin-left:10px;font-size:11px" '
-             'href="javascript:void 0" onclick="downloadDeferrals(\'' + html.escape(recipe['meta']['name'], quote=True)
-             + '\',this)">\u2b07 export .xlsx</a></h3>')
+    h = ['<div class="card" style="max-width:none"><h3>Deferrals '
+         '<span style="font-weight:400;color:var(--ink-3);font-size:12px">'
+         '\u2014 included in the PFC report (.xlsx)</span></h3>']
     h.append('<div class="def-summary">'
              '<span class="def-chip">' + str(len(steps)) + ' steps</span>'
              '<span class="def-chip">' + str(n_params) + ' parameters</span>'
@@ -986,16 +1018,61 @@ def build_pfc_report_xlsx(recipe, formulas=None):
         ws.column_dimensions[col].width = w
 
     # ── Deferrals ──
+    # A proper deferral audit, not a raw dump: a summary line, then one banded block
+    # per step (the object it instantiates), each parameter on its own row with its
+    # group, and DEFERRED parameters called out with their target. Only deferred rows
+    # carry the highlight so a reviewer's eye lands on what actually gets bound later.
     ws = wb.create_sheet('Deferrals')
-    _head(ws, ['Step', 'Instantiates', 'Parameter Name', 'Deferred Parameter'])
+    defer_rows = build_deferrals_rows(recipe)
+    n_all = len(defer_rows)
+    n_def = sum(1 for r in defer_rows if r['deferred_to'])
+    # group params by step in file order + collect each param's group/type from the step
+    proc = recipe.get('procedure') or {}
+    step_params = {sn: {p['name']: p for p in (s.get('params') or [])}
+                   for sn, s in (proc.get('steps') or {}).items()}
+
+    ws.append(['Deferral audit \u2014 ' + meta.get('name', '')])
+    ws['A1'].font = Font(bold=True, size=13, color='1F3864')
+    ws.append([f'{n_def} of {n_all} step parameter(s) are deferred '
+               f'({round(100 * n_def / n_all) if n_all else 0}%). '
+               f'Deferred rows are highlighted and show the parameter they bind to.'])
+    ws['A2'].font = Font(italic=True, size=9, color='666666')
+    ws.append([])
+    hdr_row = ws.max_row + 1
+    ws.append(['Step', 'Instantiates', 'Parameter', 'Group', 'Deferred?', 'Binds To'])
+    for c in ws[hdr_row]:
+        c.font = hdr_font
+        c.fill = step_fill
+    ws.freeze_panes = f'A{hdr_row + 1}'
+
+    band = PatternFill('solid', fgColor='F4F7FB')
+    defer_fill = PatternFill('solid', fgColor='FFF3CD')
     last_step = None
-    for r in build_deferrals_rows(recipe):
-        ws.append([r['step'] if r['step'] != last_step else None,
-                  r['definition'] if r['step'] != last_step else None,
-                  r['param'], r['deferred_to'] or None])
+    band_on = False
+    for r in defer_rows:
+        new_step = r['step'] != last_step
+        if new_step:
+            band_on = not band_on
+        pinfo = step_params.get(r['step'], {}).get(r['param'], {})
+        grp = pinfo.get('group', '')
+        is_def = bool(r['deferred_to'])
+        rr = ws.max_row + 1
+        ws.append([r['step'] if new_step else None,
+                   r['definition'] if new_step else None,
+                   r['param'], grp,
+                   'DEFERRED' if is_def else '', r['deferred_to'] or None])
+        for c in ws[rr]:
+            if is_def:
+                c.fill = defer_fill
+            elif band_on:
+                c.fill = band
+        if new_step:
+            ws.cell(row=rr, column=1).font = hdr_font
+        if is_def:
+            ws.cell(row=rr, column=5).font = defer_font
         last_step = r['step']
-    for i, w in enumerate((30, 30, 30, 30), start=1):
-        col = ws.cell(row=1, column=i).column_letter
+    for i, w in enumerate((30, 30, 30, 16, 12, 30), start=1):
+        col = ws.cell(row=hdr_row, column=i).column_letter
         ws.column_dimensions[col].width = w
 
     import io as _io
@@ -1196,5 +1273,24 @@ RECIPE_CSS = """
 .pfc-hint{color:#94a3b8;font-size:12px}
 .pfc-tname{font-weight:700;color:#7c3aed;font-size:12px;margin-bottom:4px}
 .pfc-texpr{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#334155;white-space:pre-wrap;word-break:break-word}
+.pfc-step{cursor:pointer}
+.pfc-step:hover rect{stroke:#7c3aed}
+.pfc-step.sel rect{stroke:#7c3aed;stroke-width:2.5}
+.pfc-trans.sel rect{stroke-width:2.5}
+.pfc-sdef{font-size:11.5px;color:#475569;margin-bottom:6px}
+.pfc-sdrill{margin:4px 0 8px}
+.pfc-sdrill .link{color:#7c3aed;font-weight:600;font-size:12px;cursor:pointer}
+.pfc-sdrill .link:hover{text-decoration:underline}
+.pfc-sdrill-ghost{font-size:11.5px;color:#94a3b8}
+.pfc-sparams{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:4px}
+.pfc-sparams th{text-align:left;padding:3px 8px;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border,#e2e8f0)}
+.pfc-sparams td{padding:3px 8px;border-bottom:1px solid var(--border,#eef2f6)}
+.pfc-sparams tr:last-child td{border-bottom:0}
+.pfc-sparams .pfc-pdef td{background:#fffbeb}
+.pfc-sparams code{font-size:11px;color:#b45309}
+.rec-flow-card.collapsed .rec-flow-body{display:none}
+.rec-flow-h{cursor:pointer;user-select:none}
+.rec-flow-chev{display:inline-block;font-size:10px;color:#94a3b8;transition:transform .12s}
+.rec-flow-card:not(.collapsed) .rec-flow-chev{transform:rotate(90deg)}
 """
 
