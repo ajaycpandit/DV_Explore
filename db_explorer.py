@@ -79,6 +79,64 @@ button{font-family:inherit}
 .stu-head h2{margin:0;font-size:17px}
 .stu-kind{font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);padding:3px 9px;border-radius:20px}
 .stu-instof{font-size:11px;font-weight:600;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.stu-simbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;margin-right:8px}
+.stu-simbtn:hover{filter:brightness(1.06)}
+/* Real-simulation modal */
+.rs-ov{position:fixed;inset:0;background:rgba(11,18,32,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px}
+.rs-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(1100px,96vw);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.4)}
+.rs-head{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.rs-head h2{margin:0;font-size:15px;font-weight:650}
+.rs-head .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
+.rs-head .x{margin-left:auto;cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.rs-head .x:hover{color:var(--ink)}
+.rs-body{display:grid;grid-template-columns:290px 1fr;min-height:0;flex:1;overflow:hidden}
+.rs-config{border-right:1px solid var(--border);padding:16px;overflow:auto;background:var(--surface)}
+.rs-run{padding:16px 20px;overflow:auto}
+.rs-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 8px}
+.rs-cmd{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--ink);margin-bottom:18px}
+.rs-devrow-cfg{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.rs-devrow-cfg .nm{flex:1;font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-fam{font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:20px;background:var(--surface-2);color:var(--ink-2)}
+.rs-fam.valve{background:var(--accent-soft);color:var(--accent)}
+.rs-fam.motor{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.rs-travel{width:52px;padding:5px 7px;border:1px solid var(--border);border-radius:7px;font-size:12px;text-align:right;font-family:'IBM Plex Mono';background:var(--surface);color:var(--ink)}
+.rs-travel-u{font-size:10px;color:var(--ink-3)}
+.rs-actions{display:flex;gap:8px;margin-top:16px}
+.rs-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.rs-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.rs-btn:disabled{opacity:.5;cursor:default}
+.rs-note{margin-top:16px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.rs-status{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.rs-clock{font-family:'IBM Plex Mono';font-size:13px;color:var(--ink-2)}
+.rs-step-now{font-size:13px;font-weight:600}
+.rs-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
+.rs-badge.run{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.rs-badge.done{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d)}
+.rs-badge.timeout{background:#fee2e2;color:#b91c1c}
+.rs-steps{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.rs-stepchip{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;min-width:118px;background:var(--surface)}
+.rs-stepchip.active{border-color:var(--accent);background:var(--accent-soft)}
+.rs-stepchip.past{opacity:.5}
+.rs-stepchip .sid{font-size:12px;font-weight:700}
+.rs-stepchip .sd{font-size:11px;color:var(--ink-3)}
+.rs-stepchip .pc{font-size:10px;color:var(--wait,#b45309);font-weight:600}
+.rs-stepchip .pc.zero{color:var(--ok,#15803d)}
+.rs-devtable-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 10px}
+.rs-dev{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.rs-dev .dn{font-size:12.5px;font-weight:600}
+.rs-dev .dc{font-size:10.5px;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.rs-loop{display:flex;align-items:flex-start}
+.rs-sig{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:62px}
+.rs-sig .pin{width:100%;text-align:center;padding:5px 4px;border-radius:7px;font-size:11px;font-weight:700;font-family:'IBM Plex Mono';border:1px solid var(--border);background:var(--surface-2);color:var(--ink-3);transition:background .18s,color .18s,border-color .18s}
+.rs-sig .pin.hi{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);border-color:#a7f3c0}
+.rs-sig .pin.wait{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
+.rs-sig .pl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.rs-arrow{color:var(--ink-3);font-size:14px;padding:6px 6px 0;position:relative}
+.rs-arrow .tt{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--wait,#b45309);white-space:nowrap;font-family:'IBM Plex Mono'}
+.rs-scrub{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.rs-scrub input[type=range]{flex:1;accent-color:var(--accent)}
+.rs-play{cursor:pointer;font-size:15px;color:var(--accent);background:none;border:0}
+.rs-empty{color:var(--ink-3);font-size:13px;padding:30px 0;text-align:center}
 /* #3: S88 path breadcrumb bar */
 .stu-pathbar{display:flex;align-items:center;flex-wrap:wrap;gap:2px;padding:8px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px}
 .stu-crumb{display:inline-flex;flex-direction:column;line-height:1.25;padding:3px 9px;border-radius:7px}
@@ -866,7 +924,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260708-2311"
+_BUILD_ID = "20260709-0333"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1640,6 +1698,7 @@ function stuRender(d){
     +(d.instance_of?'<span class="stu-instof" title="Instance of class">\\u2192 '+esc(d.instance_of)+'</span>':'')
     +chips
     +'<div class="stu-head-sp"></div>'
+    + (d.can_simulate ? '<button class="stu-simbtn" onclick="rsOpen(\\''+esc(d.obj||d.name)+'\\')" title="Run this EM\\'s command logic with real CM/EM feedback">\\u25b6 Real simulation</button>' : '')
     + stuOpenInExplorerBtn(d._id)
     +'</div>'
     + stuPathBar(d.path)
@@ -1681,6 +1740,154 @@ function stuOpenInExplorerBtn(id){
     : ("switchView('explorer');show('"+esc(id)+"')");
   return exp+'<button class="exp-btn" style="padding:5px 10px" onclick="'+openCall+'" title="Show this object in the Explorer">Open in Explorer</button>';
 }
+// ─── Real simulation ────────────────────────────────────────────────────────
+// Runs an EM's command SFC with real CM/EM feedback: each device closes its own
+// output->feedback loop with a configurable travel time. Mode 2 (vs the offline
+// phase "verify steps" simulator, which assumes commands are instantly satisfied).
+var RS={em:'',devices:[],commands:[],trace:[],cur:0,timer:null,playing:false,speed:1,completed:false};
+function rsOpen(em){
+  RS.em=em; RS.trace=[]; RS.cur=0; RS.completed=false;
+  var ov=document.getElementById('rsOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='rsOverlay'; ov.className='rs-ov'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="rs-card"><div class="rs-head"><h2>Real simulation</h2>'
+    +'<span class="sub">'+esc(em)+'</span>'
+    +'<span class="x" onclick="rsClose()">\\u00d7</span></div>'
+    +'<div class="rs-body"><div class="rs-config" id="rsConfig">'+dvLoader('Loading EM\\u2026')+'</div>'
+    +'<div class="rs-run" id="rsRun"><div class="rs-empty">Pick a command and press Run to simulate the EM logic with real device feedback.</div></div>'
+    +'</div></div>';
+  ov.onclick=function(e){ if(e.target===ov) rsClose(); };
+  fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(em))
+    .then(function(r){return r.json();})
+    .then(function(m){
+      if(m.error){ document.getElementById('rsConfig').innerHTML='<div class="rs-empty">'+esc(m.error)+'</div>'; return; }
+      RS.devices=m.devices||[]; RS.commands=m.commands||[];
+      rsRenderConfig();
+    })
+    .catch(function(e){ var c=document.getElementById('rsConfig'); if(c) c.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
+}
+function rsClose(){ rsStop(); var o=document.getElementById('rsOverlay'); if(o) o.remove(); }
+function rsRenderConfig(){
+  var cmds=RS.commands.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
+  var devs=RS.devices.map(function(d){
+    var fam=(d.family||'device');
+    var dis=d.modelled?'':' disabled title="not modelled"';
+    return '<div class="rs-devrow-cfg"><span class="nm">'+esc(d.instance)+'</span>'
+      +'<span class="rs-fam '+esc(fam)+'">'+esc(fam)+'</span>'
+      +'<input class="rs-travel" id="rsTv_'+esc(d.instance)+'" value="'+(d.default_travel||10)+'"'+dis+'>'
+      +'<span class="rs-travel-u">ticks</span></div>';
+  }).join('');
+  document.getElementById('rsConfig').innerHTML=''
+    +'<p class="rs-lbl">Command</p><select class="rs-cmd" id="rsCmd">'+cmds+'</select>'
+    +'<p class="rs-lbl">Device travel times</p>'+devs
+    +'<div class="rs-actions"><button class="rs-btn primary" id="rsRunBtn" onclick="rsRun()">\\u25b6 Run</button>'
+    +'<button class="rs-btn" onclick="rsResetConfig()">Reset</button></div>'
+    +'<div class="rs-note">1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback \\u2014 valve stroke, motor start. Raise it to study sequencing and timeouts.</div>';
+}
+function rsResetConfig(){
+  RS.devices.forEach(function(d){ var el=document.getElementById('rsTv_'+d.instance); if(el) el.value=d.default_travel||10; });
+}
+function rsTravelMap(){
+  var m={};
+  RS.devices.forEach(function(d){ var el=document.getElementById('rsTv_'+d.instance); if(el && el.value!=='') m[d.instance]=parseInt(el.value,10)||0; });
+  return m;
+}
+function rsRun(){
+  rsStop();
+  var cmd=(document.getElementById('rsCmd')||{}).value||'';
+  var btn=document.getElementById('rsRunBtn'); if(btn){ btn.disabled=true; btn.textContent='Running\\u2026'; }
+  var run=document.getElementById('rsRun');
+  run.innerHTML='<div class="rs-empty">'+dvLoader('Simulating '+esc(cmd)+'\\u2026')+'</div>';
+  var fd=new FormData();
+  fd.append('t',EXPORT_TOKEN); fd.append('em',RS.em); fd.append('command',cmd);
+  fd.append('travel_map', JSON.stringify(rsTravelMap()));
+  fetch('/em_sim_run',{method:'POST',body:fd})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(btn){ btn.disabled=false; btn.textContent='\\u25b6 Run'; }
+      if(d.error){ run.innerHTML='<div class="rs-empty">'+esc(d.error)+'</div>'; return; }
+      RS.trace=d.trace||[]; RS.completed=d.completed; RS.notes=d.notes||[]; RS.cur=0;
+      if(!RS.trace.length){ run.innerHTML='<div class="rs-empty">No steps ran for this command.</div>'; return; }
+      rsRenderFrame();
+      rsPlay();   // animate on run (both animate + scrubber, per spec)
+    })
+    .catch(function(e){ if(btn){btn.disabled=false;btn.textContent='\\u25b6 Run';} run.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
+}
+function rsPinClass(v, active){
+  // active(true)=asserted/confirmed -> hi; waiting sentinel -> wait; else neutral
+  if(v==='\\u2026'||v==='wait') return 'pin wait';
+  return active?'pin hi':'pin';
+}
+function rsFmt(v){
+  if(v===1||v===true) return '1';
+  if(v===0||v===false) return '0';
+  if(v===null||v===undefined) return '\\u2013';
+  var s=String(v);
+  var m=s.split(':'); return esc((m[m.length-1]||s).toUpperCase());
+}
+function rsIsActive(v){
+  if(v===1||v===true) return true;
+  var s=String(v).toUpperCase();
+  return s.indexOf('OPEN')>=0||s.indexOf('RUNNING')>=0||s.indexOf('START')>=0||s.indexOf('RUN')>=0||s==='ON';
+}
+function rsRenderFrame(){
+  var row=RS.trace[RS.cur]; if(!row) return;
+  var last=RS.trace[RS.trace.length-1];
+  var badge = RS.completed ? '<span class="rs-badge done">completed</span>'
+            : (RS.cur>=RS.trace.length-1 ? '<span class="rs-badge timeout">did not confirm</span>' : '<span class="rs-badge run">running</span>');
+  // step strip: derive step order from the trace
+  var seen=[]; RS.trace.forEach(function(r){ if(r.step && seen.indexOf(r.step)<0) seen.push(r.step); });
+  var curStep=row.step;
+  var curIdx=seen.indexOf(curStep);
+  var stepDescs={}; RS.trace.forEach(function(r){ if(r.step) stepDescs[r.step]=r.step_desc||''; });
+  var chips=seen.map(function(s,i){
+    var cls=(s===curStep)?'active':(i<curIdx?'past':'');
+    var pend=(s===curStep)?row.pending:(i<curIdx?0:null);
+    var pc=(pend===null||pend===undefined)?'':'<span class="pc'+(pend===0?' zero':'')+'">'+(pend===0?'confirms \\u2713':(pend+' pending'))+'</span>';
+    return '<div class="rs-stepchip '+cls+'"><span class="sid">'+esc(s)+'</span><span class="sd">'+esc(stepDescs[s]||'')+'</span>'+pc+'</div>';
+  }).join('');
+  // device loop rows
+  var devByName={}; RS.devices.forEach(function(d){ devByName[d.instance]=d; });
+  var rows=Object.keys(row.children||{}).map(function(inst){
+    var c=row.children[inst]; var meta=devByName[inst]||{};
+    var rspA=rsIsActive(c.rsp), doA=rsIsActive(c.do), diA=rsIsActive(c.di), pvA=rsIsActive(c.pv);
+    // DI shows a waiting sentinel while DO is asserted but feedback hasn't arrived
+    var diWaiting = doA && !diA;
+    var travTip = (doA && diWaiting) ? '<span class="tt">travel '+(c.travel||'')+'t</span>' : '';
+    function sig(lbl,val,cls){ return '<div class="rs-sig"><div class="'+cls+'">'+val+'</div><div class="pl">'+lbl+'</div></div>'; }
+    return '<div class="rs-dev"><div><div class="dn">'+esc(inst)+'</div><div class="dc">'+esc(meta.module||'')+'</div></div>'
+      +'<div class="rs-loop">'
+      + sig('RSP', rsFmt(c.rsp), rsPinClass(c.rsp,rspA))
+      + '<div class="rs-arrow">\\u2192</div>'
+      + sig('DO', rsFmt(c.do), rsPinClass(c.do,doA))
+      + '<div class="rs-arrow">'+travTip+'\\u2192</div>'
+      + sig('DI', diWaiting?'\\u2026':rsFmt(c.di), diWaiting?'pin wait':rsPinClass(c.di,diA))
+      + '<div class="rs-arrow">\\u2192</div>'
+      + sig('PV', rsFmt(c.pv), rsPinClass(c.pv,pvA))
+      +'</div></div>';
+  }).join('');
+  var notesHtml = (RS.cur>=RS.trace.length-1 && RS.notes && RS.notes.length)
+    ? '<div class="rs-note">'+RS.notes.map(esc).join('<br>')+'</div>' : '';
+  document.getElementById('rsRun').innerHTML=''
+    +'<div class="rs-status"><span class="rs-clock">tick '+row.tick+' / '+(last.tick)+'</span>'
+    +'<span class="rs-step-now">'+esc(curStep||'')+(row.step_desc?' \\u00b7 '+esc(row.step_desc):'')+'</span>'+badge+'</div>'
+    +'<div class="rs-steps">'+chips+'</div>'
+    +'<p class="rs-devtable-lbl">Devices \\u2014 closed loop</p>'+rows
+    +notesHtml
+    +'<div class="rs-scrub"><button class="rs-play" id="rsPlayBtn" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
+    +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
+    +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
+}
+function rsPlay(){ RS.playing=true; rsTick(); }
+function rsStop(){ RS.playing=false; if(RS.timer){ clearTimeout(RS.timer); RS.timer=null; } }
+function rsToggle(){ if(RS.playing){ rsStop(); rsRenderFrame(); } else { if(RS.cur>=RS.trace.length-1) RS.cur=0; rsPlay(); } }
+function rsTick(){
+  if(!RS.playing) return;
+  rsRenderFrame();
+  if(RS.cur>=RS.trace.length-1){ RS.playing=false; rsRenderFrame(); return; }
+  RS.timer=setTimeout(function(){ RS.cur++; rsTick(); }, Math.max(60, 260/RS.speed));
+}
+function rsSeek(v){ rsStop(); RS.cur=parseInt(v,10)||0; rsRenderFrame(); }
+function rsCycleSpeed(){ var s=[1,2,4,8]; RS.speed=s[(s.indexOf(RS.speed)+1)%s.length]; rsRenderFrame(); }
 function stuTab(el,t){
   var sp=el.closest('.stu-side-panel');
   sp.querySelectorAll('.stu-tab').forEach(function(x){x.classList.toggle('on',x===el);});

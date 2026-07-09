@@ -1158,6 +1158,63 @@ def studio_view():
         return jsonify({'error': str(e)})
 
 
+@app.route('/em_sim_meta')
+def em_sim_meta_route():
+    """Real-simulation setup: the EM's commands + its CM devices (family, default
+    travel time, whether the interpreter can model each). Feeds the config UI."""
+    token = request.args.get('t', '')
+    em = request.args.get('n', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import fbd_interp
+        return jsonify(fbd_interp.em_sim_meta(text, em))
+    except Exception as e:
+        app.logger.exception('em_sim_meta failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/em_sim_run', methods=['POST'])
+def em_sim_run_route():
+    """Run one EM command SFC end-to-end in real-simulation mode: the phase-level
+    command sequences its steps, each CM executes its own FBD logic, and the I/O
+    sim closes each device's output->feedback loop with a per-device travel time.
+    Returns the full tick trace so the UI can animate the SFC + device table."""
+    token = request.form.get('t', '')
+    em = request.form.get('em', '')
+    command = request.form.get('command', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    # per-device travel-time overrides: JSON {instance: ticks}
+    travel_map = {}
+    try:
+        import json as _json
+        travel_map = _json.loads(request.form.get('travel_map', '{}')) or {}
+        travel_map = {str(k): int(v) for k, v in travel_map.items()}
+    except Exception:
+        travel_map = {}
+    try:
+        max_ticks = int(request.form.get('max_ticks', '600'))
+    except Exception:
+        max_ticks = 600
+    try:
+        import fbd_interp
+        completed, ticks, trace, notes = fbd_interp.simulate_em_command(
+            text, em, command, max_ticks=max_ticks, travel_map=travel_map)
+        # de-dupe notes, keep order
+        seen = set(); un = []
+        for n in notes:
+            if n not in seen:
+                seen.add(n); un.append(n)
+        return jsonify({'completed': completed, 'ticks': ticks,
+                        'trace': trace, 'notes': un})
+    except Exception as e:
+        app.logger.exception('em_sim_run failed')
+        return jsonify({'error': str(e)})
+
+
 @app.route('/phase_view')
 def phase_view():
     """Lazily build a single phase's interactive view on demand, so /explore

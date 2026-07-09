@@ -287,11 +287,20 @@ def build_em_studio(text, em_name):
                'html': mem_html},
               {'key': 'params', 'label': 'Parameters & I/O',
                'html': _class_io_html(text, em_name)}]
+    # Command-driven EMs (with command SFCs) can be run in real-simulation mode.
+    can_sim = False
+    try:
+        import fbd_interp
+        _meta = fbd_interp.em_sim_meta(text, em_name)
+        can_sim = bool(_meta.get('commands'))
+    except Exception:
+        can_sim = False
     return {
         'name': em_name, 'kind': 'Equipment Module',
         'diagram_url': 'em', 'obj': em_name,
         'has_state': has_state, 'has_fbd': bool(fbd),
         'panels': panels,
+        'can_simulate': can_sim,
         'counts': {'Members': len(members),
                    'Logic': 'state+FBD' if (has_state and fbd) else ('state' if has_state else 'FBD')},
     }
