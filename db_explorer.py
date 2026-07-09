@@ -81,6 +81,43 @@ button{font-family:inherit}
 .stu-instof{font-size:11px;font-weight:600;color:var(--ink-3);font-family:'IBM Plex Mono'}
 .stu-simbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;margin-right:8px}
 .stu-simbtn:hover{filter:brightness(1.06)}
+.stu-matrixbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer;margin-right:8px}
+.stu-matrixbtn:hover{background:var(--surface-2)}
+/* Parameter Matrix modal */
+.pm-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
+.pm-card{position:absolute;top:5vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;width:min(1240px,96vw);height:84vh;min-width:760px;min-height:440px;max-width:99vw;max-height:95vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.4);pointer-events:auto;resize:both}
+.pm-head{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;user-select:none;flex:0 0 auto}
+.pm-head h2{margin:0;font-size:15px;font-weight:650}
+.pm-head .sub{font-size:12px;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.pm-head .x{margin-left:auto;cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.pm-toolbar{display:flex;align-items:center;gap:9px;padding:10px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex:0 0 auto}
+.pm-search{padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;min-width:200px;background:var(--surface);color:var(--ink)}
+.pm-chip{font-size:11px;padding:5px 11px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:var(--surface);color:var(--ink-2)}
+.pm-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.pm-vary-toggle{margin-left:auto;font-size:12px;display:flex;align-items:center;gap:6px;color:var(--ink-2)}
+.pm-btn{padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer}
+.pm-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.pm-btn:disabled{opacity:.5;cursor:default}
+.pm-gridwrap{overflow:auto;flex:1 1 auto;min-height:0}
+table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content}
+.pm-grid th,.pm-grid td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px 10px;white-space:nowrap}
+.pm-grid thead th{position:sticky;top:0;background:var(--surface-2);z-index:3;font-weight:600;text-align:left}
+.pm-grid .pm-pname{position:sticky;left:0;background:var(--surface);z-index:2;font-family:'IBM Plex Mono';font-weight:600;min-width:180px;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.pm-grid thead .pm-corner{position:sticky;left:0;z-index:4;background:var(--surface-2)}
+.pm-inst{font-family:'IBM Plex Mono';font-size:11px}
+.pm-inst small{display:block;color:var(--ink-3);font-weight:400;font-size:9.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.pm-grp td,td.pm-grp{background:var(--surface-2);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:700}
+.pm-cell{font-family:'IBM Plex Mono';text-align:right}
+.pm-cell.vary{background:var(--vary-soft,#fef3c7)}
+.pm-cell input{width:100%;min-width:60px;border:0;background:transparent;font:inherit;text-align:right;color:inherit}
+.pm-cell input:focus{outline:2px solid var(--accent);border-radius:4px;background:var(--surface)}
+.pm-cell.edited{background:var(--ok-soft,#dcfce7)}
+.pm-cell.empty{color:var(--ink-3);text-align:center;background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(120,137,160,.06) 5px,rgba(120,137,160,.06) 10px)}
+.pm-badge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:20px;background:var(--vary-soft,#fef3c7);color:var(--vary,#b45309);font-weight:700;margin-left:6px}
+.pm-badge.d{background:var(--accent-soft);color:var(--accent)}
+.pm-foot{display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-2);flex:0 0 auto}
+.pm-dirty{color:var(--ok,#15803d);font-weight:600}
+.pm-empty{padding:40px;text-align:center;color:var(--ink-3)}
 /* Real-simulation modal */
 .rs-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
 .rs-card{position:absolute;top:6vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;width:min(1120px,94vw);height:80vh;min-width:720px;min-height:420px;max-width:99vw;max-height:96vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.4);pointer-events:auto;resize:both}
@@ -186,6 +223,38 @@ button{font-family:inherit}
 .rs-sig .pl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
 .rs-arrow{color:var(--ink-3);font-size:14px;padding:6px 5px 0;position:relative}
 .rs-arrow .tt{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--wait,#b45309);white-space:nowrap;font-family:'IBM Plex Mono'}
+/* instance picker + resolved-tag member sublabel + ignore badge */
+.rs-devrow-cfg.off{opacity:.5}
+.rs-devrow-mem{display:block;font-size:9.5px;color:var(--ink-3);font-family:'IBM Plex Mono';font-weight:400}
+.rs-ign{font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:20px;background:var(--surface-2);color:var(--ink-3)}
+/* run-mode toggle */
+.rs-mode{display:flex;gap:8px;margin-bottom:16px}
+.rs-moderb{flex:1;display:flex;flex-direction:column;font-size:12px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer}
+.rs-moderb small{font-weight:400;color:var(--ink-3);font-size:10px}
+.rs-moderb:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+/* manual drive controls in CM window */
+.rs-manual{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.rs-mctl{display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;cursor:pointer}
+.rs-mctl small{color:var(--ink-3);font-size:10.5px}
+.rs-mbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rs-btn.sm{padding:6px 8px;font-size:11px}
+.rs-btn.sm.on{background:var(--accent);border-color:var(--accent);color:#fff}
+/* animated device symbol */
+.rs-sym{display:inline-flex;align-items:center;justify-content:center}
+.rs-sym svg{overflow:visible}
+.rs-sym .rs-sym-body{fill:var(--surface-2);stroke:var(--ink-3);stroke-width:1.5}
+.rs-sym .rs-sym-rot line{stroke:var(--ink-3);stroke-width:1.6;transform-origin:11px 11px}
+.rs-sym-on .rs-sym-body{fill:var(--ok-soft,#dcfce7);stroke:var(--ok,#15803d)}
+.rs-sym-on .rs-sym-rot line{stroke:var(--ok,#15803d)}
+.rs-sym-off .rs-sym-body{fill:var(--surface-2);stroke:var(--ink-3)}
+.rs-sym-move .rs-sym-body{fill:var(--wait-soft,#fef3c7);stroke:var(--wait,#b45309)}
+.rs-sym-move .rs-sym-rot line{stroke:var(--wait,#b45309)}
+.rs-sym-ilk .rs-sym-body{fill:#fee2e2;stroke:#dc2626}
+.rs-sym-move .rs-sym-rot{animation:rsspin 1s linear infinite}
+.rs-sym-move .rs-sym-body{animation:rspulse 1.1s ease-in-out infinite}
+@keyframes rsspin{to{transform:rotate(360deg)}}
+@keyframes rspulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){.rs-sym-move .rs-sym-rot,.rs-sym-move .rs-sym-body{animation:none}}
 .rs-scrub{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:4px;padding-top:12px;border-top:1px solid var(--border)}
 .rs-scrub input[type=range]{flex:1;accent-color:var(--accent)}
 .rs-play{cursor:pointer;font-size:15px;color:var(--accent);background:none;border:0}
@@ -978,7 +1047,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-0601"
+_BUILD_ID = "20260709-1237"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1752,7 +1821,8 @@ function stuRender(d){
     +(d.instance_of?'<span class="stu-instof" title="Instance of class">\\u2192 '+esc(d.instance_of)+'</span>':'')
     +chips
     +'<div class="stu-head-sp"></div>'
-    + (d.can_simulate ? '<button class="stu-simbtn" onclick="rsOpen(\\''+esc(d.obj||d.name)+'\\')" title="Run this EM\\'s command logic with real CM/EM feedback">\\u25b6 Real simulation</button>' : '')
+    + (d.can_simulate ? '<button class="stu-simbtn" onclick="rsOpen(\\''+esc(d.obj||d.name)+'\\',\\''+esc(d.sim_instance||'')+'\\')" title="Run this EM\\'s command logic with real CM/EM feedback">\\u25b6 Real simulation</button>' : '')
+    + (d.can_matrix ? '<button class="stu-matrixbtn" onclick="pmOpen(\\''+esc(d.matrix_class||d.obj||d.name)+'\\')" title="Compare & bulk-edit this parameter across all '+(d.instance_count||0)+' deployed instances">\\u25a6 Parameter Matrix</button>' : '')
     + stuOpenInExplorerBtn(d._id)
     +'</div>'
     + stuPathBar(d.path)
@@ -1798,23 +1868,26 @@ function stuOpenInExplorerBtn(id){
 // Runs an EM's command SFC with real CM/EM feedback: each device closes its own
 // output->feedback loop with a configurable travel time. Mode 2 (vs the offline
 // phase "verify steps" simulator, which assumes commands are instantly satisfied).
-var RS={em:'',devices:[],commands:[],trace:[],cur:0,timer:null,playing:false,speed:1,completed:false};
-function rsOpen(em){
-  RS.em=em; RS.trace=[]; RS.cur=0; RS.completed=false;
+var RS={em:'',emClass:'',instance:'',instances:[],devices:[],commands:[],trace:[],cur:0,timer:null,playing:false,speed:1,completed:false,mode:'auto',overrides:{}};
+function rsOpen(em, instance){
+  RS.em=em; RS.instance=instance||''; RS.trace=[]; RS.cur=0; RS.completed=false;
+  var idParam = RS.instance || em;   // meta/run resolve class-vs-instance from this
   var ov=document.getElementById('rsOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='rsOverlay'; ov.className='rs-ov'; document.body.appendChild(ov); }
   ov.innerHTML='<div class="rs-card" id="rsCard"><div class="rs-head" id="rsHead"><h2>Real simulation</h2>'
-    +'<span class="sub">'+esc(em)+'</span>'
+    +'<span class="sub">'+esc(RS.instance||em)+'</span>'
     +'<span class="x" onclick="rsClose()">\\u00d7</span></div>'
     +'<div class="rs-body"><div class="rs-config" id="rsConfig">'+dvLoader('Loading EM\\u2026')+'</div>'
     +'<div class="rs-run" id="rsRun"><div class="rs-empty">Pick a command and press Run to simulate the EM logic with real device feedback.</div></div>'
     +'</div></div>';
   rsWireDrag();
-  fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(em))
+  fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(idParam))
     .then(function(r){return r.json();})
     .then(function(m){
       if(m.error){ document.getElementById('rsConfig').innerHTML='<div class="rs-empty">'+esc(m.error)+'</div>'; return; }
       RS.devices=m.devices||[]; RS.commands=m.commands||[];
+      RS.instances=m.instances||[]; RS.emClass=m.em||RS.em;
+      if(m.instance) RS.instance=m.instance;
       rsRenderConfig();
     })
     .catch(function(e){ var c=document.getElementById('rsConfig'); if(c) c.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
@@ -1842,27 +1915,61 @@ function rsWireDrag(){
 }
 function rsRenderConfig(){
   var cmds=RS.commands.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
+  // instance picker: only when opened from a CLASS and >1 deployment exists
+  var instPicker='';
+  if(!RS.instance && RS.instances && RS.instances.length){
+    var opts=RS.instances.map(function(i){return '<option value="'+esc(i.tag)+'">'+esc(i.tag)+(i.area?' \\u00b7 '+esc(i.area):'')+'</option>';}).join('');
+    instPicker='<p class="rs-lbl">Instance</p><select class="rs-cmd" id="rsInst" onchange="rsPickInstance(this.value)">'
+      +'<option value="">Class (generic members)</option>'+opts+'</select>';
+  }
   var devs=RS.devices.map(function(d){
     var fam=(d.family||'device');
-    var dis=d.modelled?'':' disabled title="not modelled"';
-    return '<div class="rs-devrow-cfg"><span class="nm">'+esc(d.instance)+'</span>'
-      +'<span class="rs-fam '+esc(fam)+'">'+esc(fam)+'</span>'
-      +'<input class="rs-travel" id="rsTv_'+esc(d.instance)+'" value="'+(d.default_travel||10)+'"'+dis+'>'
+    var dis=d.modelled?'':' disabled';
+    var label=d.resolved?esc(d.tag):esc(d.member||d.instance);
+    var member=d.member||d.instance;
+    var ignoreBadge=d.ignore?'<span class="rs-ign">ignored</span>':'';
+    var sub=(d.resolved && d.tag!==member)?'<span class="rs-devrow-mem">'+esc(member)+'</span>':'';
+    return '<div class="rs-devrow-cfg'+(d.ignore?' off':'')+'"><span class="nm" title="'+esc(d.tag)+'">'+label+sub+'</span>'
+      +'<span class="rs-fam '+esc(fam)+'">'+esc(fam)+'</span>'+ignoreBadge
+      +'<input class="rs-travel" id="rsTv_'+esc(member)+'" value="'+(d.default_travel||10)+'"'+dis+(d.ignore?' disabled':'')+'>'
       +'<span class="rs-travel-u">ticks</span></div>';
   }).join('');
   document.getElementById('rsConfig').innerHTML=''
+    +instPicker
     +'<p class="rs-lbl">Command</p><select class="rs-cmd" id="rsCmd">'+cmds+'</select>'
+    +'<p class="rs-lbl">Run mode</p>'
+    +'<div class="rs-mode"><label class="rs-moderb"><input type="radio" name="rsMode" value="auto" checked onchange="rsSetMode(\\'auto\\')"> Auto <small>time-based flow</small></label>'
+    +'<label class="rs-moderb"><input type="radio" name="rsMode" value="manual" onchange="rsSetMode(\\'manual\\')"> Manual <small>step & drive</small></label></div>'
     +'<p class="rs-lbl">Device travel times</p>'+devs
     +'<div class="rs-actions"><button class="rs-btn primary" id="rsRunBtn" onclick="rsRun()">\\u25b6 Run</button>'
     +'<button class="rs-btn" onclick="rsResetConfig()">Reset</button></div>'
-    +'<div class="rs-note">1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback \\u2014 valve stroke, motor start. Raise it to study sequencing and timeouts.</div>';
+    +'<div class="rs-note" id="rsModeNote">1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback. Raise it to study sequencing and timeouts.</div>';
+}
+function rsPickInstance(tag){ RS.instance=tag; rsReloadMeta(); }
+function rsReloadMeta(){
+  var idParam=RS.instance||RS.emClass||RS.em;
+  document.getElementById('rsConfig').innerHTML=dvLoader('Resolving\\u2026');
+  fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(idParam))
+    .then(function(r){return r.json();}).then(function(m){
+      if(m.error){ document.getElementById('rsConfig').innerHTML='<div class="rs-empty">'+esc(m.error)+'</div>'; return; }
+      RS.devices=m.devices||[]; RS.commands=m.commands||[]; RS.instances=m.instances||RS.instances;
+      rsRenderConfig();
+      var sub=document.querySelector('#rsCard .sub'); if(sub) sub.textContent=RS.instance||RS.emClass||RS.em;
+    });
+}
+function rsSetMode(mode){
+  RS.mode=mode;
+  var n=document.getElementById('rsModeNote');
+  if(n) n.textContent = (mode==='manual')
+    ? 'Manual: press Run, then Step one tick at a time. Hold a device to stop its feedback arriving, or force DO/DI from its status window.'
+    : '1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback. Raise it to study sequencing and timeouts.';
 }
 function rsResetConfig(){
-  RS.devices.forEach(function(d){ var el=document.getElementById('rsTv_'+d.instance); if(el) el.value=d.default_travel||10; });
+  RS.devices.forEach(function(d){ var k=d.member||d.instance; var el=document.getElementById('rsTv_'+k); if(el) el.value=d.default_travel||10; });
 }
 function rsTravelMap(){
   var m={};
-  RS.devices.forEach(function(d){ var el=document.getElementById('rsTv_'+d.instance); if(el && el.value!=='') m[d.instance]=parseInt(el.value,10)||0; });
+  RS.devices.forEach(function(d){ var k=d.member||d.instance; var el=document.getElementById('rsTv_'+k); if(el && el.value!=='') m[k]=parseInt(el.value,10)||0; });
   return m;
 }
 function rsRun(){
@@ -1872,8 +1979,10 @@ function rsRun(){
   var run=document.getElementById('rsRun');
   run.innerHTML='<div class="rs-empty">'+dvLoader('Simulating '+esc(cmd)+'\\u2026')+'</div>';
   var fd=new FormData();
-  fd.append('t',EXPORT_TOKEN); fd.append('em',RS.em); fd.append('command',cmd);
+  fd.append('t',EXPORT_TOKEN); fd.append('em',RS.emClass||RS.em); fd.append('command',cmd);
+  if(RS.instance) fd.append('instance', RS.instance);
   fd.append('travel_map', JSON.stringify(rsTravelMap()));
+  if(RS.overrides) fd.append('overrides', JSON.stringify(RS.overrides));
   fetch('/em_sim_run',{method:'POST',body:fd})
     .then(function(r){return r.json();})
     .then(function(d){
@@ -1883,10 +1992,13 @@ function rsRun(){
       RS.layout=d.layout||{steps:[],transitions:[]}; RS.sel=null; RS.selManual=false;
       if(!RS.trace.length){ run.innerHTML='<div class="rs-empty">No steps ran for this command.</div>'; return; }
       rsRenderFrame();
-      rsPlay();   // animate on run (both animate + scrubber, per spec)
+      if(RS.mode==='manual'){ RS.playing=false; rsRenderFrame(); }  // wait for Step
+      else rsPlay();   // auto: animate immediately
     })
     .catch(function(e){ if(btn){btn.disabled=false;btn.textContent='\\u25b6 Run';} run.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
 }
+function rsStepFwd(){ rsStop(); if(RS.cur<RS.trace.length-1){ RS.cur++; } rsRenderFrame(); }
+function rsStepBack(){ rsStop(); if(RS.cur>0){ RS.cur--; } rsRenderFrame(); }
 function rsPinClass(v, active){
   // active(true)=asserted/confirmed -> hi; waiting sentinel -> wait; else neutral
   if(v==='\\u2026'||v==='wait') return 'pin wait';
@@ -1922,7 +2034,9 @@ function rsRenderFrame(){
     +'<span class="rs-step-now">'+esc(curStep||'')+(row.step_desc?' \\u00b7 '+esc(row.step_desc):'')+'</span>'+badge+'</div>'
     +'<div class="rs-sfc-wrap">'+sfc+'</div></div>'
     +'<div class="rs-verify">'+verify+'</div>'
-    +'<div class="rs-scrub"><button class="rs-play" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
+    +'<div class="rs-scrub"><button class="rs-play" title="Step back" onclick="rsStepBack()">\\u23ea</button>'
+    +'<button class="rs-play" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
+    +'<button class="rs-play" title="Step forward" onclick="rsStepFwd()">\\u23e9</button>'
     +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
     +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
   if(RS.cmInst) rsRenderCM();   // keep the floating CM window in sync while animating
@@ -1966,6 +2080,23 @@ function rsBuildSFC(seen, curStep, curIdx, row){
   return parts.join('');
 }
 function rsSelStep(sid){ RS.sel=sid; RS.selManual=true; rsRenderFrame(); }
+// Animated colored device symbol: a valve or motor glyph that colors by state
+// (green=confirmed/running, amber pulsing=moving, red=interlocked, grey=idle).
+function rsDeviceSymbol(family, state){
+  var isMotor=/mtr|motor|pump/i.test(family);
+  var cls='rs-sym rs-sym-'+state;
+  if(isMotor){
+    // motor: a rotor circle that spins while moving
+    return '<span class="'+cls+'" title="'+esc(state)+'"><svg viewBox="0 0 22 22" width="20" height="20">'
+      +'<circle cx="11" cy="11" r="9" class="rs-sym-body"/>'
+      +'<g class="rs-sym-rot"><line x1="11" y1="4" x2="11" y2="18"/><line x1="4" y1="11" x2="18" y2="11"/></g>'
+      +'</svg></span>';
+  }
+  // valve: a two-triangle bowtie that fills when open
+  return '<span class="'+cls+'" title="'+esc(state)+'"><svg viewBox="0 0 22 22" width="20" height="20">'
+    +'<path class="rs-sym-body" d="M3 5 L11 11 L3 17 Z M19 5 L11 11 L19 17 Z"/>'
+    +'</svg></span>';
+}
 // requested-vs-actual verification panel for the selected step at the current tick
 function rsBuildVerify(row){
   var sel=RS.sel||row.step;
@@ -1990,8 +2121,10 @@ function rsBuildVerify(row){
     if(dev){
       var doA=rsIsActive(dev.do), pvA=rsIsActive(dev.pv), diWaiting=doA&&!rsIsActive(dev.di);
       var ilkOn=dev.interlock_active;
+      var symState = ilkOn?'ilk':(pvA?'on':(diWaiting?'move':'off'));
       devHtml='<div class="rs-actdev'+(ilkOn?' ilk':'')+'">'
-        +'<span class="rs-actdev-nm">'+esc(a.req_target)+'</span>'
+        +rsDeviceSymbol(dev.family||(a.req_target||''), symState)
+        +'<span class="rs-actdev-nm">'+esc(dev.tag||a.req_target)+'</span>'
         +'<span class="rs-actdev-pin '+(doA?'hi':'')+'">DO '+rsFmt(dev.do)+'</span>'
         +'<span class="rs-actdev-pin '+(diWaiting?'wait':(rsIsActive(dev.di)?'hi':''))+'">DI '+(diWaiting?'\\u2026':rsFmt(dev.di))+'</span>'
         +'<span class="rs-actdev-pin '+(pvA?'hi':'')+'">PV '+rsFmt(dev.pv)+'</span>'
@@ -2046,7 +2179,9 @@ function rsRenderCM(){
   var nActive=(c.ilks||[]).filter(function(k){return k.active;}).length;
   var ilkHdr = nActive? (nActive+' interlock condition'+(nActive!==1?'s':'')+' active') : 'no interlock conditions active';
   w.innerHTML=''
-    +'<div class="rs-cmw-head" id="rsCMHead"><b>'+esc(RS.cmInst)+'</b>'
+    +'<div class="rs-cmw-head" id="rsCMHead">'
+    +rsDeviceSymbol(c.family||meta.family||'', (c.interlock_active?'ilk':(pvA?'on':(diWaiting?'move':'off'))))
+    +'<b>'+esc(c.tag||RS.cmInst)+'</b>'
     +'<span class="rs-cmw-cls">'+esc(meta.module||c.module||'')+'</span>'
     +'<span class="rs-cmw-fam '+esc(meta.family||'')+'">'+esc(meta.family||'')+'</span>'
     +'<span class="x" onclick="rsCloseCM()">\\u00d7</span></div>'
@@ -2057,7 +2192,29 @@ function rsRenderCM(){
     +'<div class="rs-ilk-grid">'+(ilkRows||'<span class="rs-vsub">No interlock conditions modelled.</span>')+'</div>'
     +'<p class="rs-cmw-foot">Travel time '+(c.travel||'?')+' ticks \\u00b7 tick '+(row.tick)+'. '
     +(pvA?'Confirmed.':(doA?'Output driven \\u2014 waiting for feedback.':(perm?'Idle.':'Held by interlock.')))+'</p>'
+    + rsManualControls(RS.cmInst)
     +'</div>';
+}
+// Manual drive controls (shown when Run mode = manual): hold feedback, force DI/DO.
+// Changing any of these re-runs the sim with the override applied, so you can verify
+// the waiting / forced paths step by step.
+function rsManualControls(inst){
+  if(RS.mode!=='manual') return '';
+  var ov=(RS.overrides&&RS.overrides[inst])||{};
+  return '<div class="rs-manual"><p class="rs-cmw-lbl">Manual drive</p>'
+    +'<label class="rs-mctl"><input type="checkbox" '+(ov.hold?'checked':'')+' onchange="rsOverride(\\''+esc(inst)+'\\',\\'hold\\',this.checked)"> Hold feedback <small>DI never arrives</small></label>'
+    +'<div class="rs-mbtns">'
+    +'<button class="rs-btn sm'+(ov.force_di===1?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_di\\','+(ov.force_di===1?'null':'1')+')">Force DI 1</button>'
+    +'<button class="rs-btn sm'+(ov.force_di===0?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_di\\','+(ov.force_di===0?'null':'0')+')">Force DI 0</button>'
+    +'<button class="rs-btn sm'+(ov.force_do===1?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_do\\','+(ov.force_do===1?'null':'1')+')">Force DO 1</button>'
+    +'<button class="rs-btn sm'+(ov.force_do===0?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_do\\','+(ov.force_do===0?'null':'0')+')">Force DO 0</button>'
+    +'</div></div>';
+}
+function rsOverride(inst, key, val){
+  RS.overrides=RS.overrides||{};
+  RS.overrides[inst]=RS.overrides[inst]||{};
+  if(val===null) delete RS.overrides[inst][key]; else RS.overrides[inst][key]=val;
+  rsRun();   // re-run with the new override; keeps current command/instance/travel
 }
 function rsWireCMDrag(){
   var head=document.getElementById('rsCMHead'), win=document.getElementById('rsCMWin');
@@ -2074,6 +2231,133 @@ function rsWireCMDrag(){
 function _rsCmClass(inst){
   var d=(RS.devices||[]).filter(function(x){return x.instance===inst;})[0];
   return d?d.module:inst;
+}
+// ─── Parameter Matrix ───────────────────────────────────────────────────────
+// Lay every deployed instance of a class into one grid (params x instances), spot
+// the outliers, bulk-edit, and export a minimal-diff FHX to re-import into DeltaV.
+// Native DeltaV makes you open each module one at a time — this compares all at once.
+var PM={cls:'',data:null,edits:{},filter:'',group:'All',onlyVary:false};
+function pmOpen(cls){
+  PM={cls:cls,data:null,edits:{},filter:'',group:'All',onlyVary:false};
+  var ov=document.getElementById('pmOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='pmOverlay'; ov.className='pm-ov'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="pm-card" id="pmCard"><div class="pm-head" id="pmHead"><h2>Parameter Matrix</h2>'
+    +'<span class="sub" id="pmSub">'+esc(cls)+'</span><span class="x" onclick="pmClose()">\\u00d7</span></div>'
+    +'<div id="pmToolbar"></div><div class="pm-gridwrap" id="pmGrid">'+dvLoader('Loading instances\\u2026')+'</div>'
+    +'<div id="pmFoot"></div></div>';
+  pmWireDrag();
+  fetch('/param_matrix?t='+encodeURIComponent(EXPORT_TOKEN)+'&cls='+encodeURIComponent(cls))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){ document.getElementById('pmGrid').innerHTML='<div class="pm-empty">'+esc(d.error)+'</div>'; return; }
+      PM.data=d; pmRender();
+    })
+    .catch(function(e){ document.getElementById('pmGrid').innerHTML='<div class="pm-empty">'+esc(e.message)+'</div>'; });
+}
+function pmClose(){ var o=document.getElementById('pmOverlay'); if(o) o.remove(); }
+function pmWireDrag(){
+  var head=document.getElementById('pmHead'), card=document.getElementById('pmCard');
+  if(!head||!card) return;
+  head.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('x')) return;
+    var r=card.getBoundingClientRect(); card.style.transform='none'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+    var ox=e.clientX-r.left, oy=e.clientY-r.top;
+    function mv(ev){ card.style.left=Math.max(0,Math.min(window.innerWidth-80,ev.clientX-ox))+'px'; card.style.top=Math.max(0,Math.min(window.innerHeight-40,ev.clientY-oy))+'px'; }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
+}
+function pmGroups(){
+  var gs={}; (PM.data.params||[]).forEach(function(p){ gs[p.group]=1; });
+  return ['All'].concat(Object.keys(gs).sort());
+}
+function pmRender(){
+  var d=PM.data; if(!d) return;
+  document.getElementById('pmSub').textContent=d.class+' \\u00b7 '+d.instances.length+' instances';
+  // toolbar
+  var chips=pmGroups().map(function(g){return '<span class="pm-chip'+(g===PM.group?' on':'')+'" onclick="pmSetGroup(\\''+esc(g)+'\\')">'+esc(g)+'</span>';}).join('');
+  document.getElementById('pmToolbar').innerHTML='<div class="pm-toolbar">'
+    +'<input class="pm-search" placeholder="Filter parameters\\u2026" value="'+esc(PM.filter)+'" oninput="pmSetFilter(this.value)">'
+    +chips
+    +'<label class="pm-vary-toggle"><input type="checkbox" '+(PM.onlyVary?'checked':'')+' onchange="pmSetVary(this.checked)"> Only params that vary</label>'
+    +'<button class="pm-btn" onclick="pmExportXlsx()">Export .xlsx</button></div>';
+  pmRenderGrid();
+  pmRenderFoot();
+}
+function pmVisibleParams(){
+  var f=PM.filter.toLowerCase();
+  return (PM.data.params||[]).filter(function(p){
+    if(PM.onlyVary && p.distinct<=1) return false;
+    if(PM.group!=='All' && p.group!==PM.group) return false;
+    if(f && p.name.toLowerCase().indexOf(f)<0) return false;
+    return true;
+  });
+}
+function pmRenderGrid(){
+  var d=PM.data, insts=d.instances;
+  var params=pmVisibleParams();
+  if(!params.length){ document.getElementById('pmGrid').innerHTML='<div class="pm-empty">No parameters match.</div>'; return; }
+  var head='<thead><tr><th class="pm-corner">Parameter</th>'
+    +insts.map(function(i){var dsc=(i.desc||'').slice(0,22);return '<th class="pm-inst">'+esc(i.tag)+(dsc?'<small>'+esc(dsc)+'</small>':'')+'</th>';}).join('')+'</tr></thead>';
+  var lastG=null, rows='';
+  params.forEach(function(p){
+    if(p.group!==lastG){ lastG=p.group; rows+='<tr class="pm-grp"><td class="pm-grp pm-pname">'+esc(p.group)+'</td>'+insts.map(function(){return '<td class="pm-grp"></td>';}).join('')+'</tr>'; }
+    var badge = p.distinct>1 ? '<span class="pm-badge">'+p.distinct+' distinct</span>' : '';
+    rows+='<tr><td class="pm-pname" title="'+esc(p.name)+'">'+esc(p.name)+badge+'</td>';
+    insts.forEach(function(i){
+      var v=(d.values[p.name]||{})[i.tag];
+      if(v===undefined){ rows+='<td class="pm-cell empty">\\u2014</td>'; return; }
+      var edited=PM.edits[i.tag]&&PM.edits[i.tag][p.name]!==undefined;
+      var shown=edited?PM.edits[i.tag][p.name]:v;
+      var cls='pm-cell'+(p.varies||p.distinct>1?' vary':'')+(edited?' edited':'');
+      rows+='<td class="'+cls+'"><input value="'+esc(String(shown))+'" '
+        +'onchange="pmEdit(\\''+esc(i.tag)+'\\',\\''+esc(p.name)+'\\',this.value,\\''+esc(String(v))+'\\')"></td>';
+    });
+    rows+='</tr>';
+  });
+  document.getElementById('pmGrid').innerHTML='<table class="pm-grid">'+head+'<tbody>'+rows+'</tbody></table>';
+}
+function pmEdit(tag,param,val,orig){
+  PM.edits[tag]=PM.edits[tag]||{};
+  if(String(val)===String(orig)) delete PM.edits[tag][param]; else PM.edits[tag][param]=val;
+  if(!Object.keys(PM.edits[tag]).length) delete PM.edits[tag];
+  pmRenderGrid(); pmRenderFoot();
+}
+function pmDirtyCount(){ var n=0; for(var t in PM.edits) n+=Object.keys(PM.edits[t]).length; return n; }
+function pmRenderFoot(){
+  var n=pmDirtyCount();
+  document.getElementById('pmFoot').innerHTML='<div class="pm-foot">'
+    +(n?'<span class="pm-dirty">'+n+' cell'+(n!==1?'s':'')+' edited</span><button class="pm-btn" onclick="pmReset()">Reset</button>':'<span>No edits</span>')
+    +'<span style="margin-left:auto"></span>'
+    +'<span>Minimal-diff FHX \\u2014 only changed values rewritten</span>'
+    +'<button class="pm-btn primary" '+(n?'':'disabled')+' onclick="pmExportFHX()">Export FHX for DeltaV</button></div>';
+}
+function pmSetGroup(g){ PM.group=g; pmRender(); }
+function pmSetFilter(v){ PM.filter=v; pmRenderGrid(); }
+function pmSetVary(b){ PM.onlyVary=b; pmRenderGrid(); }
+function pmReset(){ PM.edits={}; pmRenderGrid(); pmRenderFoot(); }
+function pmExportXlsx(){
+  window.location.href='/param_matrix_xlsx?t='+encodeURIComponent(EXPORT_TOKEN)+'&cls='+encodeURIComponent(PM.cls);
+}
+function pmExportFHX(){
+  if(!pmDirtyCount()) return;
+  var foot=document.getElementById('pmFoot');
+  fetch('/param_matrix_apply',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:EXPORT_TOKEN,edits:PM.edits})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){ alert(d.error); return; }
+      var tok=d.token||d.download_token||'';
+      // trigger download of the minimal-diff FHX
+      window.location.href='/param_matrix_download?t='+encodeURIComponent(tok)+'&name='+encodeURIComponent(PM.cls);
+      // brief confirmation of what changed
+      if(foot){ var na=(typeof d.applied==='number')?d.applied:((d.applied||[]).length);
+        foot.innerHTML='<div class="pm-foot"><span class="pm-dirty">\\u2713 '+na
+        +' value'+(na!==1?'s':'')+' written \\u00b7 '+(d.diff_lines||0)+' diff lines</span>'
+        +(d.skipped&&d.skipped.length?'<span style="color:var(--vary)"> \\u00b7 '+d.skipped.length+' skipped</span>':'')
+        +'<span style="margin-left:auto"></span><button class="pm-btn" onclick="pmRenderFoot()">Back</button></div>'; }
+    })
+    .catch(function(e){ alert(e.message); });
 }
 function rsPlay(){ RS.playing=true; rsTick(); }
 function rsStop(){ RS.playing=false; if(RS.timer){ clearTimeout(RS.timer); RS.timer=null; } }
@@ -2144,6 +2428,152 @@ var RECWS={token:(typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:''),
            views:(typeof RECIPE_VIEWS!=='undefined'?RECIPE_VIEWS:{}),
            stepViews:(typeof RECIPE_STEP_VIEWS!=='undefined'?RECIPE_STEP_VIEWS:{})};
 var _REC_BADGE='<span class="ic-badge ic-recipe"><svg viewBox="0 0 15 15" width="15" height="15" aria-hidden="true"><path d="M4 2.4h4.6l2.6 2.6v7.6h-7.2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.4 2.4v2.8h2.8M5.5 8h6M5.5 10h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg></span>';
+// ─── Formula Studio ─────────────────────────────────────────────────────────
+// Bulk-edit recipe formula values in a grid, compare two formulas (a diff DeltaV
+// doesn't make easy), and export a minimal-diff, DeltaV-ready FHX for re-import.
+var FS={token:'',grid:null,recipe:'',edits:{},tab:'edit'};
+function fsOpen(){
+  var tok=(typeof RECWS!=='undefined' && RECWS.token) ? RECWS.token
+         : (typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:'');
+  if(!tok){ alert('Import a recipe first.'); return; }
+  FS.token=tok; FS.edits={};
+  var ov=document.getElementById('fsOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='fsOverlay'; ov.className='fs-ov'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="fs-card"><div class="fs-head"><h2>\\u2317 Formula Studio</h2>'
+    +'<span class="fs-sub" id="fsSub"></span><span class="x" onclick="fsClose()">\\u00d7</span></div>'
+    +'<div class="fs-tabs"><button class="fs-tab on" id="fsTabEdit" onclick="fsSetTab(\\'edit\\')">Bulk edit</button>'
+    +'<button class="fs-tab" id="fsTabDiff" onclick="fsSetTab(\\'diff\\')">Compare</button>'
+    +'<span class="fs-tabsp"></span>'
+    +'<span class="fs-dirty" id="fsDirty"></span>'
+    +'<button class="fs-btn" onclick="fsReset()">Reset</button>'
+    +'<button class="fs-btn primary" id="fsExport" onclick="fsExport()">Export FHX for DeltaV</button></div>'
+    +'<div class="fs-body" id="fsBody">'+dvLoader('Loading formulas\\u2026')+'</div></div>';
+  fetch('/formula_grid?t='+encodeURIComponent(FS.token)).then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">'+esc(d.error)+'</div>'; return; }
+      FS.grid=d.grid||{};
+      var recs=Object.keys(FS.grid);
+      if(!recs.length){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">No formulas in this recipe export.</div>'; return; }
+      FS.recipe=recs[0];
+      document.getElementById('fsSub').textContent=FS.recipe;
+      fsRenderEdit();
+    })
+    .catch(function(e){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">'+esc(e.message)+'</div>'; });
+}
+function fsClose(){ var o=document.getElementById('fsOverlay'); if(o) o.remove(); }
+function fsSetTab(t){
+  FS.tab=t;
+  document.getElementById('fsTabEdit').classList.toggle('on',t==='edit');
+  document.getElementById('fsTabDiff').classList.toggle('on',t==='diff');
+  if(t==='edit') fsRenderEdit(); else fsRenderDiff();
+}
+function fsGr(){ return FS.grid[FS.recipe]||{params:[],formulas:[],values:{}}; }
+function fsCellVal(param, formula){
+  if(FS.edits[formula] && FS.edits[formula][param]!==undefined) return FS.edits[formula][param];
+  var v=(fsGr().values[param]||{})[formula];
+  return v===undefined?'':v;
+}
+function fsIsEdited(param, formula){
+  return !!(FS.edits[formula] && FS.edits[formula][param]!==undefined
+    && String(FS.edits[formula][param])!==String((fsGr().values[param]||{})[formula]||''));
+}
+function fsRenderEdit(){
+  var gr=fsGr();
+  var recSel = Object.keys(FS.grid).length>1
+    ? '<div class="fs-recpick"><label>Recipe</label><select onchange="FS.recipe=this.value;FS.edits={};document.getElementById(\\'fsSub\\').textContent=this.value;fsRenderEdit();">'
+      + Object.keys(FS.grid).map(function(r){return '<option'+(r===FS.recipe?' selected':'')+'>'+esc(r)+'</option>';}).join('')+'</select></div>'
+    : '';
+  var head='<tr><th class="fs-pcol">Parameter</th><th class="fs-gcol">Group</th>'
+    + gr.formulas.map(function(f){return '<th class="fs-fcol'+(gr.released[f]?' rel':'')+'" title="'+(gr.released[f]?'released':'not released')+'">'+esc(f)+'</th>';}).join('')+'</tr>';
+  // only rows that are formula parameters (appear in at least one formula) OR all params
+  var rows=gr.params.filter(function(p){ return gr.values[p.name]!==undefined || true; }).map(function(p){
+    var cells=gr.formulas.map(function(f){
+      var val=fsCellVal(p.name,f);
+      var ed=fsIsEdited(p.name,f);
+      return '<td class="fs-cell'+(ed?' edited':'')+'"><input value="'+esc(String(val))+'" '
+        +'oninput="fsEdit(\\''+esc(p.name).replace(/'/g,"&#39;")+'\\',\\''+esc(f).replace(/'/g,"&#39;")+'\\',this.value)"></td>';
+    }).join('');
+    return '<tr><td class="fs-pcol" title="'+esc(p.desc||'')+'">'+esc(p.name)+'</td><td class="fs-gcol">'+esc(p.group||'')+'</td>'+cells+'</tr>';
+  }).join('');
+  document.getElementById('fsBody').innerHTML=recSel
+    +'<div class="fs-gridwrap"><table class="fs-grid"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>'
+    +'<div class="fs-note">Edit any cell to override a formula value. Only changed cells are written; everything else stays byte-identical. Export produces a DeltaV-ready FHX with just the formula value changes.</div>';
+  fsUpdateDirty();
+}
+function fsEdit(param, formula, val){
+  FS.edits[formula]=FS.edits[formula]||{};
+  var orig=(fsGr().values[param]||{})[formula];
+  if(String(val)===String(orig===undefined?'':orig)){ delete FS.edits[formula][param]; if(!Object.keys(FS.edits[formula]).length) delete FS.edits[formula]; }
+  else FS.edits[formula][param]=val;
+  fsUpdateDirty();
+  // toggle cell highlight without full re-render
+  fsMarkCells();
+}
+function fsMarkCells(){
+  var inputs=document.querySelectorAll('#fsBody .fs-cell input');
+  // lightweight: re-render just marks; simplest is to re-render edit table
+}
+function fsUpdateDirty(){
+  var n=0; Object.keys(FS.edits).forEach(function(f){ n+=Object.keys(FS.edits[f]).length; });
+  var d=document.getElementById('fsDirty'); if(d) d.textContent = n? (n+' change'+(n!==1?'s':'')) : '';
+  var ex=document.getElementById('fsExport'); if(ex) ex.disabled = (n===0);
+}
+function fsReset(){ FS.edits={}; if(FS.tab==='edit') fsRenderEdit(); else fsRenderDiff(); }
+function fsRenderDiff(){
+  var gr=fsGr();
+  if(gr.formulas.length<2){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">Need at least two formulas to compare.</div>'; return; }
+  if(!FS.diffA) FS.diffA=gr.formulas[0];
+  if(!FS.diffB) FS.diffB=gr.formulas[1];
+  var opts=function(sel){return gr.formulas.map(function(f){return '<option'+(f===sel?' selected':'')+'>'+esc(f)+'</option>';}).join('');};
+  var picker='<div class="fs-diffpick"><label>A</label><select id="fsDiffA" onchange="FS.diffA=this.value;fsLoadDiff();">'+opts(FS.diffA)+'</select>'
+    +'<span class="fs-vs">vs</span><label>B</label><select id="fsDiffB" onchange="FS.diffB=this.value;fsLoadDiff();">'+opts(FS.diffB)+'</select></div>';
+  document.getElementById('fsBody').innerHTML=picker+'<div id="fsDiffBody">'+dvLoader('Comparing\\u2026')+'</div>';
+  fsLoadDiff();
+}
+function fsLoadDiff(){
+  var url='/formula_diff?t='+encodeURIComponent(FS.token)+'&recipe='+encodeURIComponent(FS.recipe)
+    +'&a='+encodeURIComponent(FS.diffA)+'&b='+encodeURIComponent(FS.diffB);
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    var b=document.getElementById('fsDiffBody'); if(!b) return;
+    if(d.error){ b.innerHTML='<div class="fs-empty">'+esc(d.error)+'</div>'; return; }
+    var rows=d.rows||[];
+    var counts={changed:0,only_a:0,only_b:0,same:0};
+    rows.forEach(function(r){counts[r.status]=(counts[r.status]||0)+1;});
+    var summary='<div class="fs-diffsum">'
+      +'<span class="fs-chip changed">'+counts.changed+' changed</span>'
+      +'<span class="fs-chip only_a">'+counts.only_a+' only in A</span>'
+      +'<span class="fs-chip only_b">'+counts.only_b+' only in B</span>'
+      +'<span class="fs-chip same">'+counts.same+' same</span>'
+      +'<label class="fs-hidesame"><input type="checkbox" id="fsHideSame" checked onchange="fsLoadDiff()"> hide identical</label></div>';
+    var hide=(document.getElementById('fsHideSame')||{}).checked; if(hide===undefined) hide=true;
+    var trs=rows.filter(function(r){return !(hide && r.status==='same');}).map(function(r){
+      return '<tr class="fs-drow '+r.status+'"><td class="fs-pcol">'+esc(r.param)+'</td>'
+        +'<td class="fs-gcol">'+esc(r.group||'')+'</td>'
+        +'<td class="fs-dv">'+esc(String(r.a))+'</td><td class="fs-dv">'+esc(String(r.b))+'</td>'
+        +'<td class="fs-dstat"><span class="fs-sbadge '+r.status+'">'+({changed:'changed',only_a:'A only',only_b:'B only',same:'same'}[r.status])+'</span></td></tr>';
+    }).join('');
+    b.innerHTML=summary+'<div class="fs-gridwrap"><table class="fs-grid fs-difftable"><thead><tr>'
+      +'<th class="fs-pcol">Parameter</th><th class="fs-gcol">Group</th>'
+      +'<th>'+esc(FS.diffA)+'</th><th>'+esc(FS.diffB)+'</th><th></th></tr></thead><tbody>'+trs+'</tbody></table></div>'
+      +'<div class="fs-note">Copy a value from one formula to the other by editing in the Bulk edit tab. This side-by-side compare isn\\'t available in native DeltaV.</div>';
+  }).catch(function(e){ var b=document.getElementById('fsDiffBody'); if(b) b.innerHTML='<div class="fs-empty">'+esc(e.message)+'</div>'; });
+}
+function fsExport(){
+  var n=0; Object.keys(FS.edits).forEach(function(f){ n+=Object.keys(FS.edits[f]).length; });
+  if(!n){ return; }
+  var ex=document.getElementById('fsExport'); if(ex){ ex.disabled=true; ex.textContent='Exporting\\u2026'; }
+  fetch('/formula_bulk_apply',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:FS.token,recipe:FS.recipe,edits:FS.edits})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(ex){ ex.disabled=false; ex.textContent='Export FHX for DeltaV'; }
+      if(d.error){ alert(d.error); return; }
+      // download via the existing formula download route
+      var url='/recipe_formula_download?t='+encodeURIComponent(d.token)+'&name='+encodeURIComponent(FS.recipe);
+      window.location.href=url;
+      var dd=document.getElementById('fsDirty'); if(dd) dd.textContent=d.applied+' applied \\u00b7 '+d.diff_lines+' FHX lines changed';
+    })
+    .catch(function(e){ if(ex){ex.disabled=false;ex.textContent='Export FHX for DeltaV';} alert(e.message); });
+}
 function recImportFile(inp){
   if(!inp.files||!inp.files.length) return;
   var file=inp.files[0];
@@ -4693,6 +5123,8 @@ function wireFbdLinks(){
         <button class="exp-btn" onclick="document.getElementById('recFile').click()"
           title="Import a recipe FHX \u2014 you'll be asked whether to replace or merge">\u2b06 Import recipe FHX\u2026</button>
         <input type="file" id="recFile" accept=".fhx" style="display:none" onchange="recImportFile(this)">
+        <button class="exp-btn" onclick="fsOpen()"
+          title="Bulk-edit and compare recipe formulas, then export a DeltaV-ready FHX">\u2317 Formula Studio</button>
       </div>
       <div class="rec-src" id="recSrc">Showing recipes from the Explorer import.</div>
       <div id="recListBody">{recipes_pane}</div>

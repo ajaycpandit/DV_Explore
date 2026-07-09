@@ -854,6 +854,215 @@ def recipe_formula_download():
                      mimetype='text/plain')
 
 
+@app.route('/formula_grid')
+def formula_grid_route():
+    """Bulk formula editor: a params x formulas matrix for a recipe export."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'}), 410
+    try:
+        import formula_tool, recipe_bridge
+        return jsonify({'grid': formula_tool.grid(recipe_bridge, text)})
+    except Exception as e:
+        app.logger.exception('formula_grid failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/formula_diff')
+def formula_diff_route():
+    """Diff two formulas within a recipe (the not-in-native-DeltaV compare)."""
+    token = request.args.get('t', '')
+    recipe = request.args.get('recipe', '')
+    fa = request.args.get('a', '')
+    fb = request.args.get('b', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'}), 410
+    try:
+        import formula_tool, recipe_bridge
+        g = formula_tool.grid(recipe_bridge, text)
+        gr = g.get(recipe)
+        if not gr:
+            return jsonify({'error': f'Recipe {recipe!r} not found.'}), 404
+        return jsonify({'rows': formula_tool.diff(gr, fa, fb)})
+    except Exception as e:
+        app.logger.exception('formula_diff failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/formula_bulk_apply', methods=['POST'])
+def formula_bulk_apply_route():
+    """Apply bulk edits across one or more formulas and return a minimal-diff FHX for
+    re-import into DeltaV. Body: {token, recipe, edits:{formula:{param:value}}}.
+    Reuses recipe_bridge.edit_formula_values so untouched content stays byte-identical
+    (formula-values-only round trip). Falls back to formula_tool.build_formula_fhx for
+    any brand-new formula that doesn't exist in the original export yet."""
+    data = request.get_json(force=True, silent=True) or {}
+    token = data.get('token', '')
+    recipe = data.get('recipe', '')
+    edits = data.get('edits', {}) or {}
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'}), 410
+    if not edits:
+        return jsonify({'error': 'No edits provided.'}), 400
+    try:
+        import recipe_bridge, formula_tool, difflib
+        new_text = text
+        total_applied = 0
+        total_skipped = 0
+        per_formula = {}
+        for formula, changes in edits.items():
+            changes = {k: v for k, v in (changes or {}).items()}
+            if not changes:
+                continue
+            try:
+                new_text, applied, skipped = recipe_bridge.edit_formula_values(
+                    new_text, recipe, formula, changes)
+                total_applied += len(applied) if isinstance(applied, (list, tuple)) else int(applied or 0)
+                total_skipped += len(skipped) if isinstance(skipped, (list, tuple)) else int(skipped or 0)
+                per_formula[formula] = {'applied': applied, 'skipped': skipped}
+            except Exception as fe:  # noqa
+                per_formula[formula] = {'error': str(fe)}
+        new_token = _stash_fhx(new_text)
+        diff_lines = [l for l in difflib.unified_diff(
+            text.splitlines(), new_text.splitlines(), lineterm='')
+            if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))]
+        return jsonify({'token': new_token, 'per_formula': per_formula,
+                        'applied': total_applied, 'skipped': total_skipped,
+                        'diff_lines': len(diff_lines)})
+    except Exception as e:
+        app.logger.exception('formula_bulk_apply failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/param_matrix_classes')
+def param_matrix_classes_route():
+    """List classes with multiple deployed instances (candidates for the matrix)."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import param_matrix
+        return jsonify({'classes': param_matrix.list_classes(text)})
+    except Exception as e:
+        app.logger.exception('param_matrix_classes failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/param_matrix')
+def param_matrix_route():
+    """Build the instances x parameters matrix for one class."""
+    token = request.args.get('t', '')
+    cls = request.args.get('cls', '')
+    pf = request.args.get('filter', '') or None
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    try:
+        import param_matrix
+        return jsonify(param_matrix.build_matrix(text, cls, param_filter=pf))
+    except Exception as e:
+        app.logger.exception('param_matrix failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/param_matrix_apply', methods=['POST'])
+def param_matrix_apply_route():
+    """Apply bulk parameter edits and stash a minimal-diff FHX for re-import.
+    Body: {token, edits:{tag:{param:value}}}."""
+    data = request.get_json(force=True, silent=True) or {}
+    token = data.get('token', '')
+    edits = data.get('edits', {}) or {}
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'}), 410
+    if not edits:
+        return jsonify({'error': 'No edits provided.'}), 400
+    try:
+        import param_matrix, difflib
+        new_text, applied, skipped = param_matrix.apply_edits(text, edits)
+        new_token = _stash_fhx(new_text)
+        diff_lines = [l for l in difflib.unified_diff(
+            text.splitlines(), new_text.splitlines(), lineterm='')
+            if l.startswith(('+', '-')) and not l.startswith(('+++', '---'))]
+        return jsonify({'token': new_token, 'applied': applied, 'skipped': skipped,
+                        'diff_lines': len(diff_lines)})
+    except Exception as e:
+        app.logger.exception('param_matrix_apply failed')
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/param_matrix_download')
+def param_matrix_download_route():
+    """Download the edited FHX (stashed by /param_matrix_apply) for re-import."""
+    token = request.args.get('t', '')
+    name = re.sub(r'[^A-Za-z0-9_.-]', '_', request.args.get('name', 'params')) or 'params'
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'Edited file expired — re-apply the edits.')
+    import io as _io
+    buf = _io.BytesIO(text.encode('utf-8'))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name=name + '_params.fhx',
+                     mimetype='text/plain')
+
+
+@app.route('/param_matrix_xlsx')
+def param_matrix_xlsx_route():
+    """Export the matrix as an .xlsx (instances as columns, params as rows) so the
+    user can review/edit in a spreadsheet — the classic bulk workflow."""
+    token = request.args.get('t', '')
+    cls = request.args.get('cls', '')
+    text = _read_stash(token)
+    if not text:
+        abort(410, 'Session expired — re-open the export.')
+    try:
+        import param_matrix
+        mx = param_matrix.build_matrix(text, cls)
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = (cls or 'matrix')[:31]
+        header_fill = PatternFill('solid', fgColor='1F2A38')
+        hf = Font(color='FFFFFF', bold=True, size=10)
+        vary_fill = PatternFill('solid', fgColor='FEF3C7')
+        ws.cell(1, 1, 'Parameter').font = hf
+        ws.cell(1, 1).fill = header_fill
+        ws.cell(1, 2, 'Group').font = hf
+        ws.cell(1, 2).fill = header_fill
+        for ci, inst in enumerate(mx['instances']):
+            c = ws.cell(1, 3 + ci, inst['tag'])
+            c.font = hf
+            c.fill = header_fill
+            c.alignment = Alignment(text_rotation=45, horizontal='left')
+        for ri, p in enumerate(mx['params']):
+            r = ri + 2
+            ws.cell(r, 1, p['name']).font = Font(bold=True, size=10)
+            ws.cell(r, 2, p['group'])
+            for ci, inst in enumerate(mx['instances']):
+                v = mx['values'].get(p['name'], {}).get(inst['tag'], '')
+                cell = ws.cell(r, 3 + ci, v)
+                if p['distinct'] > 1:
+                    cell.fill = vary_fill   # highlight rows that vary across instances
+        ws.freeze_panes = 'C2'
+        ws.column_dimensions['A'].width = 26
+        ws.column_dimensions['B'].width = 14
+        import io as _io
+        buf = _io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True,
+                         download_name=(cls or 'matrix') + '_param_matrix.xlsx',
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        app.logger.exception('param_matrix_xlsx failed')
+        abort(500, str(e))
+
+
 @app.route('/recipe_import', methods=['POST'])
 def recipe_import():
     """Standalone recipe import for the Recipes workspace (like the Converter's own
@@ -1200,9 +1409,16 @@ def em_sim_run_route():
     except Exception:
         max_ticks = 600
     try:
-        import fbd_interp
+        import fbd_interp, json as _json2
+        inst = request.form.get('instance', '') or None
+        overrides = {}
+        try:
+            overrides = _json2.loads(request.form.get('overrides', '{}')) or {}
+        except Exception:
+            overrides = {}
         completed, ticks, trace, notes, layout = fbd_interp.simulate_em_command(
-            text, em, command, max_ticks=max_ticks, travel_map=travel_map)
+            text, em, command, max_ticks=max_ticks, travel_map=travel_map,
+            instance_tag=inst, overrides=overrides)
         # de-dupe notes, keep order
         seen = set(); un = []
         for n in notes:

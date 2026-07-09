@@ -493,13 +493,26 @@ class Block:
 class IOSim:
     """Closes the output->input loop for digital devices. Each device output DO,
     after `travel_ticks`, drives its paired feedback input DI to the same state.
-    This is the simple digital example: valve DO=TRUE -> (travel) -> DI=TRUE."""
+    This is the simple digital example: valve DO=TRUE -> (travel) -> DI=TRUE.
+
+    Manual overrides (for step-through verification):
+      hold=True        -> feedback never arrives (DI frozen), so the device never
+                          confirms; used to verify the waiting/timeout path.
+      force_di=0/1     -> pin DI to a value regardless of DO (force a feedback).
+    """
 
     def __init__(self, travel_ticks=2):
         self.travel_ticks = travel_ticks
-        self._pending = {}  # store-id -> {target_state, ticks_left}
+        self.hold = False
+        self.force_di = None
+        self._pending = {}
 
     def step(self, store):
+        if self.force_di is not None:
+            store.set('DI', 1 if _truthy(self.force_di) else 0)
+            return
+        if self.hold:
+            return  # feedback frozen — DI stays where it is
         do = store.get('DO', None)
         if do is None:
             return
@@ -515,7 +528,7 @@ class IOSim:
             return
         p['left'] -= 1
         if p['left'] <= 0:
-            store.set('DI', do)          # feedback arrives
+            store.set('DI', do)
             self._pending.pop(id(store), None)
 
 
@@ -628,25 +641,35 @@ def _pv_enum_for(family, active):
 class EMSim:
     """Executes one EM command SFC against real child CM sims."""
 
-    def __init__(self, text, em_name, members, command, travel_ticks=2, travel_map=None):
+    def __init__(self, text, em_name, members, command, travel_ticks=2, travel_map=None,
+                 resolution=None, instance_tag=None, overrides=None):
         import fbd_parser
         self.em_name = em_name
+        self.instance_tag = instance_tag
         self.command = command
+        self.overrides = overrides or {}   # member -> {hold:bool, force_di:0/1, force_do:0/1}
         self.store = SignalStore(module_prefix=em_name)
         self.ev = STEval(self.store)
         self.travel_ticks = travel_ticks
-        self.travel_map = travel_map or {}   # instance -> travel_ticks override
+        self.travel_map = travel_map or {}   # member -> travel_ticks override
+        self.resolution = resolution or {}   # member -> {'tag':real_tag, 'ignore':bool}
         self.notes = []
         # build a child ModuleSim per CM member
-        self.children = {}          # instance -> ModuleSim
-        self.child_family = {}      # instance -> enum family once commanded
+        self.children = {}          # member -> ModuleSim
+        self.child_family = {}      # member -> enum family
+        self.child_tag = {}         # member -> resolved real CM tag (or member name)
+        self.child_ignore = {}      # member -> True if IGNORE'd (unassigned/bypassed)
         for m in members:
             inst = m['name']
             cls = m.get('module', '')
             tt = int(self.travel_map.get(inst, travel_ticks))
+            res = self.resolution.get(inst, {})
+            self.child_tag[inst] = res.get('tag') or inst
+            self.child_ignore[inst] = bool(res.get('ignore', False))
             try:
                 g = fbd_parser.parse_module_fbd(text, cls)
                 self.children[inst] = ModuleSim(g, travel_ticks=tt)
+                self.child_family[inst] = self._family_for_class(cls)
             except Exception as e:  # noqa
                 self.notes.append(f'child {inst} ({cls}) could not be modelled: {e}')
         # SFC structure for this command
@@ -661,10 +684,12 @@ class EMSim:
         self._seed_ignores()
 
     def _seed_ignores(self):
-        # confirm expressions OR against '_IGNORE.CV'; default those to False so the
-        # real feedback path is what satisfies them (not the ignore bypass).
+        # A member that's IGNORE'd in the deployed instance (unassigned) is bypassed:
+        # set its '_IGNORE.CV' TRUE so its confirm (which ORs against _IGNORE.CV) passes
+        # immediately — exactly how DeltaV treats an unassigned member. Assigned members
+        # start FALSE so the real feedback path is what satisfies them.
         for inst in self.children:
-            self.store.set(f'{inst}/_IGNORE.CV', False)
+            self.store.set(f'{inst}/_IGNORE.CV', bool(self.child_ignore.get(inst, False)))
 
     # -- action execution ----------------------------------------------------
     def _run_step_actions(self, step, step_name):
@@ -737,22 +762,46 @@ class EMSim:
             'interlock_active': (not permissive),
             'ilks': ilks,
             'module': c.name,
+            'family': self.child_family.get(inst, ''),
+            'tag': self.child_tag.get(inst, inst),      # resolved real CM tag
+            'ignore': self.child_ignore.get(inst, False),
         }
 
     def _reflect_children(self):
         """Tick each child and reflect its confirmed PV back to the EM store as the
-        enum PV the confirm expressions compare against."""
+        enum PV the confirm expressions compare against. Always resolve to an enum
+        (family seeded from the device class), so a device at rest reads its passive
+        enum (STOPPED/CLOSED) from tick 0 rather than a bare 0."""
         for inst, child in self.children.items():
+            ov = self.overrides.get(inst) or {}
+            # apply manual overrides to this device's I/O loop before it ticks
+            child.io.hold = bool(ov.get('hold'))
+            child.io.force_di = ov.get('force_di', None)
+            if ov.get('force_do', None) is not None:
+                child.store.set('DO', 1 if _truthy(ov['force_do']) else 0)
             child.tick()
             pv = child.store.get('PV.CV', None)
             if pv is None:
-                continue
+                pv = 0  # unmodelled PV -> treat as passive so the enum still resolves
             fam = self.child_family.get(inst)
-            if fam:
-                active = (1 if _truthy(pv) else 0) == 1
+            if fam and ':' not in str(pv):
+                active = _truthy(pv)
                 self.store.set(f'{inst}/PV.CV', _pv_enum_for(fam, active))
             else:
                 self.store.set(f'{inst}/PV.CV', pv)
+
+    @staticmethod
+    def _family_for_class(cls):
+        """Map a CM class to its PV/SP enum family so PVs render as the enums the
+        confirm expressions expect. FP005 uses 'mtr2-*' for motors and 'vlvnc-*' for
+        2-state valves; fall back by keyword."""
+        u = (cls or '').upper()
+        if 'MTR' in u or 'MOTOR' in u or 'PUMP' in u:
+            return 'mtr2'
+        if 'VALVE' in u or 'VLV' in u:
+            return 'vlvnc'
+        return ''
+
 
     # -- time model (steps expose S<n>/TIME.CV; transitions may use it) -------
     def _bump_time(self, step_name, dt=1):
@@ -892,44 +941,107 @@ class EMSim:
                 'trans_to_step': self.trans_to_step}
 
 
+def resolve_em_instance(text, instance_tag):
+    """Read a deployed EM instance's MODULE_BLOCK_RESOLUTION table: how each class
+    member (CAS_DRN, RTN_PUMP_E3, ...) maps to a real assigned CM tag (XP070-HV-008)
+    and whether it's IGNORE'd (unassigned / bypassed). Returns:
+      {'class': em_class, 'members': {member: {'tag':..., 'ignore':bool}}}
+    or None if the tag isn't a deployed EM instance.
+    """
+    m = re.search(r'MODULE_INSTANCE TAG="' + re.escape(instance_tag) +
+                  r'" PLANT_AREA="([^"]*)" MODULE_CLASS="([^"]+)"(.*?)'
+                  r'(?=\nMODULE_INSTANCE |\Z)', text, re.DOTALL)
+    if not m:
+        return None
+    area, cls, blk = m.group(1), m.group(2), m.group(3)
+    members = {}
+    for name, mod, ig in re.findall(
+            r'MODULE_BLOCK_RESOLUTION NAME="([^"]+)"\s*\{\s*MODULE="([^"]*)"\s*'
+            r'IGNORE=([TF])', blk):
+        members[name] = {'tag': mod, 'ignore': (ig == 'T' or not mod)}
+    return {'class': cls, 'area': area, 'members': members}
+
+
+def em_instances_for_class(text, em_class):
+    """List deployed instance tags for an EM class (for the class-view instance
+    picker)."""
+    out = []
+    for tag, area, cls in re.findall(
+            r'MODULE_INSTANCE TAG="([^"]+)" PLANT_AREA="([^"]*)" MODULE_CLASS="([^"]+)"',
+            text):
+        if cls == em_class:
+            out.append({'tag': tag, 'area': area})
+    return out
+
+
+def _em_class_of(text, name):
+    """Given a name that may be an EM class OR a deployed instance tag, return
+    (em_class, instance_tag_or_None)."""
+    res = resolve_em_instance(text, name)
+    if res:
+        return res['class'], name
+    return name, None
+
+
 def simulate_em_command(text, em_name, command_name, travel_ticks=2, max_ticks=200,
-                        travel_map=None):
+                        travel_map=None, instance_tag=None, overrides=None):
     """Top-level entry: run one EM command SFC end-to-end against real child CMs.
-    Returns (completed, ticks, trace, notes)."""
+    `em_name` may be an EM class OR a deployed instance tag; if an instance is given
+    (or `instance_tag`), members resolve to their real assigned CM tags and IGNORE'd
+    members are bypassed. `overrides` (member -> {hold, force_di, force_do}) supports
+    manual step-through verification. Returns (completed, ticks, trace, notes, layout)."""
     import em_bridge
+    em_class, inst = _em_class_of(text, em_name)
+    if instance_tag:
+        inst = instance_tag
+    resolution = {}
+    if inst:
+        r = resolve_em_instance(text, inst)
+        if r:
+            em_class = r['class']
+            resolution = r['members']
     core, _sfc = em_bridge._load_core()
     cmds = core['parse_cdem_fhx'](text)
-    own = [c for c in cmds if (c.get('em_name') or '') == em_name
+    own = [c for c in cmds if (c.get('em_name') or '') == em_class
            and c.get('command_name') == command_name]
     if not own:
-        return False, 0, [], [f'command {command_name!r} not found on EM {em_name!r}'], {}
-    members = em_bridge.em_cm_members(text, em_name)
-    sim = EMSim(text, em_name, members, own[0], travel_ticks=travel_ticks,
-                travel_map=travel_map)
+        return False, 0, [], [f'command {command_name!r} not found on EM {em_class!r}'], {}
+    members = em_bridge.em_cm_members(text, em_class)
+    sim = EMSim(text, em_class, members, own[0], travel_ticks=travel_ticks,
+                travel_map=travel_map, resolution=resolution, instance_tag=inst,
+                overrides=overrides)
     completed, ticks, trace = sim.run(max_ticks=max_ticks)
     return completed, ticks, trace, sim.notes, sim.layout()
 
 
 def em_sim_meta(text, em_name):
     """Describe an EM for the real-sim UI: its commands, its CM members (with device
-    family so the UI can label valve vs motor and pick sensible default travel
-    times), and which members the interpreter can model."""
+    family, the resolved real CM tag when run on a deployed instance, and whether the
+    member is IGNORE'd/unassigned). `em_name` may be a class or an instance tag."""
     import em_bridge, fbd_parser
     core, _sfc = em_bridge._load_core()
+    # resolve class vs instance
+    em_class, inst = _em_class_of(text, em_name)
+    resolution = {}
+    if inst:
+        r = resolve_em_instance(text, inst)
+        if r:
+            em_class = r['class']
+            resolution = r['members']
     try:
         cmds = core['parse_cdem_fhx'](text)
     except Exception:
         cmds = []
     names = []
     for c in cmds:
-        if (c.get('em_name') or '') == em_name:
+        if (c.get('em_name') or '') == em_class:
             cn = c.get('command_name', '')
             if cn and cn not in names:
                 names.append(cn)
-    members = em_bridge.em_cm_members(text, em_name)
+    members = em_bridge.em_cm_members(text, em_class)
     dev = []
     for m in members:
-        inst = m['name']
+        member = m['name']
         cls = m.get('module', '')
         fam = 'motor' if ('MTR' in cls.upper() or 'MOTOR' in cls.upper()
                           or 'PUMP' in cls.upper()) else (
@@ -939,9 +1051,14 @@ def em_sim_meta(text, em_name):
             fbd_parser.parse_module_fbd(text, cls)
         except Exception:
             modelled = False
-        # sensible default travel ticks by family (1 tick ~ 100ms in the UI clock)
         default_travel = 20 if fam == 'motor' else (10 if fam == 'valve' else 5)
-        dev.append({'instance': inst, 'module': cls, 'family': fam,
+        res = resolution.get(member, {})
+        tag = res.get('tag') or ''
+        ignore = bool(res.get('ignore', False)) if resolution else False
+        dev.append({'instance': member, 'member': member, 'tag': tag or member,
+                    'resolved': bool(tag), 'ignore': ignore,
+                    'module': cls, 'family': fam,
                     'modelled': modelled, 'default_travel': default_travel,
                     'desc': m.get('desc', '')})
-    return {'em': em_name, 'commands': names, 'devices': dev}
+    return {'em': em_class, 'instance': inst, 'commands': names, 'devices': dev,
+            'instances': em_instances_for_class(text, em_class)}

@@ -295,12 +295,16 @@ def build_em_studio(text, em_name):
         can_sim = bool(_meta.get('commands'))
     except Exception:
         can_sim = False
+    n_inst = len(_re.findall(
+        r'MODULE_INSTANCE TAG="[^"]+" PLANT_AREA="[^"]*" MODULE_CLASS="'
+        + _re.escape(em_name) + r'"', text))
     return {
         'name': em_name, 'kind': 'Equipment Module',
         'diagram_url': 'em', 'obj': em_name,
         'has_state': has_state, 'has_fbd': bool(fbd),
         'panels': panels,
         'can_simulate': can_sim,
+        'can_matrix': n_inst >= 2, 'matrix_class': em_name, 'instance_count': n_inst,
         'counts': {'Members': len(members),
                    'Logic': 'state+FBD' if (has_state and fbd) else ('state' if has_state else 'FBD')},
     }
@@ -488,11 +492,16 @@ def build_cm_studio(text, cm_name):
         return {'error': f'Could not build CM view: {e}'}
     if not diagram:
         return {'error': f'No diagram found for control module "{cm_name}".'}
+    # Parameter Matrix is available when this class has >1 deployed instance to compare.
+    n_inst = len(_re.findall(
+        r'MODULE_INSTANCE TAG="[^"]+" PLANT_AREA="[^"]*" MODULE_CLASS="'
+        + _re.escape(cm_name) + r'"', text))
     return {
         'name': cm_name, 'kind': 'Control Module',
         'diagram_url': 'cm', 'obj': cm_name,
         'panels': [{'key': 'params', 'label': 'Parameters & I/O',
                     'html': _class_io_html(text, cm_name)}],
+        'can_matrix': n_inst >= 2, 'matrix_class': cm_name, 'instance_count': n_inst,
         'counts': {},
     }
 
@@ -560,6 +569,10 @@ def _build_deployed_studio(text, tag, catalog=None):
     payload['name'] = tag
     payload['kind'] = ('Equipment Module instance' if is_em else 'Control Module instance')
     payload['instance_of'] = cls
+    # Real-simulation runs on THIS instance (members resolve to real CM tags). Pass the
+    # instance tag so the sim resolves member->device and honours IGNORE'd members.
+    if is_em and payload.get('can_simulate'):
+        payload['sim_instance'] = tag
     return payload
 
 
