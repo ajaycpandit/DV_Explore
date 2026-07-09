@@ -91,7 +91,7 @@ button{font-family:inherit}
 .rs-head .x:hover{color:var(--ink)}
 .rs-body{display:grid;grid-template-columns:290px 1fr;min-height:0;flex:1;overflow:hidden}
 .rs-config{border-right:1px solid var(--border);padding:16px;overflow:auto;background:var(--surface)}
-.rs-run{padding:16px 20px;overflow:auto}
+.rs-run{padding:14px 18px;overflow:auto;display:grid;grid-template-columns:238px 1fr;gap:18px;align-content:start}
 .rs-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 8px}
 .rs-cmd{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--ink);margin-bottom:18px}
 .rs-devrow-cfg{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
@@ -106,36 +106,48 @@ button{font-family:inherit}
 .rs-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .rs-btn:disabled{opacity:.5;cursor:default}
 .rs-note{margin-top:16px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;font-size:11.5px;color:var(--ink-2);line-height:1.5}
-.rs-status{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.rs-status{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
 .rs-clock{font-family:'IBM Plex Mono';font-size:13px;color:var(--ink-2)}
-.rs-step-now{font-size:13px;font-weight:600}
 .rs-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600}
 .rs-badge.run{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
 .rs-badge.done{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d)}
 .rs-badge.timeout{background:#fee2e2;color:#b91c1c}
-.rs-steps{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
-.rs-stepchip{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;min-width:118px;background:var(--surface)}
-.rs-stepchip.active{border-color:var(--accent);background:var(--accent-soft)}
-.rs-stepchip.past{opacity:.5}
-.rs-stepchip .sid{font-size:12px;font-weight:700}
-.rs-stepchip .sd{font-size:11px;color:var(--ink-3)}
-.rs-stepchip .pc{font-size:10px;color:var(--wait,#b45309);font-weight:600}
-.rs-stepchip .pc.zero{color:var(--ok,#15803d)}
-.rs-devtable-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 10px}
-.rs-dev{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
-.rs-dev .dn{font-size:12.5px;font-weight:600}
-.rs-dev .dc{font-size:10.5px;color:var(--ink-3);font-family:'IBM Plex Mono'}
-.rs-loop{display:flex;align-items:flex-start}
-.rs-sig{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:62px}
-.rs-sig .pin{width:100%;text-align:center;padding:5px 4px;border-radius:7px;font-size:11px;font-weight:700;font-family:'IBM Plex Mono';border:1px solid var(--border);background:var(--surface-2);color:var(--ink-3);transition:background .18s,color .18s,border-color .18s}
-.rs-sig .pin.hi{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);border-color:#a7f3c0}
-.rs-sig .pin.wait{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
-.rs-sig .pl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
-.rs-arrow{color:var(--ink-3);font-size:14px;padding:6px 6px 0;position:relative}
-.rs-arrow .tt{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--wait,#b45309);white-space:nowrap;font-family:'IBM Plex Mono'}
-.rs-scrub{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.rs-sfc-col{min-width:0}
+.rs-sfc-wrap{border:1px solid var(--border);border-radius:11px;background:var(--surface-2);padding:8px;overflow:auto;max-height:460px}
+.sfc-step{cursor:pointer}
+.sfc-box{fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5}
+.sfc-step.active .sfc-box{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+.sfc-step.past .sfc-box{fill:var(--ok-soft,#dcfce7);stroke:#a7f3c0}
+.sfc-step.sel .sfc-box{stroke:var(--accent);stroke-dasharray:4 3;stroke-width:2.5}
+.sfc-sid{font:700 12px 'IBM Plex Mono';fill:var(--ink)}
+.sfc-sd{font:11px -apple-system,sans-serif;fill:var(--ink-3)}
+.sfc-line{stroke:var(--ink-3);stroke-width:1.5}
+.sfc-trans rect{fill:var(--ink)}
+.sfc-trans.hot rect{fill:var(--ok,#15803d)}
+.sfc-tid{font:700 10px 'IBM Plex Mono';fill:var(--ink-2)}
+.rs-verify{overflow:auto;max-height:460px}
+.rs-vhead{font-size:12.5px;font-weight:700;margin:0 0 4px}
+.rs-vsub{font-size:11px;color:var(--ink-3);margin:0 0 12px}
+.rs-act{border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:9px;background:var(--surface)}
+.rs-act.ok{border-color:#a7f3c0;background:var(--ok-soft,#dcfce7)}
+.rs-act.wait{border-color:#fcd989;background:#fffdf5}
+.rs-act-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.rs-act-id{font:700 11px 'IBM Plex Mono';color:var(--ink-2)}
+.rs-act-d{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-act-st{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.rs-act-st.ok{background:var(--ok,#15803d);color:#fff}.rs-act-st.wait{background:var(--wait,#b45309);color:#fff}.rs-act-st.gated{background:var(--ink-3);color:#fff}
+.rs-io{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px}
+.rs-io .k{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3);margin-bottom:2px}
+.rs-io .v{font-family:'IBM Plex Mono';padding:4px 7px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-io .v.exp{color:var(--ink-2)}
+.rs-io .v.act.match{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);border-color:#a7f3c0}
+.rs-io .v.act.miss{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
+.rs-cmlink{margin-top:9px;font-size:11px;color:var(--link);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.rs-cmlink:hover{text-decoration:underline}
+.rs-scrub{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:4px;padding-top:12px;border-top:1px solid var(--border)}
 .rs-scrub input[type=range]{flex:1;accent-color:var(--accent)}
 .rs-play{cursor:pointer;font-size:15px;color:var(--accent);background:none;border:0}
+.rs-step-now{font-size:13px;font-weight:600}
 .rs-empty{color:var(--ink-3);font-size:13px;padding:30px 0;text-align:center}
 /* #3: S88 path breadcrumb bar */
 .stu-pathbar{display:flex;align-items:center;flex-wrap:wrap;gap:2px;padding:8px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px}
@@ -924,7 +936,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-0333"
+_BUILD_ID = "20260709-0534"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1806,6 +1818,7 @@ function rsRun(){
       if(btn){ btn.disabled=false; btn.textContent='\\u25b6 Run'; }
       if(d.error){ run.innerHTML='<div class="rs-empty">'+esc(d.error)+'</div>'; return; }
       RS.trace=d.trace||[]; RS.completed=d.completed; RS.notes=d.notes||[]; RS.cur=0;
+      RS.layout=d.layout||{steps:[],transitions:[]}; RS.sel=null; RS.selManual=false;
       if(!RS.trace.length){ run.innerHTML='<div class="rs-empty">No steps ran for this command.</div>'; return; }
       rsRenderFrame();
       rsPlay();   // animate on run (both animate + scrubber, per spec)
@@ -1834,48 +1847,98 @@ function rsRenderFrame(){
   var last=RS.trace[RS.trace.length-1];
   var badge = RS.completed ? '<span class="rs-badge done">completed</span>'
             : (RS.cur>=RS.trace.length-1 ? '<span class="rs-badge timeout">did not confirm</span>' : '<span class="rs-badge run">running</span>');
-  // step strip: derive step order from the trace
-  var seen=[]; RS.trace.forEach(function(r){ if(r.step && seen.indexOf(r.step)<0) seen.push(r.step); });
   var curStep=row.step;
+  // selected step defaults to the active one, but the user can click another
+  if(!RS.sel || RS.selManual!==true) RS.sel=curStep;
+  var seen=[]; RS.trace.forEach(function(r){ if(r.step && seen.indexOf(r.step)<0) seen.push(r.step); });
   var curIdx=seen.indexOf(curStep);
-  var stepDescs={}; RS.trace.forEach(function(r){ if(r.step) stepDescs[r.step]=r.step_desc||''; });
-  var chips=seen.map(function(s,i){
-    var cls=(s===curStep)?'active':(i<curIdx?'past':'');
-    var pend=(s===curStep)?row.pending:(i<curIdx?0:null);
-    var pc=(pend===null||pend===undefined)?'':'<span class="pc'+(pend===0?' zero':'')+'">'+(pend===0?'confirms \\u2713':(pend+' pending'))+'</span>';
-    return '<div class="rs-stepchip '+cls+'"><span class="sid">'+esc(s)+'</span><span class="sd">'+esc(stepDescs[s]||'')+'</span>'+pc+'</div>';
-  }).join('');
-  // device loop rows
-  var devByName={}; RS.devices.forEach(function(d){ devByName[d.instance]=d; });
-  var rows=Object.keys(row.children||{}).map(function(inst){
-    var c=row.children[inst]; var meta=devByName[inst]||{};
-    var rspA=rsIsActive(c.rsp), doA=rsIsActive(c.do), diA=rsIsActive(c.di), pvA=rsIsActive(c.pv);
-    // DI shows a waiting sentinel while DO is asserted but feedback hasn't arrived
-    var diWaiting = doA && !diA;
-    var travTip = (doA && diWaiting) ? '<span class="tt">travel '+(c.travel||'')+'t</span>' : '';
-    function sig(lbl,val,cls){ return '<div class="rs-sig"><div class="'+cls+'">'+val+'</div><div class="pl">'+lbl+'</div></div>'; }
-    return '<div class="rs-dev"><div><div class="dn">'+esc(inst)+'</div><div class="dc">'+esc(meta.module||'')+'</div></div>'
-      +'<div class="rs-loop">'
-      + sig('RSP', rsFmt(c.rsp), rsPinClass(c.rsp,rspA))
-      + '<div class="rs-arrow">\\u2192</div>'
-      + sig('DO', rsFmt(c.do), rsPinClass(c.do,doA))
-      + '<div class="rs-arrow">'+travTip+'\\u2192</div>'
-      + sig('DI', diWaiting?'\\u2026':rsFmt(c.di), diWaiting?'pin wait':rsPinClass(c.di,diA))
-      + '<div class="rs-arrow">\\u2192</div>'
-      + sig('PV', rsFmt(c.pv), rsPinClass(c.pv,pvA))
-      +'</div></div>';
-  }).join('');
-  var notesHtml = (RS.cur>=RS.trace.length-1 && RS.notes && RS.notes.length)
-    ? '<div class="rs-note">'+RS.notes.map(esc).join('<br>')+'</div>' : '';
+  var sfc=rsBuildSFC(seen, curStep, curIdx, row);
+  var verify=rsBuildVerify(row);
   document.getElementById('rsRun').innerHTML=''
-    +'<div class="rs-status"><span class="rs-clock">tick '+row.tick+' / '+(last.tick)+'</span>'
+    +'<div class="rs-sfc-col">'
+    +'<div class="rs-status"><span class="rs-clock">tick '+row.tick+' / '+last.tick+'</span>'
     +'<span class="rs-step-now">'+esc(curStep||'')+(row.step_desc?' \\u00b7 '+esc(row.step_desc):'')+'</span>'+badge+'</div>'
-    +'<div class="rs-steps">'+chips+'</div>'
-    +'<p class="rs-devtable-lbl">Devices \\u2014 closed loop</p>'+rows
-    +notesHtml
-    +'<div class="rs-scrub"><button class="rs-play" id="rsPlayBtn" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
+    +'<div class="rs-sfc-wrap">'+sfc+'</div></div>'
+    +'<div class="rs-verify">'+verify+'</div>'
+    +'<div class="rs-scrub"><button class="rs-play" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
     +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
     +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
+}
+// draw the SFC as inline SVG from the run layout, active step highlighted
+function rsBuildSFC(seen, curStep, curIdx, row){
+  var L=RS.layout||{steps:[],transitions:[]};
+  if(!L.steps.length) return '<div class="rs-empty">No SFC layout.</div>';
+  // normalise stored X/Y into a tidy vertical ladder (real coords can be sparse)
+  var xs=L.steps.map(function(s){return s.x;}), ys=L.steps.map(function(s){return s.y;});
+  var minX=Math.min.apply(null,xs), minY=Math.min.apply(null,ys);
+  var BW=150, BH=54, GAPY=86, LEFT=70;
+  var order={}; seen.forEach(function(s,i){order[s]=i;});
+  function sy(sid){ return 20 + (order[sid]!==undefined?order[sid]:0)*GAPY; }
+  var h=20+seen.length*GAPY+10;
+  var parts=['<svg viewBox="0 0 240 '+h+'" width="100%" height="'+Math.min(h,520)+'">'];
+  // lines + transitions between consecutive steps
+  L.transitions.forEach(function(tr){
+    var from=(L.step_to_trans&&Object.keys(L.step_to_trans).filter(function(s){return (L.step_to_trans[s]||[]).indexOf(tr.id)>=0;})[0])||'';
+    var to=((L.trans_to_step||{})[tr.id]||[])[0]||'';
+    if(from){
+      var y1=sy(from)+BH, y2=(to?sy(to):y1+GAPY-BH);
+      var hot = (from===curStep && row.pending===0);
+      parts.push('<line class="sfc-line" x1="145" y1="'+y1+'" x2="145" y2="'+(y1+16)+'"/>');
+      parts.push('<g class="sfc-trans'+(hot?' hot':'')+'" transform="translate(120,'+(y1+16)+')"><rect x="0" y="0" width="50" height="6"/><text class="sfc-tid" x="56" y="7">'+esc(tr.id)+'</text></g>');
+      if(to) parts.push('<line class="sfc-line" x1="145" y1="'+(y1+22)+'" x2="145" y2="'+sy(to)+'"/>');
+    }
+  });
+  // step boxes
+  seen.forEach(function(sid){
+    var s=L.steps.filter(function(x){return x.id===sid;})[0]||{id:sid,desc:''};
+    var i=order[sid];
+    var cls='sfc-step'+(sid===curStep?' active':(i<curIdx?' past':''))+(sid===RS.sel?' sel':'');
+    var y=sy(sid);
+    parts.push('<g class="'+cls+'" transform="translate('+LEFT+','+y+')" onclick="rsSelStep(\\''+esc(sid)+'\\')">'
+      +'<rect class="sfc-box" width="'+BW+'" height="'+BH+'" rx="6"/>'
+      +'<text class="sfc-sid" x="10" y="22">'+esc(sid)+'</text>'
+      +'<text class="sfc-sd" x="10" y="40">'+esc((s.desc||'').slice(0,20))+'</text></g>');
+  });
+  parts.push('</svg>');
+  return parts.join('');
+}
+function rsSelStep(sid){ RS.sel=sid; RS.selManual=true; rsRenderFrame(); }
+// requested-vs-actual verification panel for the selected step at the current tick
+function rsBuildVerify(row){
+  var sel=RS.sel||row.step;
+  // the trace row carries actions only for the step ACTIVE at that tick; if the user
+  // selected a different step, find the latest frame where that step was active.
+  var acts=row.actions;
+  if(sel!==row.step){
+    for(var i=RS.cur;i>=0;i--){ if(RS.trace[i].step===sel){ acts=RS.trace[i].actions; break; } }
+  }
+  var stepDesc=''; for(var j=0;j<RS.trace.length;j++){ if(RS.trace[j].step===sel){ stepDesc=RS.trace[j].step_desc||''; break; } }
+  if(!acts||!acts.length) return '<p class="rs-vhead">'+esc(sel)+'</p><p class="rs-vsub">No actions on this step.</p>';
+  var rows=acts.map(function(a){
+    var stCls=a.gated?'gated':(a.confirmed?'ok':'wait');
+    var stTxt=a.gated?'gated':(a.confirmed?'confirmed':'waiting');
+    var actMatch=(String(a.actual).toUpperCase()===String(a.expected).toUpperCase()) && a.expected!=='';
+    var expHtml = a.expected? '<div><div class="k">Expected</div><div class="v exp">'+esc(a.expected)+'</div></div>'
+                              +'<div><div class="k">Actual</div><div class="v act '+(actMatch?'match':'miss')+'">'+esc(a.actual)+'</div></div>' : '';
+    var cm = a.req_target ? '<span class="rs-cmlink" onclick="rsOpenCM(\\''+esc(a.req_target)+'\\')" title="Open this CM (coming soon)">\\u25c9 '+esc(a.req_target)+' \\u203a</span>' : '';
+    return '<div class="rs-act '+(a.gated?'':(a.confirmed?'ok':'wait'))+'">'
+      +'<div class="rs-act-h"><span class="rs-act-id">'+esc(a.action)+'</span>'
+      +'<span class="rs-act-d">'+esc(a.desc||a.request||'')+'</span>'
+      +'<span class="rs-act-st '+stCls+'">'+stTxt+'</span></div>'
+      +'<div class="rs-io"><div><div class="k">Requested</div><div class="v">'+esc(a.request||'')+'</div></div>'
+      +'<div><div class="k">Confirm</div><div class="v '+(a.confirmed?'act match':'')+'">'+(a.confirmed?'\\u2713 met':'pending')+'</div></div>'
+      + expHtml + '</div>'+cm+'</div>';
+  }).join('');
+  return '<p class="rs-vhead">'+esc(sel)+(stepDesc?' \\u00b7 '+esc(stepDesc):'')+'</p>'
+    +'<p class="rs-vsub">'+acts.length+' action'+(acts.length!==1?'s':'')+' \\u2014 requested vs actual</p>'+rows;
+}
+function rsOpenCM(inst){
+  // placeholder for the future CM status window; for now, jump to the CM in Studio.
+  if(typeof stuOpen==='function'){ rsClose(); switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen('cm:'+_rsCmClass(inst)); },60); }
+}
+function _rsCmClass(inst){
+  var d=(RS.devices||[]).filter(function(x){return x.instance===inst;})[0];
+  return d?d.module:inst;
 }
 function rsPlay(){ RS.playing=true; rsTick(); }
 function rsStop(){ RS.playing=false; if(RS.timer){ clearTimeout(RS.timer); RS.timer=null; } }

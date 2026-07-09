@@ -1201,7 +1201,7 @@ def em_sim_run_route():
         max_ticks = 600
     try:
         import fbd_interp
-        completed, ticks, trace, notes = fbd_interp.simulate_em_command(
+        completed, ticks, trace, notes, layout = fbd_interp.simulate_em_command(
             text, em, command, max_ticks=max_ticks, travel_map=travel_map)
         # de-dupe notes, keep order
         seen = set(); un = []
@@ -1209,7 +1209,7 @@ def em_sim_run_route():
             if n not in seen:
                 seen.add(n); un.append(n)
         return jsonify({'completed': completed, 'ticks': ticks,
-                        'trace': trace, 'notes': un})
+                        'trace': trace, 'notes': un, 'layout': layout})
     except Exception as e:
         app.logger.exception('em_sim_run failed')
         return jsonify({'error': str(e)})

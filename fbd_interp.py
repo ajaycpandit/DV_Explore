@@ -108,6 +108,20 @@ def _tokenize(src):
     return toks
 
 
+def _fmt_val(v):
+    """Human-friendly rendering of a signal value for the UI (enum tail, 0/1, dash)."""
+    if v is None or v == '':
+        return '\u2013'
+    if v is True or v == 1:
+        return '1'
+    if v is False or v == 0:
+        return '0'
+    s = str(v)
+    if ':' in s:
+        return s.split(':')[-1]
+    return s
+
+
 def _truthy(v):
     if isinstance(v, str):
         return v.strip().upper() in ('TRUE', '1') or (v.strip() != '' and v.strip() != '0' and v.strip().upper() != 'FALSE')
@@ -723,6 +737,58 @@ class EMSim:
         k = f'{step_name}/TIME.CV'
         self.store.set(k, self.store.get(k, 0) + dt)
 
+    def _action_details(self, step, step_name):
+        """For the active step, produce a per-action requested-vs-actual breakdown
+        so the UI can show what each SFC action asked for against what actually
+        happened. For an assignment 'LHS := RHS':
+          requested = the target and value written (RHS)
+          expected  = the confirm_expression's comparison (what SHOULD become true)
+          actual    = the live value of the confirmed signal now
+          confirmed = whether the confirm_expression holds this tick
+        """
+        out = []
+        for a in step.get('actions', []):
+            an = a.get('action', '')
+            expr = (a.get('expression', '') or '').strip()
+            cexpr = (a.get('confirm_expression', '') or '').strip()
+            # requested: parse first 'LHS := RHS'
+            req_target = req_val = ''
+            mm = re.search(r"([^\s;]+)\s*:=\s*([^\s;]+)", expr)
+            if mm:
+                lhs = SignalStore.norm(mm.group(1))
+                # the CM instance is the segment before '/RSP' (or the whole LHS root)
+                inst_m = re.match(r'([A-Za-z0-9_]+)/', lhs)
+                req_target = inst_m.group(1) if inst_m else lhs
+                req_val = mm.group(2).strip().strip("'\"")
+            # actual: read the confirm target's live value. The confirm usually reads a
+            # PV/readback; pull the first reference in the confirm expression.
+            actual = ''
+            cref = re.search(r"'(\^?/?[A-Za-z0-9_./]+)'", cexpr)
+            if cref:
+                actual = self.store.get(cref.group(1), '')
+            # expected: the literal the confirm compares against (first quoted enum/int)
+            expected = ''
+            eref = re.findall(r"=\s*'([^']+)'|=\s*(\d+)", cexpr)
+            if eref:
+                first = eref[0]
+                expected = first[0] or first[1]
+            confirmed = (not cexpr) or self.ev.eval_condition(cexpr)
+            # gate state (Complete/Running/blocked)
+            dexpr = a.get('delay_expression', '')
+            gate_open = (not dexpr) or self.ev.eval_condition(dexpr)
+            out.append({
+                'action': an,
+                'desc': a.get('description', ''),
+                'qualifier': a.get('qualifier', ''),
+                'request': (expr.rstrip(';').strip()[:70] if expr else ''),
+                'req_target': req_target, 'req_val': req_val,
+                'expected': str(expected),
+                'actual': _fmt_val(actual),
+                'confirmed': bool(confirmed),
+                'gated': (not gate_open),
+            })
+        return out
+
     # -- one tick of the EM SFC ---------------------------------------------
     def tick(self):
         if self.done or not self.cur:
@@ -763,10 +829,12 @@ class EMSim:
         for i in range(max_ticks):
             prev = self.cur
             prev_desc = self.steps.get(prev, {}).get('description', '') if prev else ''
+            prev_step = self.steps.get(prev, {}) if prev else {}
             self.tick()
             trace.append({
                 'tick': i, 'step': prev, 'step_desc': prev_desc,
                 'pending': self.store.get(f'{prev}/PENDING_CONFIRMS.CV') if prev else None,
+                'actions': self._action_details(prev_step, prev) if prev else [],
                 'children': {inst: {'rsp': self.store.get(f'{inst}/RSP.CV'),
                                     'do': c.store.get('DO'), 'di': c.store.get('DI'),
                                     'pv': self.store.get(f'{inst}/PV.CV'),
@@ -779,6 +847,31 @@ class EMSim:
                 return True, i + 1, trace
         return False, max_ticks, trace
 
+    def layout(self):
+        """SFC geometry for the verification view: steps + transitions with their
+        stored X/Y, plus which CM instance each action targets (for future
+        click-through to the CM status)."""
+        steps = []
+        for sid, s in self.ordered_steps:
+            # map each action to the CM instance it targets (RSP write target)
+            acts = []
+            for a in s.get('actions', []):
+                expr = a.get('expression', '') or ''
+                mm = re.search(r"'?\^?/?([A-Za-z0-9_]+)/RSP", expr)
+                acts.append({'action': a.get('action', ''),
+                             'desc': a.get('description', ''),
+                             'target': mm.group(1) if mm else ''})
+            steps.append({'id': sid, 'x': s.get('x', 0), 'y': s.get('y', 0),
+                          'desc': s.get('description', ''), 'actions': acts,
+                          'initial': s.get('initial', False)})
+        trans = []
+        for tid, td in self.transitions.items():
+            trans.append({'id': tid, 'x': td.get('x', 0), 'y': td.get('y', 0),
+                          'expr': td.get('expression', '')})
+        return {'steps': steps, 'transitions': trans,
+                'step_to_trans': self.step_to_trans,
+                'trans_to_step': self.trans_to_step}
+
 
 def simulate_em_command(text, em_name, command_name, travel_ticks=2, max_ticks=200,
                         travel_map=None):
@@ -790,12 +883,12 @@ def simulate_em_command(text, em_name, command_name, travel_ticks=2, max_ticks=2
     own = [c for c in cmds if (c.get('em_name') or '') == em_name
            and c.get('command_name') == command_name]
     if not own:
-        return False, 0, [], [f'command {command_name!r} not found on EM {em_name!r}']
+        return False, 0, [], [f'command {command_name!r} not found on EM {em_name!r}'], {}
     members = em_bridge.em_cm_members(text, em_name)
     sim = EMSim(text, em_name, members, own[0], travel_ticks=travel_ticks,
                 travel_map=travel_map)
     completed, ticks, trace = sim.run(max_ticks=max_ticks)
-    return completed, ticks, trace, sim.notes
+    return completed, ticks, trace, sim.notes, sim.layout()
 
 
 def em_sim_meta(text, em_name):
