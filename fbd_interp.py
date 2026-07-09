@@ -717,6 +717,28 @@ class EMSim:
         self.store.set(f'{step_name}/PENDING_CONFIRMS.CV', pending)
         return pending
 
+    def _child_state(self, inst, c):
+        """Per-device state for the trace: the command/feedback chain plus interlock
+        diagnostics, so the CM window can explain WHY a device is (or isn't) moving."""
+        cs = c.store
+        ilks = []
+        for b in c.blocks:
+            if b.type.upper() == 'CND' and b.name.upper().startswith('ILK'):
+                asserted = _truthy(cs.get(b.name + '/OUT_D', 0))
+                ilks.append({'name': b.name, 'active': asserted,
+                             'expr': (b._expr_text() or '')[:80]})
+        permissive = _truthy(cs.get('DC1/INTERLOCK_D', 1))
+        return {
+            'rsp': self.store.get(f'{inst}/RSP.CV'),
+            'do': cs.get('DO'), 'di': cs.get('DI'),
+            'pv': self.store.get(f'{inst}/PV.CV'),
+            'travel': c.io.travel_ticks,
+            'permissive': permissive,
+            'interlock_active': (not permissive),
+            'ilks': ilks,
+            'module': c.name,
+        }
+
     def _reflect_children(self):
         """Tick each child and reflect its confirmed PV back to the EM store as the
         enum PV the confirm expressions compare against."""
@@ -835,10 +857,7 @@ class EMSim:
                 'tick': i, 'step': prev, 'step_desc': prev_desc,
                 'pending': self.store.get(f'{prev}/PENDING_CONFIRMS.CV') if prev else None,
                 'actions': self._action_details(prev_step, prev) if prev else [],
-                'children': {inst: {'rsp': self.store.get(f'{inst}/RSP.CV'),
-                                    'do': c.store.get('DO'), 'di': c.store.get('DI'),
-                                    'pv': self.store.get(f'{inst}/PV.CV'),
-                                    'travel': c.io.travel_ticks}
+                'children': {inst: self._child_state(inst, c)
                              for inst, c in self.children.items()},
                 'advanced_to': self.cur if self.cur != prev else None,
                 'done': self.done,

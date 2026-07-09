@@ -82,14 +82,14 @@ button{font-family:inherit}
 .stu-simbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;cursor:pointer;margin-right:8px}
 .stu-simbtn:hover{filter:brightness(1.06)}
 /* Real-simulation modal */
-.rs-ov{position:fixed;inset:0;background:rgba(11,18,32,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px}
-.rs-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:min(1100px,96vw);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.4)}
-.rs-head{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.rs-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
+.rs-card{position:absolute;top:6vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;width:min(1120px,94vw);height:80vh;min-width:720px;min-height:420px;max-width:99vw;max-height:96vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.4);pointer-events:auto;resize:both}
+.rs-head{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;flex:0 0 auto;user-select:none}
 .rs-head h2{margin:0;font-size:15px;font-weight:650}
 .rs-head .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
 .rs-head .x{margin-left:auto;cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
 .rs-head .x:hover{color:var(--ink)}
-.rs-body{display:grid;grid-template-columns:290px 1fr;min-height:0;flex:1;overflow:hidden}
+.rs-body{display:grid;grid-template-columns:238px 1fr;min-height:0;flex:1 1 auto;overflow:hidden}
 .rs-config{border-right:1px solid var(--border);padding:16px;overflow:auto;background:var(--surface)}
 .rs-run{padding:14px 18px;overflow:auto;display:grid;grid-template-columns:238px 1fr;gap:18px;align-content:start}
 .rs-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 8px}
@@ -144,6 +144,48 @@ button{font-family:inherit}
 .rs-io .v.act.miss{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
 .rs-cmlink{margin-top:9px;font-size:11px;color:var(--link);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
 .rs-cmlink:hover{text-decoration:underline}
+/* inline "actual device being driven" strip inside each action card */
+.rs-actdev{display:flex;align-items:center;gap:7px;margin-top:9px;padding:7px 9px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);flex-wrap:wrap}
+.rs-actdev.ilk{border-color:#fca5a5;background:#fef2f2}
+.rs-actdev-nm{font:700 11px 'IBM Plex Mono';color:var(--ink-2)}
+.rs-actdev-pin{font:700 10.5px 'IBM Plex Mono';padding:2px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--ink-3)}
+.rs-actdev-pin.hi{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);border-color:#a7f3c0}
+.rs-actdev-pin.wait{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
+.rs-actdev-ilk{font-size:10px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:.03em}
+.rs-actdev-open{margin-left:auto;font-size:11px;color:var(--link);cursor:pointer}
+.rs-actdev-open:hover{text-decoration:underline}
+/* floating CM status window */
+.rs-cmwin{position:fixed;top:16vh;right:5vw;z-index:10001;width:360px;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
+.rs-cmw-head{display:flex;align-items:center;gap:8px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border);cursor:move;user-select:none}
+.rs-cmw-head b{font-size:13px}
+.rs-cmw-cls{font-size:10.5px;color:var(--ink-3);font-family:'IBM Plex Mono'}
+.rs-cmw-fam{font-size:9px;text-transform:uppercase;padding:2px 6px;border-radius:20px;background:var(--surface);color:var(--ink-2)}
+.rs-cmw-fam.valve{background:var(--accent-soft);color:var(--accent)}.rs-cmw-fam.motor{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.rs-cmw-head .x{margin-left:auto;cursor:pointer;font-size:20px;color:var(--ink-3);line-height:1}
+.rs-cmw-body{padding:14px}
+.rs-cmw-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 9px}
+.rs-perm-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.rs-perm{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.rs-perm.ok{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d)}
+.rs-perm.blk{background:#fee2e2;color:#b91c1c}
+.rs-ilk-hdr{font-size:11px;color:var(--ink-3)}
+.rs-ilk-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.rs-ilk{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;background:var(--surface-2);border:1px solid var(--border);font-size:10.5px}
+.rs-ilk.on{background:#fef2f2;border-color:#fca5a5}
+.rs-ilk-dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
+.rs-ilk.on .rs-ilk-dot{background:#dc2626}
+.rs-ilk-nm{font-family:'IBM Plex Mono';color:var(--ink-2);flex:1}
+.rs-ilk-st{font-weight:700;color:var(--ink-3)}
+.rs-ilk.on .rs-ilk-st{color:#b91c1c}
+.rs-cmw-foot{margin-top:14px;font-size:11px;color:var(--ink-2);line-height:1.5}
+.rs-loop{display:flex;align-items:flex-start;flex-wrap:wrap}
+.rs-sig{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:56px}
+.rs-sig .pin{width:100%;text-align:center;padding:5px 4px;border-radius:7px;font-size:11px;font-weight:700;font-family:'IBM Plex Mono';border:1px solid var(--border);background:var(--surface-2);color:var(--ink-3)}
+.rs-sig .pin.hi{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);border-color:#a7f3c0}
+.rs-sig .pin.wait{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309);border-color:#fcd989}
+.rs-sig .pl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.rs-arrow{color:var(--ink-3);font-size:14px;padding:6px 5px 0;position:relative}
+.rs-arrow .tt{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--wait,#b45309);white-space:nowrap;font-family:'IBM Plex Mono'}
 .rs-scrub{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:4px;padding-top:12px;border-top:1px solid var(--border)}
 .rs-scrub input[type=range]{flex:1;accent-color:var(--accent)}
 .rs-play{cursor:pointer;font-size:15px;color:var(--accent);background:none;border:0}
@@ -936,7 +978,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-0534"
+_BUILD_ID = "20260709-0601"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1761,13 +1803,13 @@ function rsOpen(em){
   RS.em=em; RS.trace=[]; RS.cur=0; RS.completed=false;
   var ov=document.getElementById('rsOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='rsOverlay'; ov.className='rs-ov'; document.body.appendChild(ov); }
-  ov.innerHTML='<div class="rs-card"><div class="rs-head"><h2>Real simulation</h2>'
+  ov.innerHTML='<div class="rs-card" id="rsCard"><div class="rs-head" id="rsHead"><h2>Real simulation</h2>'
     +'<span class="sub">'+esc(em)+'</span>'
     +'<span class="x" onclick="rsClose()">\\u00d7</span></div>'
     +'<div class="rs-body"><div class="rs-config" id="rsConfig">'+dvLoader('Loading EM\\u2026')+'</div>'
     +'<div class="rs-run" id="rsRun"><div class="rs-empty">Pick a command and press Run to simulate the EM logic with real device feedback.</div></div>'
     +'</div></div>';
-  ov.onclick=function(e){ if(e.target===ov) rsClose(); };
+  rsWireDrag();
   fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(em))
     .then(function(r){return r.json();})
     .then(function(m){
@@ -1777,7 +1819,27 @@ function rsOpen(em){
     })
     .catch(function(e){ var c=document.getElementById('rsConfig'); if(c) c.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
 }
-function rsClose(){ rsStop(); var o=document.getElementById('rsOverlay'); if(o) o.remove(); }
+function rsClose(){ rsStop(); rsCloseCM(); var o=document.getElementById('rsOverlay'); if(o) o.remove(); }
+// drag the floating sim window by its header
+function rsWireDrag(){
+  var head=document.getElementById('rsHead'), card=document.getElementById('rsCard');
+  if(!head||!card) return;
+  head.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('x')) return;
+    var r=card.getBoundingClientRect();
+    // switch from translateX centering to absolute left/top so drag is stable
+    card.style.transform='none'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+    var ox=e.clientX-r.left, oy=e.clientY-r.top;
+    function mv(ev){
+      card.style.left=Math.max(0,Math.min(window.innerWidth-80,ev.clientX-ox))+'px';
+      card.style.top=Math.max(0,Math.min(window.innerHeight-40,ev.clientY-oy))+'px';
+    }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none';
+    document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+    e.preventDefault();
+  });
+}
 function rsRenderConfig(){
   var cmds=RS.commands.map(function(c){return '<option>'+esc(c)+'</option>';}).join('');
   var devs=RS.devices.map(function(d){
@@ -1863,6 +1925,7 @@ function rsRenderFrame(){
     +'<div class="rs-scrub"><button class="rs-play" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
     +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
     +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
+  if(RS.cmInst) rsRenderCM();   // keep the floating CM window in sync while animating
 }
 // draw the SFC as inline SVG from the run layout, active step highlighted
 function rsBuildSFC(seen, curStep, curIdx, row){
@@ -1914,27 +1977,99 @@ function rsBuildVerify(row){
   }
   var stepDesc=''; for(var j=0;j<RS.trace.length;j++){ if(RS.trace[j].step===sel){ stepDesc=RS.trace[j].step_desc||''; break; } }
   if(!acts||!acts.length) return '<p class="rs-vhead">'+esc(sel)+'</p><p class="rs-vsub">No actions on this step.</p>';
+  var childNow=(RS.trace[RS.cur]||{}).children||{};
   var rows=acts.map(function(a){
     var stCls=a.gated?'gated':(a.confirmed?'ok':'wait');
     var stTxt=a.gated?'gated':(a.confirmed?'confirmed':'waiting');
     var actMatch=(String(a.actual).toUpperCase()===String(a.expected).toUpperCase()) && a.expected!=='';
     var expHtml = a.expected? '<div><div class="k">Expected</div><div class="v exp">'+esc(a.expected)+'</div></div>'
                               +'<div><div class="k">Actual</div><div class="v act '+(actMatch?'match':'miss')+'">'+esc(a.actual)+'</div></div>' : '';
-    var cm = a.req_target ? '<span class="rs-cmlink" onclick="rsOpenCM(\\''+esc(a.req_target)+'\\')" title="Open this CM (coming soon)">\\u25c9 '+esc(a.req_target)+' \\u203a</span>' : '';
+    // the live device being driven by this action (DO output + PV feedback right now)
+    var devHtml='';
+    var dev=a.req_target?childNow[a.req_target]:null;
+    if(dev){
+      var doA=rsIsActive(dev.do), pvA=rsIsActive(dev.pv), diWaiting=doA&&!rsIsActive(dev.di);
+      var ilkOn=dev.interlock_active;
+      devHtml='<div class="rs-actdev'+(ilkOn?' ilk':'')+'">'
+        +'<span class="rs-actdev-nm">'+esc(a.req_target)+'</span>'
+        +'<span class="rs-actdev-pin '+(doA?'hi':'')+'">DO '+rsFmt(dev.do)+'</span>'
+        +'<span class="rs-actdev-pin '+(diWaiting?'wait':(rsIsActive(dev.di)?'hi':''))+'">DI '+(diWaiting?'\\u2026':rsFmt(dev.di))+'</span>'
+        +'<span class="rs-actdev-pin '+(pvA?'hi':'')+'">PV '+rsFmt(dev.pv)+'</span>'
+        +(ilkOn?'<span class="rs-actdev-ilk">interlocked</span>':'')
+        +'<span class="rs-actdev-open" onclick="rsOpenCM(\\''+esc(a.req_target)+'\\')" title="Open CM status">status \\u203a</span>'
+        +'</div>';
+    }
     return '<div class="rs-act '+(a.gated?'':(a.confirmed?'ok':'wait'))+'">'
       +'<div class="rs-act-h"><span class="rs-act-id">'+esc(a.action)+'</span>'
       +'<span class="rs-act-d">'+esc(a.desc||a.request||'')+'</span>'
       +'<span class="rs-act-st '+stCls+'">'+stTxt+'</span></div>'
       +'<div class="rs-io"><div><div class="k">Requested</div><div class="v">'+esc(a.request||'')+'</div></div>'
       +'<div><div class="k">Confirm</div><div class="v '+(a.confirmed?'act match':'')+'">'+(a.confirmed?'\\u2713 met':'pending')+'</div></div>'
-      + expHtml + '</div>'+cm+'</div>';
+      + expHtml + '</div>'+devHtml+'</div>';
   }).join('');
   return '<p class="rs-vhead">'+esc(sel)+(stepDesc?' \\u00b7 '+esc(stepDesc):'')+'</p>'
     +'<p class="rs-vsub">'+acts.length+' action'+(acts.length!==1?'s':'')+' \\u2014 requested vs actual</p>'+rows;
 }
+// Floating CM-status window — opens on a device click WITHOUT leaving the sim.
+// Answers "is this device moving, and if not why": the command/feedback chain plus
+// the interlock permissive and which interlock conditions are active this tick.
 function rsOpenCM(inst){
-  // placeholder for the future CM status window; for now, jump to the CM in Studio.
-  if(typeof stuOpen==='function'){ rsClose(); switchView('studio'); stuBuildList(); setTimeout(function(){ stuOpen('cm:'+_rsCmClass(inst)); },60); }
+  RS.cmInst=inst;
+  var w=document.getElementById('rsCMWin');
+  if(!w){ w=document.createElement('div'); w.id='rsCMWin'; w.className='rs-cmwin'; document.body.appendChild(w); }
+  rsRenderCM();
+  rsWireCMDrag();
+}
+function rsCloseCM(){ RS.cmInst=null; var w=document.getElementById('rsCMWin'); if(w) w.remove(); }
+function rsRenderCM(){
+  var w=document.getElementById('rsCMWin'); if(!w||!RS.cmInst) return;
+  var row=RS.trace[RS.cur]||{}; var c=(row.children||{})[RS.cmInst];
+  var meta=(RS.devices||[]).filter(function(d){return d.instance===RS.cmInst;})[0]||{};
+  if(!c){ w.innerHTML='<div class="rs-cmw-head" id="rsCMHead"><b>'+esc(RS.cmInst)+'</b><span class="x" onclick="rsCloseCM()">\\u00d7</span></div><div class="rs-cmw-body"><div class="rs-empty">This device isn\\'t part of the current command.</div></div>'; return; }
+  var doA=rsIsActive(c.do), diA=rsIsActive(c.di), pvA=rsIsActive(c.pv), rspA=rsIsActive(c.rsp);
+  var diWaiting=doA&&!diA;
+  function pin(lbl,val,cls){ return '<div class="rs-sig"><div class="'+cls+'">'+val+'</div><div class="pl">'+lbl+'</div></div>'; }
+  var chain='<div class="rs-loop">'
+    + pin('RSP',rsFmt(c.rsp),rsPinClass(c.rsp,rspA))+'<div class="rs-arrow">\\u2192</div>'
+    + pin('DO',rsFmt(c.do),rsPinClass(c.do,doA))
+    + '<div class="rs-arrow">'+(diWaiting?'<span class="tt">travel '+(c.travel||'')+'t</span>':'')+'\\u2192</div>'
+    + pin('DI',diWaiting?'\\u2026':rsFmt(c.di),diWaiting?'pin wait':rsPinClass(c.di,diA))+'<div class="rs-arrow">\\u2192</div>'
+    + pin('PV',rsFmt(c.pv),rsPinClass(c.pv,pvA))+'</div>';
+  // interlock section
+  var perm=c.permissive;
+  var permBadge=perm?'<span class="rs-perm ok">permissive \\u2014 clear to move</span>':'<span class="rs-perm blk">interlocked \\u2014 held</span>';
+  var ilkRows=(c.ilks||[]).map(function(k){
+    return '<div class="rs-ilk'+(k.active?' on':'')+'"><span class="rs-ilk-dot"></span>'
+      +'<span class="rs-ilk-nm">'+esc(k.name)+'</span>'
+      +'<span class="rs-ilk-st">'+(k.active?'ACTIVE':'clear')+'</span></div>';
+  }).join('');
+  var nActive=(c.ilks||[]).filter(function(k){return k.active;}).length;
+  var ilkHdr = nActive? (nActive+' interlock condition'+(nActive!==1?'s':'')+' active') : 'no interlock conditions active';
+  w.innerHTML=''
+    +'<div class="rs-cmw-head" id="rsCMHead"><b>'+esc(RS.cmInst)+'</b>'
+    +'<span class="rs-cmw-cls">'+esc(meta.module||c.module||'')+'</span>'
+    +'<span class="rs-cmw-fam '+esc(meta.family||'')+'">'+esc(meta.family||'')+'</span>'
+    +'<span class="x" onclick="rsCloseCM()">\\u00d7</span></div>'
+    +'<div class="rs-cmw-body">'
+    +'<p class="rs-cmw-lbl">Command \\u2192 feedback</p>'+chain
+    +'<p class="rs-cmw-lbl" style="margin-top:16px">Interlock status</p>'
+    +'<div class="rs-perm-row">'+permBadge+'<span class="rs-ilk-hdr">'+ilkHdr+'</span></div>'
+    +'<div class="rs-ilk-grid">'+(ilkRows||'<span class="rs-vsub">No interlock conditions modelled.</span>')+'</div>'
+    +'<p class="rs-cmw-foot">Travel time '+(c.travel||'?')+' ticks \\u00b7 tick '+(row.tick)+'. '
+    +(pvA?'Confirmed.':(doA?'Output driven \\u2014 waiting for feedback.':(perm?'Idle.':'Held by interlock.')))+'</p>'
+    +'</div>';
+}
+function rsWireCMDrag(){
+  var head=document.getElementById('rsCMHead'), win=document.getElementById('rsCMWin');
+  if(!head||!win) return;
+  head.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('x')) return;
+    var r=win.getBoundingClientRect(); win.style.left=r.left+'px'; win.style.top=r.top+'px'; win.style.right='auto';
+    var ox=e.clientX-r.left, oy=e.clientY-r.top;
+    function mv(ev){ win.style.left=Math.max(0,Math.min(window.innerWidth-60,ev.clientX-ox))+'px'; win.style.top=Math.max(0,Math.min(window.innerHeight-30,ev.clientY-oy))+'px'; }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
 }
 function _rsCmClass(inst){
   var d=(RS.devices||[]).filter(function(x){return x.instance===inst;})[0];
