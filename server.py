@@ -937,6 +937,42 @@ def formula_bulk_apply_route():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/ref_trace')
+def ref_trace_route():
+    """Hidden reference tracer: find every place a module (optionally a parameter) is
+    referenced across alias / EM-member / direct layers, with the resolution path."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    module = request.args.get('module', '').strip()
+    param = request.args.get('param', '').strip() or None
+    if not module:
+        return jsonify({'error': 'No module specified.'})
+    try:
+        import ref_tracer
+        return jsonify(ref_tracer.trace_module(text, module, param=param))
+    except Exception as e:
+        app.logger.exception('ref_trace failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/ref_trace_suggest')
+def ref_trace_suggest_route():
+    """Autocomplete module tags for the tracer search box."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'suggestions': []})
+    try:
+        import ref_tracer
+        return jsonify({'suggestions': ref_tracer.module_suggestions(
+            text, request.args.get('q', ''))})
+    except Exception as e:
+        app.logger.exception('ref_trace_suggest failed')
+        return jsonify({'suggestions': []})
+
+
 @app.route('/param_matrix_classes')
 def param_matrix_classes_route():
     """List classes with multiple deployed instances (candidates for the matrix)."""

@@ -84,6 +84,50 @@ button{font-family:inherit}
 .stu-matrixbtn{padding:6px 12px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer;margin-right:8px}
 .stu-matrixbtn:hover{background:var(--surface-2)}
 /* Parameter Matrix modal */
+/* Hidden Reference Tracer */
+.rx-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
+.rx-card{position:absolute;top:8vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:13px;width:min(860px,94vw);height:78vh;min-width:560px;min-height:400px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.42);pointer-events:auto;resize:both}
+.rx-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;user-select:none;flex:0 0 auto}
+.rx-head h2{margin:0;font-size:15px;font-weight:650}
+.rx-head .rx-sub{font-size:12px;color:var(--ink-3)}
+.rx-head .x{margin-left:auto;cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.rx-search{display:flex;gap:9px;padding:12px 18px;border-bottom:1px solid var(--border);flex:0 0 auto;align-items:center}
+.rx-inwrap{position:relative;flex:2;min-width:0}
+.rx-in{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:'IBM Plex Mono';background:var(--surface);color:var(--ink)}
+.rx-in.rx-param{flex:1}
+.rx-pop{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:9px;box-shadow:0 14px 40px rgba(0,0,0,.25);max-height:240px;overflow:auto;z-index:5;display:none}
+.rx-pop.on{display:block}
+.rx-sug{padding:7px 12px;font-size:12.5px;font-family:'IBM Plex Mono';cursor:pointer}
+.rx-sug:hover{background:var(--accent-soft);color:var(--accent)}
+.rx-btn{padding:9px 16px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.rx-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.rx-body{padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0}
+.rx-empty{color:var(--ink-3);font-size:13px;line-height:1.6}
+.rx-summary{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.rx-summary b{font-size:15px;font-family:'IBM Plex Mono'}
+.rx-parampill{font-size:11px;font-family:'IBM Plex Mono';background:var(--accent-soft);color:var(--accent);padding:2px 8px;border-radius:20px}
+.rx-sumcounts{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.rx-find{border:1px solid var(--border);border-radius:11px;margin-bottom:12px;overflow:hidden}
+.rx-find-h{display:flex;align-items:center;gap:9px;padding:10px 13px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.rx-via{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:20px}
+.rx-via.alias{background:#ede9fe;color:#6d28d9}
+.rx-via.member{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.rx-via.direct{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d)}
+.rx-via.dynamic{background:#cffafe;color:#0e7490}
+.rx-link{font-size:13px;font-weight:700;font-family:'IBM Plex Mono'}
+.rx-linkdesc{font-size:11.5px;color:var(--ink-3)}
+.rx-usecount{margin-left:auto;font-size:11px;color:var(--ink-3);font-weight:600}
+.rx-path{padding:9px 13px;font-size:12px;color:var(--ink-2);border-bottom:1px solid var(--border);background:var(--surface)}
+.rx-uses{padding:6px 13px 10px}
+.rx-use{padding:7px 0;border-bottom:1px dashed var(--border)}
+.rx-use:last-child{border-bottom:0}
+.rx-use-loc{font-size:12px;font-weight:600;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rx-use-param{font-family:'IBM Plex Mono';color:var(--accent);font-weight:600;font-size:11.5px}
+.rx-dim{color:var(--ink-3);font-weight:400}
+.rx-snip{display:block;margin-top:4px;font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-3);background:var(--surface-2);padding:5px 8px;border-radius:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-more{font-size:11px;color:var(--ink-3);padding-top:6px;font-style:italic}
+.rx-unused{margin-top:8px;font-size:11.5px;color:var(--ink-3)}
+.rx-ub{font-family:'IBM Plex Mono';background:var(--surface-2);padding:2px 7px;border-radius:6px;margin:0 2px}
 .pm-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
 .pm-card{position:absolute;top:5vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;width:min(1240px,96vw);height:84vh;min-width:760px;min-height:440px;max-width:99vw;max-height:95vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.4);pointer-events:auto;resize:both}
 .pm-head{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;user-select:none;flex:0 0 auto}
@@ -1099,7 +1143,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-1658"
+_BUILD_ID = "20260709-2057"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -2605,7 +2649,7 @@ var FS={token:'',grid:null,recipe:'',edits:{},tab:'edit'};
 function fsOpen(){
   var tok=(typeof RECWS!=='undefined' && RECWS.token) ? RECWS.token
          : (typeof EXPORT_TOKEN!=='undefined'?EXPORT_TOKEN:'');
-  if(!tok){ alert('Import a recipe first.'); return; }
+  if(!tok){ alert('Formula Studio works on recipe formula exports. Import a recipe FHX first (the \\u2b06 Import recipe FHX button), then open Formula Studio.'); return; }
   FS.token=tok; FS.edits={};
   var ov=document.getElementById('fsOverlay');
   if(!ov){ ov=document.createElement('div'); ov.id='fsOverlay'; ov.className='fs-ov'; document.body.appendChild(ov); }
@@ -2623,7 +2667,16 @@ function fsOpen(){
       if(d.error){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">'+esc(d.error)+'</div>'; return; }
       FS.grid=d.grid||{};
       var recs=Object.keys(FS.grid);
-      if(!recs.length){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">No formulas in this recipe export.</div>'; return; }
+      if(!recs.length){
+        document.getElementById('fsBody').innerHTML='<div class="fs-empty">'
+          +'<p style="font-size:14px;font-weight:600;margin:0 0 6px">No recipe formulas in the current import.</p>'
+          +'<p style="margin:0 0 14px;color:var(--ink-3);max-width:440px;line-height:1.6">Formula Studio works on <b>recipe exports</b> that contain formula sets '
+          +'(<code>BATCH_RECIPE_FORMULA</code> blocks) \\u2014 for example a recipe with named formulas like \\u201cMEDIA AND 20\\u201d. '
+          +'A strategy/phase export (like a plant FHX) has no formulas, so there\\'s nothing to edit here.</p>'
+          +'<button class="fs-btn primary" onclick="fsClose();document.getElementById(\\'recFile\\').click()">\\u2b06 Import a recipe FHX</button>'
+          +'</div>';
+        return;
+      }
       FS.recipe=recs[0];
       document.getElementById('fsSub').textContent=FS.recipe;
       fsRenderEdit();
@@ -2631,6 +2684,108 @@ function fsOpen(){
     .catch(function(e){ document.getElementById('fsBody').innerHTML='<div class="fs-empty">'+esc(e.message)+'</div>'; });
 }
 function fsClose(){ var o=document.getElementById('fsOverlay'); if(o) o.remove(); }
+// ─── Hidden Reference Tracer ────────────────────────────────────────────────
+// Find where a module (or one of its parameters) is referenced — including the
+// references DeltaV hides because they go through a unit alias or an EM member
+// resolution. Shows the full resolution path for each finding.
+var RX={module:'',param:'',data:null};
+function rxOpen(preModule){
+  var ov=document.getElementById('rxOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='rxOverlay'; ov.className='rx-ov'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="rx-card" id="rxCard"><div class="rx-head" id="rxHead">'
+    +'<h2>\\u2318 Trace references</h2>'
+    +'<span class="rx-sub">find hidden uses through aliases &amp; EM members</span>'
+    +'<span class="x" onclick="rxClose()">\\u00d7</span></div>'
+    +'<div class="rx-search"><div class="rx-inwrap">'
+    +'<input id="rxModule" class="rx-in" autocomplete="off" spellcheck="false" placeholder="Module tag (e.g. FP005-HV-027)\\u2026" '
+    +'oninput="rxSuggest(this.value)" onkeydown="rxKey(event)">'
+    +'<div class="rx-pop" id="rxPop"></div></div>'
+    +'<input id="rxParam" class="rx-in rx-param" autocomplete="off" spellcheck="false" placeholder="Parameter (optional, e.g. PV.CV)">'
+    +'<button class="rx-btn primary" onclick="rxRun()">Trace</button></div>'
+    +'<div class="rx-body" id="rxBody"><div class="rx-empty">Enter a module tag to find everywhere it\\'s referenced \\u2014 '
+    +'including phase logic that reaches it through a unit alias, and EM logic that reaches it through a member resolution.</div></div>'
+    +'</div>';
+  rxWireDrag();
+  if(preModule){ document.getElementById('rxModule').value=preModule; rxRun(); }
+  else setTimeout(function(){ var el=document.getElementById('rxModule'); if(el) el.focus(); },50);
+}
+function rxClose(){ var o=document.getElementById('rxOverlay'); if(o) o.remove(); }
+function rxWireDrag(){
+  var head=document.getElementById('rxHead'), card=document.getElementById('rxCard');
+  if(!head||!card) return;
+  head.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('x')) return;
+    var r=card.getBoundingClientRect(); card.style.transform='none'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+    var ox=e.clientX-r.left, oy=e.clientY-r.top;
+    function mv(ev){ card.style.left=Math.max(0,Math.min(window.innerWidth-80,ev.clientX-ox))+'px'; card.style.top=Math.max(0,Math.min(window.innerHeight-40,ev.clientY-oy))+'px'; }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
+}
+var _rxSugTimer=null;
+function rxSuggest(q){
+  clearTimeout(_rxSugTimer);
+  var pop=document.getElementById('rxPop');
+  if(!q||q.length<2){ pop.innerHTML=''; pop.classList.remove('on'); return; }
+  _rxSugTimer=setTimeout(function(){
+    fetch('/ref_trace_suggest?t='+encodeURIComponent(EXPORT_TOKEN)+'&q='+encodeURIComponent(q))
+      .then(function(r){return r.json();}).then(function(d){
+        var s=d.suggestions||[];
+        if(!s.length){ pop.innerHTML=''; pop.classList.remove('on'); return; }
+        pop.innerHTML=s.map(function(t){return '<div class="rx-sug" onclick="rxPick(\\''+esc(t)+'\\')">'+esc(t)+'</div>';}).join('');
+        pop.classList.add('on');
+      });
+  },160);
+}
+function rxPick(t){ document.getElementById('rxModule').value=t; var p=document.getElementById('rxPop'); p.innerHTML=''; p.classList.remove('on'); rxRun(); }
+function rxKey(e){ if(e.key==='Enter'){ var p=document.getElementById('rxPop'); p.innerHTML=''; p.classList.remove('on'); rxRun(); } }
+function rxRun(){
+  var mod=(document.getElementById('rxModule')||{}).value||'';
+  var param=(document.getElementById('rxParam')||{}).value||'';
+  if(!mod.trim()){ return; }
+  RX.module=mod.trim(); RX.param=param.trim();
+  var body=document.getElementById('rxBody');
+  body.innerHTML=dvLoader('Tracing '+esc(RX.module)+'\\u2026');
+  var url='/ref_trace?t='+encodeURIComponent(EXPORT_TOKEN)+'&module='+encodeURIComponent(RX.module)
+    +(RX.param?'&param='+encodeURIComponent(RX.param):'');
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(d.error){ body.innerHTML='<div class="rx-empty">'+esc(d.error)+'</div>'; return; }
+    RX.data=d; rxRender();
+  }).catch(function(e){ body.innerHTML='<div class="rx-empty">'+esc(e.message)+'</div>'; });
+}
+function rxViaLabel(via){ return via==='alias'?'Unit alias':(via==='em_member'?'EM member':(via==='dynamic'?'Dynamic ref':'Direct')); }
+function rxViaClass(via){ return via==='alias'?'alias':(via==='em_member'?'member':(via==='dynamic'?'dynamic':'direct')); }
+function rxRender(){
+  var d=RX.data, body=document.getElementById('rxBody');
+  var s=d.summary||{};
+  if(!d.findings||!d.findings.length){
+    body.innerHTML='<div class="rx-empty"><p style="font-weight:600;font-size:14px;margin:0 0 6px">No references found for '+esc(d.module)+(d.param?' · '+esc(d.param):'')+'.</p>'
+      +'<p style="color:var(--ink-3);max-width:440px">Nothing in the export references this module through an alias, EM member, or direct expression'
+      +(d.param?' for that parameter':'')+'. If you expected a hit, try clearing the parameter filter or check the tag spelling.</p></div>';
+    return;
+  }
+  var head='<div class="rx-summary"><b>'+esc(d.module)+'</b>'+(d.param?' <span class="rx-parampill">'+esc(d.param)+'</span>':'')
+    +'<span class="rx-sumcounts">'+(s.total_uses||0)+' reference'+((s.total_uses||0)!==1?'s':'')+' across '+(s.paths||0)+' path'+((s.paths||0)!==1?'s':'')+'</span></div>';
+  var cards=d.findings.map(function(f){
+    var uses=f.uses.map(function(u){
+      var loc=[u.owner&&u.owner!=='?'?u.owner:'', (u.step_kind?u.step_kind.toLowerCase()+' ':'')+(u.step||'')].filter(Boolean).join(' · ');
+      return '<div class="rx-use"><div class="rx-use-loc">'+(loc?esc(loc):'<span class="rx-dim">location n/a</span>')
+        +(u.param?'<span class="rx-use-param">.'+esc(u.param)+'</span>':'')+'</div>'
+        +(u.snippet?'<code class="rx-snip">'+esc(u.snippet)+'</code>':'')+'</div>';
+    }).join('');
+    var more=f.use_count>f.uses.length?'<div class="rx-more">+ '+(f.use_count-f.uses.length)+' more</div>':'';
+    return '<div class="rx-find">'
+      +'<div class="rx-find-h"><span class="rx-via '+rxViaClass(f.via)+'">'+rxViaLabel(f.via)+'</span>'
+      +'<span class="rx-link">'+esc(f.link)+'</span>'
+      +(f.link_desc?'<span class="rx-linkdesc">'+esc(f.link_desc)+'</span>':'')
+      +'<span class="rx-usecount">'+f.use_count+' use'+(f.use_count!==1?'s':'')+'</span></div>'
+      +'<div class="rx-path">'+esc(f.path)+'</div>'
+      +'<div class="rx-uses">'+uses+more+'</div></div>';
+  }).join('');
+  var unused = (d.unused_bindings&&d.unused_bindings.length)
+    ? '<div class="rx-unused">Also bound but unused in logic: '+d.unused_bindings.map(function(u){return '<span class="rx-ub">'+esc(u.link)+' ('+rxViaLabel(u.via).toLowerCase()+')</span>';}).join(' ')+'</div>' : '';
+  body.innerHTML=head+cards+unused;
+}
 function fsSetTab(t){
   FS.tab=t;
   document.getElementById('fsTabEdit').classList.toggle('on',t==='edit');
@@ -2824,8 +2979,11 @@ function recMergeIntoExplorer(file, label, src){
         src.innerHTML='Imported and merged into the Explorer. '
           +'<a class="link" href="/explore_stashed?t='+encodeURIComponent(res.j.token)
           +'&name='+encodeURIComponent(label)+'">open in Explorer \u2192</a>';
-        // update the live Explorer token so subsequent workspace exports stay in sync
-        try{ EXPORT_TOKEN=res.j.token; RECWS.token=res.j.token; }catch(e){}
+        // Update the live Explorer token so subsequent Explorer exports stay in sync,
+        // but DO NOT overwrite RECWS.token: the recipe workspace stash is what carries
+        // the BATCH_RECIPE_FORMULA blocks (Formula Studio reads it). The merged Explorer
+        // FHX can lose formulas depending on the append path, so keep them separate.
+        try{ EXPORT_TOKEN=res.j.token; }catch(e){}
       } else {
         src.innerHTML='Imported to the workspace. (Could not merge into the Explorer: '
           +esc((res.j&&res.j.error)||'unknown')+')';
@@ -5261,6 +5419,9 @@ function wireFbdLinks(){
     <div class="cmdp-pop" id="cmdpPop"></div>
   </div>
   <div class="hdr-right">{theme_html}
+    <button class="iconbtn" id="refTraceBtn" title="Trace hidden references \u2014 find where a module is used through aliases &amp; EM members" onclick="rxOpen()">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 6h6M8.5 7.5l8 9M16 6a6 6 0 0 1-6 6"/></svg>
+    </button>
     <button class="iconbtn" id="themeBtn" title="Toggle light / dark" onclick="toggleMode()">
       <svg id="themeIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
     </button>{export_html}</div>

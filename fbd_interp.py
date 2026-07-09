@@ -329,6 +329,17 @@ class STEval:
             lhs, rhs = m.group(1), m.group(2)
             val = self._eval_value(rhs)
             self.s.set(lhs, val)
+            # Dynamic parameter binding: assigning D_XXX.$REF a (non-empty) path
+            # "connects" the reference. Real DeltaV then exposes .CST=0 (good) and
+            # reads/writes flow through the resolved path. We model the connection
+            # status so confirms like ".$REF != '' AND .CST = 0" resolve correctly,
+            # and record the resolved path so it can be followed / surfaced.
+            lkey = self.s.norm(lhs) if hasattr(self.s, 'norm') else lhs
+            if lkey.endswith('.$REF') or lkey.endswith('$REF'):
+                base = lkey.rsplit('.$REF', 1)[0].rsplit('$REF', 1)[0].rstrip('.')
+                connected = 0 if (val not in (None, '', 0)) else 16  # 0=good, !=0 bad
+                self.s.set(base + '.CST', connected)
+                self.s.set(base + '.$REF', val)
 
     def _run_if(self, st):
         # IF <cond> THEN <body> [ELSIF <cond> THEN <body>]* [ELSE <body>] ENDIF
@@ -364,6 +375,33 @@ class STEval:
 
     def _eval_value(self, rhs):
         rhs = rhs.strip().rstrip(';').strip()
+        # DeltaV escapes a literal double-quote as "" inside an EXPRESSION attribute.
+        # After the outer attribute quotes are stripped upstream, a string literal like
+        # ""//"" arrives doubled; collapse "" -> " so "//"-style literals parse cleanly.
+        if '""' in rhs:
+            rhs = rhs.replace('""', '"')
+        # String concatenation (used to build dynamic .$REF paths):
+        #   "//" + '^/R_CIP_SKID.CVS' + "-HS-001/PV"
+        # Only treat as concatenation when '+' joins string/ref operands (not arithmetic).
+        if '+' in rhs and ('"' in rhs or "'" in rhs):
+            parts = self._split_concat(rhs)
+            if parts is not None:
+                out = []
+                for p in parts:
+                    p = p.strip()
+                    if not p:
+                        continue
+                    if p.startswith('"') and p.endswith('"') and len(p) >= 2:
+                        out.append(p[1:-1])
+                    elif p.startswith("'") and p.endswith("'"):
+                        inner = p[1:-1]
+                        if any(c in inner for c in '^/.'):
+                            out.append(str(self.s.get(inner, '')))
+                        else:
+                            out.append(inner)
+                    else:
+                        out.append(str(self._resolve(p)))
+                return ''.join(out)
         toks = _tokenize(rhs)
         if len(toks) == 1:
             lit = self._literal(toks[0][0], toks[0][1])
@@ -373,6 +411,36 @@ class STEval:
             return self.eval_condition(rhs)
         except Exception:  # noqa
             return rhs
+
+    def _split_concat(self, rhs):
+        """Split a '+'-joined string expression at top level, respecting quotes.
+        Returns the operand list, or None if it doesn't look like string concat."""
+        parts, buf, i, n = [], [], 0, len(rhs)
+        depth = 0
+        quote = None
+        while i < n:
+            ch = rhs[i]
+            # handle doubled "" inside a "..." literal (DeltaV escaping)
+            if quote:
+                if ch == quote:
+                    if i + 1 < n and rhs[i + 1] == quote:
+                        buf.append(ch); buf.append(ch); i += 2; continue
+                    quote = None; buf.append(ch); i += 1; continue
+                buf.append(ch); i += 1; continue
+            if ch in '"\'':
+                quote = ch; buf.append(ch); i += 1; continue
+            if ch == '(':
+                depth += 1
+            elif ch == ')':
+                depth -= 1
+            if ch == '+' and depth == 0:
+                parts.append(''.join(buf)); buf = []; i += 1; continue
+            buf.append(ch); i += 1
+        parts.append(''.join(buf))
+        # only string concat if at least one operand is quoted
+        if any('"' in p or "'" in p for p in parts) and len(parts) > 1:
+            return parts
+        return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
