@@ -1099,7 +1099,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-1554"
+_BUILD_ID = "20260709-1658"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -2073,12 +2073,15 @@ function rsTravelMap(){
   RS.devices.forEach(function(d){ var k=d.member||d.instance; var el=document.getElementById('rsTv_'+k); if(el && el.value!=='') m[k]=parseInt(el.value,10)||0; });
   return m;
 }
-function rsRun(){
+function rsRun(keepPos){
   rsStop();
+  var prevCur = keepPos ? RS.cur : 0;
+  var prevSel = keepPos ? RS.sel : null;
   var cmd=(document.getElementById('rsCmd')||{}).value||'';
   var btn=document.getElementById('rsRunBtn'); if(btn){ btn.disabled=true; btn.textContent='Running\\u2026'; }
   var run=document.getElementById('rsRun');
-  run.innerHTML='<div class="rs-empty">'+dvLoader('Simulating '+esc(cmd)+'\\u2026')+'</div>';
+  // don't blank the view on an in-place manual drive — it reads as a restart
+  if(!keepPos) run.innerHTML='<div class="rs-empty">'+dvLoader('Simulating '+esc(cmd)+'\\u2026')+'</div>';
   var fd=new FormData();
   fd.append('t',EXPORT_TOKEN); fd.append('em',RS.emClass||RS.em); fd.append('command',cmd);
   if(RS.instance) fd.append('instance', RS.instance);
@@ -2089,12 +2092,19 @@ function rsRun(){
     .then(function(d){
       if(btn){ btn.disabled=false; btn.textContent='\\u25b6 Run'; }
       if(d.error){ run.innerHTML='<div class="rs-empty">'+esc(d.error)+'</div>'; return; }
-      RS.trace=d.trace||[]; RS.completed=d.completed; RS.notes=d.notes||[]; RS.cur=0;
-      RS.layout=d.layout||{steps:[],transitions:[]}; RS.sel=null; RS.selManual=false;
+      RS.trace=d.trace||[]; RS.completed=d.completed; RS.notes=d.notes||[];
+      RS.layout=d.layout||{steps:[],transitions:[]};
       if(!RS.trace.length){ run.innerHTML='<div class="rs-empty">No steps ran for this command.</div>'; return; }
-      rsRenderFrame();
-      if(RS.mode==='auto'){ rsPlay(); }              // auto: animate immediately
-      else { RS.playing=false; rsRenderFrame(); }    // semi/full: wait for step / manual drive
+      if(keepPos){
+        // hold position on an in-place manual drive so the view doesn't jump to the start
+        RS.cur=Math.min(prevCur, RS.trace.length-1); RS.sel=prevSel;
+        rsRenderFrame();
+      } else {
+        RS.cur=0; RS.sel=null; RS.selManual=false;
+        rsRenderFrame();
+        if(RS.mode==='auto'){ rsPlay(); }              // auto: animate immediately
+        else { RS.playing=false; rsRenderFrame(); }    // semi/full: wait for step / manual drive
+      }
     })
     .catch(function(e){ if(btn){btn.disabled=false;btn.textContent='\\u25b6 Run';} run.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
 }
@@ -2353,7 +2363,7 @@ function rsDrive(inst, val){
   if(val===null){ delete RS.overrides[inst].force_do; }
   else { RS.overrides[inst].force_do=val; }
   if(!Object.keys(RS.overrides[inst]).length) delete RS.overrides[inst];
-  rsRun();
+  rsRun(true);   // recompute with your command applied, but hold the current position
 }
 // advanced hold/force controls — available in Semi and Manual modes
 function rsManualControls(inst){
@@ -2372,13 +2382,15 @@ function rsOverride(inst, key, val){
   RS.overrides=RS.overrides||{}; RS.overrides[inst]=RS.overrides[inst]||{};
   if(val===null) delete RS.overrides[inst][key]; else RS.overrides[inst][key]=val;
   if(!Object.keys(RS.overrides[inst]).length) delete RS.overrides[inst];
-  rsRun();
+  rsRun(true);   // hold position; the override changes the outcome, not the view point
 }
 function rsWireFaceDrag(){
-  var head=document.getElementById('rsFaceHead'), win=document.getElementById('rsFaceWin');
-  if(!head||!win) return;
-  head.addEventListener('mousedown',function(e){
-    if(e.target.classList.contains('x')) return;
+  var win=document.getElementById('rsFaceWin');
+  if(!win || win._dragWired) return;
+  win._dragWired=true;   // wire once on the persistent element (innerHTML rebuilds won't lose it)
+  win.addEventListener('mousedown',function(e){
+    var head=e.target.closest('.rs-face-head');
+    if(!head || e.target.classList.contains('x')) return;
     var r=win.getBoundingClientRect(); win.style.left=r.left+'px'; win.style.top=r.top+'px'; win.style.right='auto';
     var ox=e.clientX-r.left, oy=e.clientY-r.top;
     function mv(ev){ win.style.left=Math.max(0,Math.min(window.innerWidth-60,ev.clientX-ox))+'px'; win.style.top=Math.max(0,Math.min(window.innerHeight-30,ev.clientY-oy))+'px'; }
