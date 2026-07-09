@@ -72,7 +72,7 @@ button{font-family:inherit}
 .stu-litem{padding:7px 9px;border-radius:7px;cursor:pointer;font-size:12.5px;display:flex;align-items:center;gap:7px}
 .stu-litem:hover{background:var(--surface-2)}
 .stu-litem.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
-.stu-main{overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%}
+.stu-main{overflow:hidden;display:flex;flex-direction:column;min-height:0;height:100%;position:relative}
 .stu-side{border-right:1px solid var(--border);padding:14px 12px;overflow:auto;background:var(--surface);min-height:0}
 .stu-welcome{padding:26px}
 .stu-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
@@ -120,15 +120,29 @@ table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max
 .pm-empty{padding:40px;text-align:center;color:var(--ink-3)}
 /* Real-simulation modal */
 .rs-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
-.rs-card{position:absolute;top:6vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;width:min(1120px,94vw);height:80vh;min-width:720px;min-height:420px;max-width:99vw;max-height:96vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.4);pointer-events:auto;resize:both}
-.rs-head{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;flex:0 0 auto;user-select:none}
+/* floating host */
+.rs-ov .rs-card{position:absolute;top:6vh;left:50%;transform:translateX(-50%);height:80vh;width:min(1120px,94vw);min-width:720px;min-height:420px;max-width:99vw;max-height:96vh;resize:both;box-shadow:0 24px 70px rgba(0,0,0,.4);border-radius:14px}
+.rs-ov .rs-head{cursor:move}
+/* docked host: fills the Studio main area below the head */
+.rs-dockhost{position:absolute;inset:0;z-index:60;background:var(--canvas);display:flex}
+.rs-dockhost .rs-card{flex:1 1 auto;border-radius:0;box-shadow:none;height:100%;min-width:0}
+.rs-dockhost .rs-head{cursor:default}
+.rs-card{background:var(--surface);border:1px solid var(--border-strong);overflow:hidden;display:flex;flex-direction:column;pointer-events:auto}
+.rs-head{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--border);background:var(--surface-2);flex:0 0 auto;user-select:none}
 .rs-head h2{margin:0;font-size:15px;font-weight:650}
 .rs-head .sub{color:var(--ink-3);font-size:12px;font-family:'IBM Plex Mono'}
-.rs-head .x{margin-left:auto;cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.rs-head-sp{flex:1}
+.rs-hostb{padding:5px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--ink-2);font-size:12px;font-weight:600;cursor:pointer}
+.rs-hostb:hover{background:var(--surface-2)}
+.rs-head .x{cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1;margin-left:4px}
 .rs-head .x:hover{color:var(--ink)}
-.rs-body{display:grid;grid-template-columns:238px 1fr;min-height:0;flex:1 1 auto;overflow:hidden}
-.rs-config{border-right:1px solid var(--border);padding:16px;overflow:auto;background:var(--surface)}
-.rs-run{padding:14px 18px;overflow:auto;display:grid;grid-template-columns:238px 1fr;gap:18px;align-content:start}
+.rs-body{display:flex;min-height:0;flex:1 1 auto;overflow:hidden}
+.rs-config{width:238px;flex:0 0 238px;border-right:1px solid var(--border);padding:16px;overflow:auto;background:var(--surface)}
+.rs-split-v{flex:0 0 6px;cursor:col-resize;background:transparent;position:relative}
+.rs-split-v:hover{background:var(--accent-soft)}
+.rs-split-v::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--border)}
+/* run area fills remaining height; SFC + verify each scroll internally (#1,#5) */
+.rs-run{flex:1 1 auto;min-width:0;padding:14px 18px;overflow:hidden;display:grid;grid-template-columns:238px 1fr;grid-template-rows:1fr auto;gap:16px;overscroll-behavior:contain}
 .rs-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 8px}
 .rs-cmd{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--ink);margin-bottom:18px}
 .rs-devrow-cfg{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
@@ -149,8 +163,9 @@ table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max
 .rs-badge.run{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
 .rs-badge.done{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d)}
 .rs-badge.timeout{background:#fee2e2;color:#b91c1c}
-.rs-sfc-col{min-width:0}
-.rs-sfc-wrap{border:1px solid var(--border);border-radius:11px;background:var(--surface-2);padding:8px;overflow:auto;max-height:460px}
+.rs-sfc-col{min-width:0;min-height:0;display:flex;flex-direction:column;height:100%}
+.rs-sfc-col .rs-status{flex:0 0 auto}
+.rs-sfc-wrap{border:1px solid var(--border);border-radius:11px;background:var(--surface-2);padding:8px;overflow:auto;min-height:0;height:100%}
 .sfc-step{cursor:pointer}
 .sfc-box{fill:var(--surface);stroke:var(--border-strong);stroke-width:1.5}
 .sfc-step.active .sfc-box{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
@@ -162,12 +177,19 @@ table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max
 .sfc-trans rect{fill:var(--ink)}
 .sfc-trans.hot rect{fill:var(--ok,#15803d)}
 .sfc-tid{font:700 10px 'IBM Plex Mono';fill:var(--ink-2)}
-.rs-verify{overflow:auto;max-height:460px}
+.rs-verify{overflow:auto;min-height:0;height:100%;overscroll-behavior:contain}
 .rs-vhead{font-size:12.5px;font-weight:700;margin:0 0 4px}
 .rs-vsub{font-size:11px;color:var(--ink-3);margin:0 0 12px}
-.rs-act{border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:9px;background:var(--surface)}
+.rs-act{border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:9px;background:var(--surface);scroll-margin-top:8px}
 .rs-act.ok{border-color:#a7f3c0;background:var(--ok-soft,#dcfce7)}
 .rs-act.wait{border-color:#fcd989;background:#fffdf5}
+/* #4: the currently-resolving action gets focus — accent ring + gentle pulse */
+.rs-act.rs-act-live{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);animation:rsActPulse 1.4s ease-in-out infinite}
+@keyframes rsActPulse{0%,100%{box-shadow:0 0 0 2px var(--accent-soft)}50%{box-shadow:0 0 0 4px var(--accent-soft)}}
+@media (prefers-reduced-motion: reduce){.rs-act.rs-act-live{animation:none}}
+.rs-devopen{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+.rs-devopen:hover{color:var(--accent)}
+.rs-actdev.focus{outline:2px solid var(--accent);outline-offset:1px}
 .rs-act-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .rs-act-id{font:700 11px 'IBM Plex Mono';color:var(--ink-2)}
 .rs-act-d{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -232,8 +254,38 @@ table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max
 .rs-moderb{flex:1;display:flex;flex-direction:column;font-size:12px;font-weight:600;padding:8px 10px;border:1px solid var(--border);border-radius:8px;cursor:pointer}
 .rs-moderb small{font-weight:400;color:var(--ink-3);font-size:10px}
 .rs-moderb:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-/* manual drive controls in CM window */
+.rs-mode{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+/* device faceplate (floating) */
+.rs-face{position:fixed;top:12vh;right:4vw;z-index:10001;width:380px;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 22px 64px rgba(0,0,0,.42);overflow:hidden;max-height:82vh;display:flex;flex-direction:column}
+.rs-face-head{display:flex;align-items:center;gap:9px;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border);cursor:move;user-select:none;flex:0 0 auto}
+.rs-face-id{display:flex;flex-direction:column;min-width:0}
+.rs-face-id b{font-size:13.5px;font-family:'IBM Plex Mono'}
+.rs-face-cls{font-size:10px;color:var(--ink-3);font-family:'IBM Plex Mono';overflow:hidden;text-overflow:ellipsis}
+.rs-face-fam{font-size:9px;text-transform:uppercase;padding:2px 7px;border-radius:20px;background:var(--surface);color:var(--ink-2)}
+.rs-face-fam.valve{background:var(--accent-soft);color:var(--accent)}.rs-face-fam.motor{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.rs-face-head .x{margin-left:auto;cursor:pointer;font-size:20px;color:var(--ink-3);line-height:1}
+.rs-face-body{padding:14px;overflow:auto;min-height:0}
+.rs-face-status{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-radius:10px;margin-bottom:14px;background:var(--surface-2);border:1px solid var(--border)}
+.rs-face-status.on{background:var(--ok-soft,#dcfce7);border-color:#a7f3c0}
+.rs-face-status.move{background:var(--wait-soft,#fef3c7);border-color:#fcd989}
+.rs-face-status.ilk{background:#fee2e2;border-color:#fca5a5}
+.rs-face-pv{font:700 22px 'IBM Plex Mono';color:var(--ink)}
+.rs-face-sw{font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.04em}
+.rs-face-drive{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.rs-face-cmds{display:flex;gap:8px}
+.rs-cmdbtn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-size:13px;font-weight:700;cursor:pointer}
+.rs-cmdbtn.on{border-color:#a7f3c0;color:var(--ok,#15803d)}
+.rs-cmdbtn.on.active{background:var(--ok,#15803d);color:#fff}
+.rs-cmdbtn.off{border-color:var(--border-strong);color:var(--ink-2)}
+.rs-cmdbtn.off.active{background:var(--ink-2);color:#fff}
+.rs-cmdbtn.clr{flex:0 0 auto;font-weight:600;color:var(--ink-3)}
+.rs-face-drivenote{font-size:10.5px;color:var(--ink-3);margin:8px 0 0;line-height:1.5}
+/* advanced hold/force controls (details/summary) */
 .rs-manual{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.rs-manual summary{cursor:pointer;list-style:none;margin-bottom:8px}
+.rs-manual summary::-webkit-details-marker{display:none}
+.rs-manual summary::before{content:'\\25b8 ';color:var(--ink-3)}
+.rs-manual[open] summary::before{content:'\\25be '}
 .rs-mctl{display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;cursor:pointer}
 .rs-mctl small{color:var(--ink-3);font-size:10.5px}
 .rs-mbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -1047,7 +1099,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-1237"
+_BUILD_ID = "20260709-1554"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -1868,23 +1920,51 @@ function stuOpenInExplorerBtn(id){
 // Runs an EM's command SFC with real CM/EM feedback: each device closes its own
 // output->feedback loop with a configurable travel time. Mode 2 (vs the offline
 // phase "verify steps" simulator, which assumes commands are instantly satisfied).
-var RS={em:'',emClass:'',instance:'',instances:[],devices:[],commands:[],trace:[],cur:0,timer:null,playing:false,speed:1,completed:false,mode:'auto',overrides:{}};
-function rsOpen(em, instance){
-  RS.em=em; RS.instance=instance||''; RS.trace=[]; RS.cur=0; RS.completed=false;
-  var idParam = RS.instance || em;   // meta/run resolve class-vs-instance from this
-  var ov=document.getElementById('rsOverlay');
-  if(!ov){ ov=document.createElement('div'); ov.id='rsOverlay'; ov.className='rs-ov'; document.body.appendChild(ov); }
-  ov.innerHTML='<div class="rs-card" id="rsCard"><div class="rs-head" id="rsHead"><h2>Real simulation</h2>'
-    +'<span class="sub">'+esc(RS.instance||em)+'</span>'
+var RS={em:'',emClass:'',instance:'',instances:[],devices:[],commands:[],trace:[],cur:0,timer:null,playing:false,speed:1,completed:false,mode:'auto',overrides:{},host:'dock'};
+// The sim renders the same card into either a docked Studio region (default, full
+// width) or a floating window. rsOpen(em, instance, host) — host 'dock' or 'float'.
+function rsCardHtml(){
+  return '<div class="rs-card" id="rsCard"><div class="rs-head" id="rsHead"><h2>Real simulation</h2>'
+    +'<span class="sub" id="rsSub">'+esc(RS.instance||RS.em)+'</span>'
+    +'<span class="rs-head-sp"></span>'
+    +'<button class="rs-hostb" id="rsHostBtn" title="Pop out / dock" onclick="rsToggleHost()">'+(RS.host==='float'?'\\u25f1 Dock':'\\u2197 Pop out')+'</button>'
     +'<span class="x" onclick="rsClose()">\\u00d7</span></div>'
     +'<div class="rs-body"><div class="rs-config" id="rsConfig">'+dvLoader('Loading EM\\u2026')+'</div>'
+    +'<div class="rs-split-v" id="rsSplitV"></div>'
     +'<div class="rs-run" id="rsRun"><div class="rs-empty">Pick a command and press Run to simulate the EM logic with real device feedback.</div></div>'
     +'</div></div>';
-  rsWireDrag();
+}
+function rsMountHost(){
+  // remove any existing hosts
+  var ov=document.getElementById('rsOverlay'); if(ov) ov.remove();
+  var dk=document.getElementById('rsDockHost'); if(dk) dk.remove();
+  if(RS.host==='float'){
+    ov=document.createElement('div'); ov.id='rsOverlay'; ov.className='rs-ov';
+    ov.innerHTML=rsCardHtml(); document.body.appendChild(ov);
+    rsWireDrag();
+  } else {
+    // dock into the Studio main area as a full-width region below the head
+    var main=document.getElementById('stuMain')||document.body;
+    dk=document.createElement('div'); dk.id='rsDockHost'; dk.className='rs-dockhost';
+    dk.innerHTML=rsCardHtml(); main.appendChild(dk);
+  }
+  rsWireConfigSplit();
+}
+function rsToggleHost(){
+  RS.host=(RS.host==='float')?'dock':'float';
+  rsMountHost();
+  if(RS.trace && RS.trace.length){ rsRenderConfig(); rsRenderFrame(); }
+  else rsRenderConfig();
+}
+function rsOpen(em, instance, host){
+  RS.em=em; RS.instance=instance||''; RS.trace=[]; RS.cur=0; RS.completed=false;
+  RS.host=host||'dock';
+  var idParam = RS.instance || em;
+  rsMountHost();
   fetch('/em_sim_meta?t='+encodeURIComponent(EXPORT_TOKEN)+'&n='+encodeURIComponent(idParam))
     .then(function(r){return r.json();})
     .then(function(m){
-      if(m.error){ document.getElementById('rsConfig').innerHTML='<div class="rs-empty">'+esc(m.error)+'</div>'; return; }
+      if(m.error){ var c=document.getElementById('rsConfig'); if(c) c.innerHTML='<div class="rs-empty">'+esc(m.error)+'</div>'; return; }
       RS.devices=m.devices||[]; RS.commands=m.commands||[];
       RS.instances=m.instances||[]; RS.emClass=m.em||RS.em;
       if(m.instance) RS.instance=m.instance;
@@ -1892,7 +1972,22 @@ function rsOpen(em, instance){
     })
     .catch(function(e){ var c=document.getElementById('rsConfig'); if(c) c.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
 }
-function rsClose(){ rsStop(); rsCloseCM(); var o=document.getElementById('rsOverlay'); if(o) o.remove(); }
+function rsClose(){ rsStop(); rsCloseCM(); rsCloseFace();
+  var o=document.getElementById('rsOverlay'); if(o) o.remove();
+  var d=document.getElementById('rsDockHost'); if(d) d.remove();
+}
+// draggable divider to resize the left config panel (#2)
+function rsWireConfigSplit(){
+  var sp=document.getElementById('rsSplitV'); if(!sp) return;
+  sp.addEventListener('mousedown',function(e){
+    var cfg=document.getElementById('rsConfig'); if(!cfg) return;
+    var startX=e.clientX, startW=cfg.getBoundingClientRect().width;
+    // block iframe capture during drag
+    function mv(ev){ var w=Math.max(180,Math.min(560,startW+(ev.clientX-startX))); cfg.style.width=w+'px'; cfg.style.flex='0 0 '+w+'px'; }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
+}
 // drag the floating sim window by its header
 function rsWireDrag(){
   var head=document.getElementById('rsHead'), card=document.getElementById('rsCard');
@@ -1929,7 +2024,7 @@ function rsRenderConfig(){
     var member=d.member||d.instance;
     var ignoreBadge=d.ignore?'<span class="rs-ign">ignored</span>':'';
     var sub=(d.resolved && d.tag!==member)?'<span class="rs-devrow-mem">'+esc(member)+'</span>':'';
-    return '<div class="rs-devrow-cfg'+(d.ignore?' off':'')+'"><span class="nm" title="'+esc(d.tag)+'">'+label+sub+'</span>'
+    return '<div class="rs-devrow-cfg'+(d.ignore?' off':'')+'"><span class="nm rs-devopen" title="Open faceplate" onclick="rsOpenFace(\\''+esc(member)+'\\')">'+label+sub+'</span>'
       +'<span class="rs-fam '+esc(fam)+'">'+esc(fam)+'</span>'+ignoreBadge
       +'<input class="rs-travel" id="rsTv_'+esc(member)+'" value="'+(d.default_travel||10)+'"'+dis+(d.ignore?' disabled':'')+'>'
       +'<span class="rs-travel-u">ticks</span></div>';
@@ -1938,8 +2033,11 @@ function rsRenderConfig(){
     +instPicker
     +'<p class="rs-lbl">Command</p><select class="rs-cmd" id="rsCmd">'+cmds+'</select>'
     +'<p class="rs-lbl">Run mode</p>'
-    +'<div class="rs-mode"><label class="rs-moderb"><input type="radio" name="rsMode" value="auto" checked onchange="rsSetMode(\\'auto\\')"> Auto <small>time-based flow</small></label>'
-    +'<label class="rs-moderb"><input type="radio" name="rsMode" value="manual" onchange="rsSetMode(\\'manual\\')"> Manual <small>step & drive</small></label></div>'
+    +'<div class="rs-mode">'
+    +'<label class="rs-moderb"><input type="radio" name="rsMode" value="auto"'+(RS.mode==='auto'?' checked':'')+' onchange="rsSetMode(\\'auto\\')"> Auto <small>time-based flow</small></label>'
+    +'<label class="rs-moderb"><input type="radio" name="rsMode" value="semi"'+(RS.mode==='semi'?' checked':'')+' onchange="rsSetMode(\\'semi\\')"> Semi <small>step tick-by-tick</small></label>'
+    +'<label class="rs-moderb"><input type="radio" name="rsMode" value="full"'+(RS.mode==='full'?' checked':'')+' onchange="rsSetMode(\\'full\\')"> Manual <small>drive from faceplate</small></label>'
+    +'</div>'
     +'<p class="rs-lbl">Device travel times</p>'+devs
     +'<div class="rs-actions"><button class="rs-btn primary" id="rsRunBtn" onclick="rsRun()">\\u25b6 Run</button>'
     +'<button class="rs-btn" onclick="rsResetConfig()">Reset</button></div>'
@@ -1960,9 +2058,12 @@ function rsReloadMeta(){
 function rsSetMode(mode){
   RS.mode=mode;
   var n=document.getElementById('rsModeNote');
-  if(n) n.textContent = (mode==='manual')
-    ? 'Manual: press Run, then Step one tick at a time. Hold a device to stop its feedback arriving, or force DO/DI from its status window.'
-    : '1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback. Raise it to study sequencing and timeouts.';
+  var notes={
+    'auto':'1 tick \\u2248 100\\u202fms. Travel time is how long each device takes to move and report feedback. Raise it to study sequencing and timeouts.',
+    'semi':'Semi-auto: press Run, then Step one tick at a time to watch each confirm resolve. Hold or force a device from its faceplate to test the waiting path.',
+    'full':'Manual: press Run, open a device faceplate, and drive it yourself \\u2014 your command satisfies the step\\'s confirm instead of the travel-time model.'
+  };
+  if(n) n.textContent=notes[mode]||notes.auto;
 }
 function rsResetConfig(){
   RS.devices.forEach(function(d){ var k=d.member||d.instance; var el=document.getElementById('rsTv_'+k); if(el) el.value=d.default_travel||10; });
@@ -1992,8 +2093,8 @@ function rsRun(){
       RS.layout=d.layout||{steps:[],transitions:[]}; RS.sel=null; RS.selManual=false;
       if(!RS.trace.length){ run.innerHTML='<div class="rs-empty">No steps ran for this command.</div>'; return; }
       rsRenderFrame();
-      if(RS.mode==='manual'){ RS.playing=false; rsRenderFrame(); }  // wait for Step
-      else rsPlay();   // auto: animate immediately
+      if(RS.mode==='auto'){ rsPlay(); }              // auto: animate immediately
+      else { RS.playing=false; rsRenderFrame(); }    // semi/full: wait for step / manual drive
     })
     .catch(function(e){ if(btn){btn.disabled=false;btn.textContent='\\u25b6 Run';} run.innerHTML='<div class="rs-empty">'+esc(e.message)+'</div>'; });
 }
@@ -2039,7 +2140,19 @@ function rsRenderFrame(){
     +'<button class="rs-play" title="Step forward" onclick="rsStepFwd()">\\u23e9</button>'
     +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
     +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
-  if(RS.cmInst) rsRenderCM();   // keep the floating CM window in sync while animating
+  if(RS.faceInst) rsRenderFace();   // keep the floating faceplate in sync while animating
+  rsFocusActive();                  // #4: highlight + scroll to the running action
+}
+// #4: bring the currently-active action into view and pulse it while running.
+function rsFocusActive(){
+  var host=document.getElementById('rsRun'); if(!host) return;
+  var el=host.querySelector('.rs-act.rs-act-live');
+  if(el && RS.playing){
+    // scroll the verify panel (not the page) so the active action stays visible
+    var panel=host.querySelector('.rs-verify');
+    if(panel){ var pr=panel.getBoundingClientRect(), er=el.getBoundingClientRect();
+      if(er.top<pr.top+8||er.bottom>pr.bottom-8){ el.scrollIntoView({block:'nearest',behavior:'smooth'}); } }
+  }
 }
 // draw the SFC as inline SVG from the run layout, active step highlighted
 function rsBuildSFC(seen, curStep, curIdx, row){
@@ -2109,7 +2222,10 @@ function rsBuildVerify(row){
   var stepDesc=''; for(var j=0;j<RS.trace.length;j++){ if(RS.trace[j].step===sel){ stepDesc=RS.trace[j].step_desc||''; break; } }
   if(!acts||!acts.length) return '<p class="rs-vhead">'+esc(sel)+'</p><p class="rs-vsub">No actions on this step.</p>';
   var childNow=(RS.trace[RS.cur]||{}).children||{};
-  var rows=acts.map(function(a){
+  // the "live" action is the first not-yet-confirmed, not-gated one on the active step
+  var liveIdx=-1;
+  if(sel===row.step){ for(var li=0;li<acts.length;li++){ if(!acts[li].confirmed && !acts[li].gated){ liveIdx=li; break; } } }
+  var rows=acts.map(function(a,ai){
     var stCls=a.gated?'gated':(a.confirmed?'ok':'wait');
     var stTxt=a.gated?'gated':(a.confirmed?'confirmed':'waiting');
     var actMatch=(String(a.actual).toUpperCase()===String(a.expected).toUpperCase()) && a.expected!=='';
@@ -2122,17 +2238,17 @@ function rsBuildVerify(row){
       var doA=rsIsActive(dev.do), pvA=rsIsActive(dev.pv), diWaiting=doA&&!rsIsActive(dev.di);
       var ilkOn=dev.interlock_active;
       var symState = ilkOn?'ilk':(pvA?'on':(diWaiting?'move':'off'));
-      devHtml='<div class="rs-actdev'+(ilkOn?' ilk':'')+'">'
+      devHtml='<div class="rs-actdev'+(ilkOn?' ilk':'')+(a.req_target===RS.faceInst?' focus':'')+'">'
         +rsDeviceSymbol(dev.family||(a.req_target||''), symState)
-        +'<span class="rs-actdev-nm">'+esc(dev.tag||a.req_target)+'</span>'
+        +'<span class="rs-actdev-nm rs-devopen" onclick="rsOpenFace(\\''+esc(a.req_target)+'\\')" title="Open faceplate">'+esc(dev.tag||a.req_target)+'</span>'
         +'<span class="rs-actdev-pin '+(doA?'hi':'')+'">DO '+rsFmt(dev.do)+'</span>'
         +'<span class="rs-actdev-pin '+(diWaiting?'wait':(rsIsActive(dev.di)?'hi':''))+'">DI '+(diWaiting?'\\u2026':rsFmt(dev.di))+'</span>'
         +'<span class="rs-actdev-pin '+(pvA?'hi':'')+'">PV '+rsFmt(dev.pv)+'</span>'
         +(ilkOn?'<span class="rs-actdev-ilk">interlocked</span>':'')
-        +'<span class="rs-actdev-open" onclick="rsOpenCM(\\''+esc(a.req_target)+'\\')" title="Open CM status">status \\u203a</span>'
+        +'<span class="rs-actdev-open" onclick="rsOpenFace(\\''+esc(a.req_target)+'\\')" title="Open faceplate">faceplate \\u203a</span>'
         +'</div>';
     }
-    return '<div class="rs-act '+(a.gated?'':(a.confirmed?'ok':'wait'))+'">'
+    return '<div class="rs-act '+(a.gated?'':(a.confirmed?'ok':'wait'))+(ai===liveIdx?' rs-act-live':'')+'">'
       +'<div class="rs-act-h"><span class="rs-act-id">'+esc(a.action)+'</span>'
       +'<span class="rs-act-d">'+esc(a.desc||a.request||'')+'</span>'
       +'<span class="rs-act-st '+stCls+'">'+stTxt+'</span></div>'
@@ -2143,24 +2259,40 @@ function rsBuildVerify(row){
   return '<p class="rs-vhead">'+esc(sel)+(stepDesc?' \\u00b7 '+esc(stepDesc):'')+'</p>'
     +'<p class="rs-vsub">'+acts.length+' action'+(acts.length!==1?'s':'')+' \\u2014 requested vs actual</p>'+rows;
 }
-// Floating CM-status window — opens on a device click WITHOUT leaving the sim.
-// Answers "is this device moving, and if not why": the command/feedback chain plus
-// the interlock permissive and which interlock conditions are active this tick.
-function rsOpenCM(inst){
-  RS.cmInst=inst;
-  var w=document.getElementById('rsCMWin');
-  if(!w){ w=document.createElement('div'); w.id='rsCMWin'; w.className='rs-cmwin'; document.body.appendChild(w); }
-  rsRenderCM();
-  rsWireCMDrag();
+// ─── Device faceplate ───────────────────────────────────────────────────────
+// A full DeltaV-style faceplate for a device: identity, mode/status, the
+// command->feedback chain, interlock panel, and (in Manual run mode) command
+// buttons that DRIVE the device so your action satisfies the sequence's confirm.
+// Opens without leaving the sim; draggable; stays in sync while animating.
+function rsOpenFace(inst){
+  RS.faceInst=inst;
+  var w=document.getElementById('rsFaceWin');
+  if(!w){ w=document.createElement('div'); w.id='rsFaceWin'; w.className='rs-face'; document.body.appendChild(w); }
+  rsRenderFace(); rsWireFaceDrag();
+  if(RS.trace&&RS.trace.length) rsRenderFrame();  // refresh focus highlight
 }
-function rsCloseCM(){ RS.cmInst=null; var w=document.getElementById('rsCMWin'); if(w) w.remove(); }
-function rsRenderCM(){
-  var w=document.getElementById('rsCMWin'); if(!w||!RS.cmInst) return;
-  var row=RS.trace[RS.cur]||{}; var c=(row.children||{})[RS.cmInst];
-  var meta=(RS.devices||[]).filter(function(d){return d.instance===RS.cmInst;})[0]||{};
-  if(!c){ w.innerHTML='<div class="rs-cmw-head" id="rsCMHead"><b>'+esc(RS.cmInst)+'</b><span class="x" onclick="rsCloseCM()">\\u00d7</span></div><div class="rs-cmw-body"><div class="rs-empty">This device isn\\'t part of the current command.</div></div>'; return; }
+function rsCloseFace(){ RS.faceInst=null; var w=document.getElementById('rsFaceWin'); if(w) w.remove(); }
+// alias kept so older callers still work
+function rsOpenCM(inst){ rsOpenFace(inst); }
+function rsCloseCM(){ rsCloseFace(); }
+function rsRenderCM(){ rsRenderFace(); }
+function rsFaceMeta(inst){ return (RS.devices||[]).filter(function(d){return (d.member||d.instance)===inst;})[0]||{}; }
+function rsRenderFace(){
+  var w=document.getElementById('rsFaceWin'); if(!w||!RS.faceInst) return;
+  var inst=RS.faceInst;
+  var row=RS.trace[RS.cur]||{}; var c=(row.children||{})[inst];
+  var meta=rsFaceMeta(inst);
+  var famRaw=(c&&c.family)||meta.family||'';
+  var isMotor=/mtr|motor|pump/i.test(famRaw);
+  var famLabel=isMotor?'motor':(/valve|vlv/i.test(famRaw)?'valve':'device');
+  if(!c){
+    w.innerHTML='<div class="rs-face-head" id="rsFaceHead"><b>'+esc(meta.tag||inst)+'</b><span class="x" onclick="rsCloseFace()">\\u00d7</span></div>'
+      +'<div class="rs-face-body"><div class="rs-empty">This device isn\\'t part of the current command.</div></div>';
+    return;
+  }
   var doA=rsIsActive(c.do), diA=rsIsActive(c.di), pvA=rsIsActive(c.pv), rspA=rsIsActive(c.rsp);
   var diWaiting=doA&&!diA;
+  var symState=c.interlock_active?'ilk':(pvA?'on':(diWaiting?'move':'off'));
   function pin(lbl,val,cls){ return '<div class="rs-sig"><div class="'+cls+'">'+val+'</div><div class="pl">'+lbl+'</div></div>'; }
   var chain='<div class="rs-loop">'
     + pin('RSP',rsFmt(c.rsp),rsPinClass(c.rsp,rspA))+'<div class="rs-arrow">\\u2192</div>'
@@ -2168,56 +2300,82 @@ function rsRenderCM(){
     + '<div class="rs-arrow">'+(diWaiting?'<span class="tt">travel '+(c.travel||'')+'t</span>':'')+'\\u2192</div>'
     + pin('DI',diWaiting?'\\u2026':rsFmt(c.di),diWaiting?'pin wait':rsPinClass(c.di,diA))+'<div class="rs-arrow">\\u2192</div>'
     + pin('PV',rsFmt(c.pv),rsPinClass(c.pv,pvA))+'</div>';
-  // interlock section
   var perm=c.permissive;
   var permBadge=perm?'<span class="rs-perm ok">permissive \\u2014 clear to move</span>':'<span class="rs-perm blk">interlocked \\u2014 held</span>';
   var ilkRows=(c.ilks||[]).map(function(k){
-    return '<div class="rs-ilk'+(k.active?' on':'')+'"><span class="rs-ilk-dot"></span>'
-      +'<span class="rs-ilk-nm">'+esc(k.name)+'</span>'
-      +'<span class="rs-ilk-st">'+(k.active?'ACTIVE':'clear')+'</span></div>';
+    return '<div class="rs-ilk'+(k.active?' on':'')+'" title="'+esc(k.expr||'')+'"><span class="rs-ilk-dot"></span>'
+      +'<span class="rs-ilk-nm">'+esc(k.name)+'</span><span class="rs-ilk-st">'+(k.active?'ACTIVE':'clear')+'</span></div>';
   }).join('');
   var nActive=(c.ilks||[]).filter(function(k){return k.active;}).length;
-  var ilkHdr = nActive? (nActive+' interlock condition'+(nActive!==1?'s':'')+' active') : 'no interlock conditions active';
+  var ilkHdr=nActive?(nActive+' interlock condition'+(nActive!==1?'s':'')+' active'):'no interlock conditions active';
+  // status word
+  var statusWord=pvA?(isMotor?'RUNNING':'OPEN'):(diWaiting?'MOVING':(isMotor?'STOPPED':'CLOSED'));
+  var pv=rsFmt(c.pv);
+  // manual command buttons (full mode) — drive the device to satisfy the sequence
+  var driveHtml=rsFaceDrive(inst, isMotor, c);
   w.innerHTML=''
-    +'<div class="rs-cmw-head" id="rsCMHead">'
-    +rsDeviceSymbol(c.family||meta.family||'', (c.interlock_active?'ilk':(pvA?'on':(diWaiting?'move':'off'))))
-    +'<b>'+esc(c.tag||RS.cmInst)+'</b>'
-    +'<span class="rs-cmw-cls">'+esc(meta.module||c.module||'')+'</span>'
-    +'<span class="rs-cmw-fam '+esc(meta.family||'')+'">'+esc(meta.family||'')+'</span>'
-    +'<span class="x" onclick="rsCloseCM()">\\u00d7</span></div>'
-    +'<div class="rs-cmw-body">'
+    +'<div class="rs-face-head" id="rsFaceHead">'
+    + rsDeviceSymbol(famRaw, symState)
+    +'<div class="rs-face-id"><b>'+esc(c.tag||inst)+'</b>'
+    +'<span class="rs-face-cls">'+esc(meta.module||c.module||'')+(meta.member&&meta.member!==(c.tag||inst)?' \\u00b7 '+esc(meta.member):'')+'</span></div>'
+    +'<span class="rs-face-fam '+famLabel+'">'+famLabel+'</span>'
+    +'<span class="x" onclick="rsCloseFace()">\\u00d7</span></div>'
+    +'<div class="rs-face-body">'
+    // status band
+    +'<div class="rs-face-status '+symState+'"><div class="rs-face-pv">'+esc(pv.toUpperCase())+'</div>'
+    +'<div class="rs-face-sw">'+statusWord+'</div></div>'
+    + driveHtml
     +'<p class="rs-cmw-lbl">Command \\u2192 feedback</p>'+chain
-    +'<p class="rs-cmw-lbl" style="margin-top:16px">Interlock status</p>'
+    +'<p class="rs-cmw-lbl" style="margin-top:15px">Interlock status</p>'
     +'<div class="rs-perm-row">'+permBadge+'<span class="rs-ilk-hdr">'+ilkHdr+'</span></div>'
     +'<div class="rs-ilk-grid">'+(ilkRows||'<span class="rs-vsub">No interlock conditions modelled.</span>')+'</div>'
-    +'<p class="rs-cmw-foot">Travel time '+(c.travel||'?')+' ticks \\u00b7 tick '+(row.tick)+'. '
+    +'<p class="rs-cmw-foot">Travel '+(c.travel||'?')+' ticks \\u00b7 tick '+(row.tick)+'. '
     +(pvA?'Confirmed.':(doA?'Output driven \\u2014 waiting for feedback.':(perm?'Idle.':'Held by interlock.')))+'</p>'
-    + rsManualControls(RS.cmInst)
+    + rsManualControls(inst)
     +'</div>';
 }
-// Manual drive controls (shown when Run mode = manual): hold feedback, force DI/DO.
-// Changing any of these re-runs the sim with the override applied, so you can verify
-// the waiting / forced paths step by step.
-function rsManualControls(inst){
-  if(RS.mode!=='manual') return '';
+// command buttons for full-manual mode: writing force_do drives the device so its
+// feedback (after travel) satisfies the step confirm — you act as the operator.
+function rsFaceDrive(inst, isMotor, c){
+  if(RS.mode!=='full') return '';
   var ov=(RS.overrides&&RS.overrides[inst])||{};
-  return '<div class="rs-manual"><p class="rs-cmw-lbl">Manual drive</p>'
+  var onLabel=isMotor?'Start':'Open', offLabel=isMotor?'Stop':'Close';
+  var onActive=ov.force_do===1, offActive=ov.force_do===0;
+  return '<div class="rs-face-drive"><p class="rs-cmw-lbl">Manual command</p>'
+    +'<div class="rs-face-cmds">'
+    +'<button class="rs-cmdbtn on'+(onActive?' active':'')+'" onclick="rsDrive(\\''+esc(inst)+'\\',1)">'+onLabel+'</button>'
+    +'<button class="rs-cmdbtn off'+(offActive?' active':'')+'" onclick="rsDrive(\\''+esc(inst)+'\\',0)">'+offLabel+'</button>'
+    +'<button class="rs-cmdbtn clr" onclick="rsDrive(\\''+esc(inst)+'\\',null)">Release</button>'
+    +'</div><p class="rs-face-drivenote">Your command drives the device; after its travel time the feedback satisfies the sequence step.</p></div>';
+}
+function rsDrive(inst, val){
+  RS.overrides=RS.overrides||{}; RS.overrides[inst]=RS.overrides[inst]||{};
+  if(val===null){ delete RS.overrides[inst].force_do; }
+  else { RS.overrides[inst].force_do=val; }
+  if(!Object.keys(RS.overrides[inst]).length) delete RS.overrides[inst];
+  rsRun();
+}
+// advanced hold/force controls — available in Semi and Manual modes
+function rsManualControls(inst){
+  if(RS.mode==='auto') return '';
+  var ov=(RS.overrides&&RS.overrides[inst])||{};
+  return '<details class="rs-manual"'+((ov.hold||ov.force_di!==undefined)?' open':'')+'><summary class="rs-cmw-lbl">Advanced \\u2014 hold / force signals</summary>'
     +'<label class="rs-mctl"><input type="checkbox" '+(ov.hold?'checked':'')+' onchange="rsOverride(\\''+esc(inst)+'\\',\\'hold\\',this.checked)"> Hold feedback <small>DI never arrives</small></label>'
     +'<div class="rs-mbtns">'
     +'<button class="rs-btn sm'+(ov.force_di===1?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_di\\','+(ov.force_di===1?'null':'1')+')">Force DI 1</button>'
     +'<button class="rs-btn sm'+(ov.force_di===0?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_di\\','+(ov.force_di===0?'null':'0')+')">Force DI 0</button>'
     +'<button class="rs-btn sm'+(ov.force_do===1?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_do\\','+(ov.force_do===1?'null':'1')+')">Force DO 1</button>'
     +'<button class="rs-btn sm'+(ov.force_do===0?' on':'')+'" onclick="rsOverride(\\''+esc(inst)+'\\',\\'force_do\\','+(ov.force_do===0?'null':'0')+')">Force DO 0</button>'
-    +'</div></div>';
+    +'</div></details>';
 }
 function rsOverride(inst, key, val){
-  RS.overrides=RS.overrides||{};
-  RS.overrides[inst]=RS.overrides[inst]||{};
+  RS.overrides=RS.overrides||{}; RS.overrides[inst]=RS.overrides[inst]||{};
   if(val===null) delete RS.overrides[inst][key]; else RS.overrides[inst][key]=val;
-  rsRun();   // re-run with the new override; keeps current command/instance/travel
+  if(!Object.keys(RS.overrides[inst]).length) delete RS.overrides[inst];
+  rsRun();
 }
-function rsWireCMDrag(){
-  var head=document.getElementById('rsCMHead'), win=document.getElementById('rsCMWin');
+function rsWireFaceDrag(){
+  var head=document.getElementById('rsFaceHead'), win=document.getElementById('rsFaceWin');
   if(!head||!win) return;
   head.addEventListener('mousedown',function(e){
     if(e.target.classList.contains('x')) return;
