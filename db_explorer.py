@@ -85,6 +85,49 @@ button{font-family:inherit}
 .stu-matrixbtn:hover{background:var(--surface-2)}
 /* Parameter Matrix modal */
 /* Hidden Reference Tracer */
+/* I/O Explorer */
+.io-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
+.io-card{position:absolute;top:7vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:13px;width:min(920px,95vw);height:80vh;min-width:600px;min-height:420px;max-height:93vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.42);pointer-events:auto;resize:both}
+.io-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;user-select:none;flex:0 0 auto}
+.io-head h2{margin:0;font-size:15px;font-weight:650}
+.io-head .io-sub{font-size:12px;color:var(--ink-3)}
+.io-hsp{flex:1}
+.io-imp{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer}
+.io-imp:hover{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.io-head .x{cursor:pointer;font-size:22px;color:var(--ink-3);line-height:1}
+.io-body{padding:16px 18px;overflow:auto;flex:1 1 auto;min-height:0}
+.io-empty{color:var(--ink-3);font-size:13px;line-height:1.6;padding:20px 0}
+.io-btn{padding:9px 15px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;margin-top:12px}
+.io-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.io-stats{display:flex;gap:14px;margin-bottom:14px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
+.io-stats span{background:var(--surface-2);padding:4px 11px;border-radius:20px}
+.io-stats span.ok{background:var(--ok-soft,#dcfce7);color:var(--ok,#15803d);font-weight:600}
+.io-stats span.dim{color:var(--ink-3)}
+.io-tree{font-size:12.5px}
+.io-node{margin:2px 0}
+.io-node-h{display:flex;align-items:baseline;gap:8px;padding:4px 0}
+.io-role{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);font-weight:700;min-width:88px}
+.io-label{font-family:'IBM Plex Mono';font-weight:600;font-size:12.5px}
+.io-node-body{margin-left:14px;padding-left:12px;border-left:1.5px solid var(--border)}
+.io-node.lvl-controller>.io-node-h .io-label{color:var(--accent)}
+.io-node.lvl-card>.io-node-h .io-label{color:var(--wait,#b45309)}
+.io-dev{margin:4px 0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)}
+.io-dev-h{display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;background:var(--surface-2)}
+.io-dev-h:hover{background:var(--accent-soft)}
+.io-dev-caret{font-size:9px;color:var(--ink-3);transition:transform .15s}
+.io-dev.open .io-dev-caret{transform:rotate(90deg)}
+.io-dev-nm{font-family:'IBM Plex Mono';font-weight:600}
+.io-dev-addr{font-size:10px;background:var(--surface);border:1px solid var(--border);padding:1px 7px;border-radius:20px;color:var(--ink-3)}
+.io-dev-desc{font-size:11px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.io-sigs{display:none;padding:4px 10px 8px 26px}
+.io-dev.open .io-sigs{display:block}
+.io-sig{display:flex;align-items:baseline;gap:8px;padding:3px 0;border-bottom:1px dashed var(--border)}
+.io-sig:last-child{border-bottom:0}
+.io-sig-dir{font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono'}
+.io-sig-dir.in{background:var(--accent-soft);color:var(--accent)}
+.io-sig-dir.out{background:var(--wait-soft,#fef3c7);color:var(--wait,#b45309)}
+.io-sig-tag{font-family:'IBM Plex Mono';font-weight:600;font-size:11.5px}
+.io-sig-desc{font-size:11px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rx-ov{position:fixed;inset:0;z-index:10000;pointer-events:none}
 .rx-card{position:absolute;top:8vh;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-strong);border-radius:13px;width:min(860px,94vw);height:78vh;min-width:560px;min-height:400px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.42);pointer-events:auto;resize:both}
 .rx-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid var(--border);background:var(--surface-2);cursor:move;user-select:none;flex:0 0 auto}
@@ -1143,7 +1186,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-2057"
+_BUILD_ID = "20260709-2126"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -2785,6 +2828,87 @@ function rxRender(){
   var unused = (d.unused_bindings&&d.unused_bindings.length)
     ? '<div class="rx-unused">Also bound but unused in logic: '+d.unused_bindings.map(function(u){return '<span class="rx-ub">'+esc(u.link)+' ('+rxViaLabel(u.via).toLowerCase()+')</span>';}).join(' ')+'</div>' : '';
   body.innerHTML=head+cards+unused;
+}
+// ─── I/O Explorer ───────────────────────────────────────────────────────────
+// The physical wiring layer: Controller → I/O → Card → Port → device → signals.
+// Auto-detects I/O in the loaded export; if none, offers to import an I/O reference
+// FHX and joins it to the strategy modules by DEVICE_SIGNAL_TAG.
+var IOX={data:null, ioToken:''};
+function ioOpen(){
+  var ov=document.getElementById('ioOverlay');
+  if(!ov){ ov=document.createElement('div'); ov.id='ioOverlay'; ov.className='io-ov'; document.body.appendChild(ov); }
+  ov.innerHTML='<div class="io-card" id="ioCard"><div class="io-head" id="ioHead">'
+    +'<h2>\\u25a6 I/O Explorer</h2><span class="io-sub" id="ioSub">physical hardware hierarchy</span>'
+    +'<span class="io-hsp"></span>'
+    +'<button class="io-imp" onclick="document.getElementById(\\'ioFile\\').click()">\\u2b06 Import I/O FHX</button>'
+    +'<input type="file" id="ioFile" accept=".fhx" style="display:none" onchange="ioImport(this)">'
+    +'<span class="x" onclick="ioClose()">\\u00d7</span></div>'
+    +'<div class="io-body" id="ioBody">'+dvLoader('Scanning for I/O\\u2026')+'</div></div>';
+  ioWireDrag();
+  ioLoad();
+}
+function ioClose(){ var o=document.getElementById('ioOverlay'); if(o) o.remove(); }
+function ioWireDrag(){
+  var head=document.getElementById('ioHead'), card=document.getElementById('ioCard');
+  if(!head||!card) return;
+  head.addEventListener('mousedown',function(e){
+    if(e.target.classList.contains('x')||e.target.tagName==='BUTTON'||e.target.tagName==='INPUT') return;
+    var r=card.getBoundingClientRect(); card.style.transform='none'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+    var ox=e.clientX-r.left, oy=e.clientY-r.top;
+    function mv(ev){ card.style.left=Math.max(0,Math.min(window.innerWidth-80,ev.clientX-ox))+'px'; card.style.top=Math.max(0,Math.min(window.innerHeight-40,ev.clientY-oy))+'px'; }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
+}
+function ioLoad(){
+  var url='/io_overview?t='+encodeURIComponent(EXPORT_TOKEN)+(IOX.ioToken?'&io='+encodeURIComponent(IOX.ioToken):'');
+  fetch(url).then(function(r){return r.json();}).then(function(d){
+    if(d.error){ document.getElementById('ioBody').innerHTML='<div class="io-empty">'+esc(d.error)+'</div>'; return; }
+    IOX.data=d; ioRender();
+  }).catch(function(e){ document.getElementById('ioBody').innerHTML='<div class="io-empty">'+esc(e.message)+'</div>'; });
+}
+function ioImport(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var body=document.getElementById('ioBody'); body.innerHTML=dvLoader('Importing I/O export\\u2026');
+  var fd=new FormData(); fd.append('file',f);
+  fetch('/io_import',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(d.error){ body.innerHTML='<div class="io-empty">'+esc(d.error)+'</div>'; return; }
+    IOX.ioToken=d.token; ioLoad();
+  }).catch(function(e){ body.innerHTML='<div class="io-empty">'+esc(e.message)+'</div>'; });
+}
+function ioRender(){
+  var d=IOX.data, body=document.getElementById('ioBody');
+  if(!d.present){
+    body.innerHTML='<div class="io-empty"><p style="font-size:14px;font-weight:600;margin:0 0 6px">No physical I/O in the current export.</p>'
+      +'<p style="color:var(--ink-3);max-width:460px;line-height:1.6">'+esc(d.message||'')+'</p>'
+      +'<button class="io-btn primary" onclick="document.getElementById(\\'ioFile\\').click()">\\u2b06 Import I/O reference FHX</button></div>';
+    return;
+  }
+  document.getElementById('ioSub').textContent=d.count+' device'+(d.count!==1?'s':'')+' \\u00b7 '+d.signal_count+' signals \\u00b7 '+(d.controllers||[]).length+' controller'+((d.controllers||[]).length!==1?'s':'');
+  var stats='<div class="io-stats"><span>'+d.count+' devices</span><span>'+d.signal_count+' signals</span>'
+    +'<span class="'+(d.linked?'ok':'')+'">'+d.linked+' joined to modules</span>'
+    +(d.unlinked?'<span class="dim">'+d.unlinked+' unmatched</span>':'')+'</div>';
+  body.innerHTML=stats+'<div class="io-tree">'+ioTreeHtml(d.tree||[],0)+'</div>';
+}
+function ioTreeHtml(nodes, depth){
+  return nodes.map(function(n){
+    var devs=(n.devices||[]).map(function(dv){
+      var sigs=(dv.signals||[]).map(function(s){
+        return '<div class="io-sig"><span class="io-sig-dir '+(s.direction==='OUTPUT'?'out':'in')+'">'+esc((s.direction||'').slice(0,3)||'\\u2022')+'</span>'
+          +'<span class="io-sig-tag">'+esc(s.tag||s.signal)+'</span>'
+          +(s.desc?'<span class="io-sig-desc">'+esc(s.desc)+'</span>':'')+'</div>';
+      }).join('');
+      return '<div class="io-dev"><div class="io-dev-h" onclick="this.parentNode.classList.toggle(\\'open\\')">'
+        +'<span class="io-dev-caret">\\u25b8</span><span class="io-dev-nm">'+esc(dv.device)+'</span>'
+        +(dv.address!=null?'<span class="io-dev-addr">node '+dv.address+'</span>':'')
+        +(dv.desc?'<span class="io-dev-desc">'+esc(dv.desc)+'</span>':'')+'</div>'
+        +'<div class="io-sigs">'+sigs+'</div></div>';
+    }).join('');
+    var roleClass='lvl-'+(n.role||'').replace(/[^a-z]/gi,'').toLowerCase();
+    return '<div class="io-node '+roleClass+'">'
+      +'<div class="io-node-h"><span class="io-role">'+esc(n.role||'')+'</span><span class="io-label">'+esc(n.label)+'</span></div>'
+      +'<div class="io-node-body">'+ioTreeHtml(n.children||[],depth+1)+devs+'</div></div>';
+  }).join('');
 }
 function fsSetTab(t){
   FS.tab=t;
@@ -5419,6 +5543,9 @@ function wireFbdLinks(){
     <div class="cmdp-pop" id="cmdpPop"></div>
   </div>
   <div class="hdr-right">{theme_html}
+    <button class="iconbtn" id="ioExplorerBtn" title="I/O Explorer \u2014 physical Controller &rarr; Card &rarr; Port &rarr; Channel hierarchy" onclick="ioOpen()">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="15" width="18" height="5" rx="1"/><path d="M7 9v6M12 9v6M17 9v6"/></svg>
+    </button>
     <button class="iconbtn" id="refTraceBtn" title="Trace hidden references \u2014 find where a module is used through aliases &amp; EM members" onclick="rxOpen()">
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8 6h6M8.5 7.5l8 9M16 6a6 6 0 0 1-6 6"/></svg>
     </button>

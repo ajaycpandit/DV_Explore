@@ -937,6 +937,91 @@ def formula_bulk_apply_route():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/io_overview')
+def io_overview_route():
+    """Physical I/O overview: parse the hardware layer from the loaded export (or a
+    separately-imported I/O token) and return the Controller/Card/Port tree + stats.
+    Auto-detects whether I/O is embedded in the strategy export or imported separately."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired — re-open the export.'})
+    io_token = request.args.get('io', '')          # optional separate I/O import
+    try:
+        import io_overlay
+        io_text = _read_stash(io_token) if io_token else ''
+        source = io_text or text                    # separate import wins if present
+        if not io_overlay.has_io(source):
+            # fall back to the other source if the primary has no hardware
+            source = text if io_overlay.has_io(text) else source
+        if not io_overlay.has_io(source):
+            return jsonify({'present': False,
+                            'message': 'No physical I/O hardware found in this export. '
+                                       'Import an I/O reference export to see the '
+                                       'Controller → Card → Port → Channel hierarchy.'})
+        parsed = io_overlay.parse_io(source)
+        tree = io_overlay.build_tree(parsed['devices'])
+        join = io_overlay.join_to_modules(parsed, text)
+        return jsonify({'present': True,
+                        'count': parsed['count'],
+                        'signal_count': parsed['signal_count'],
+                        'controllers': parsed['controllers'],
+                        'tree': tree,
+                        'linked': join['linked'],
+                        'unlinked': join['unlinked']})
+    except Exception as e:
+        app.logger.exception('io_overview failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/io_for_module')
+def io_for_module_route():
+    """The physical I/O points a given control module uses (device + hardware path)."""
+    token = request.args.get('t', '')
+    text = _read_stash(token)
+    if not text:
+        return jsonify({'error': 'Session expired.'})
+    module = request.args.get('module', '').strip()
+    io_token = request.args.get('io', '')
+    try:
+        import io_overlay
+        io_text = _read_stash(io_token) if io_token else ''
+        source = io_text if (io_text and io_overlay.has_io(io_text)) else text
+        parsed = io_overlay.parse_io(source)
+        return jsonify({'module': module,
+                        'io_points': io_overlay.io_for_module(parsed, text, module)})
+    except Exception as e:
+        app.logger.exception('io_for_module failed')
+        return jsonify({'error': str(e)})
+
+
+@app.route('/io_import', methods=['POST'])
+def io_import_route():
+    """Import a separate I/O reference FHX; stash it and return a token + quick stats
+    so the UI can join it to the currently-loaded strategy export."""
+    f = request.files.get('file')
+    if not f:
+        return jsonify({'error': 'No file provided.'})
+    try:
+        raw = f.read()
+        try:
+            text = raw.decode('utf-16')
+        except Exception:
+            text = raw.decode('utf-8', errors='replace')
+        import io_overlay
+        if not io_overlay.has_io(text):
+            return jsonify({'error': 'This file has no recognizable I/O hardware '
+                                     '(DEVICENET_DEVICE / PORT_ASSIGNMENT) blocks.'})
+        token = _stash_fhx(text)
+        parsed = io_overlay.parse_io(text)
+        return jsonify({'token': token, 'count': parsed['count'],
+                        'signal_count': parsed['signal_count'],
+                        'controllers': parsed['controllers']})
+    except Exception as e:
+        app.logger.exception('io_import failed')
+        return jsonify({'error': str(e)})
+
+
 @app.route('/ref_trace')
 def ref_trace_route():
     """Hidden reference tracer: find every place a module (optionally a parameter) is
