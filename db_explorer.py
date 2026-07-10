@@ -62,6 +62,9 @@ button{font-family:inherit}
 .stu-shell{display:grid;grid-template-columns:260px 1fr;height:100%;overflow:hidden;transition:grid-template-columns .18s ease}
 .stu-shell.side-hidden{grid-template-columns:0 1fr}
 .stu-shell.side-hidden .stu-side{opacity:0;pointer-events:none}
+.stu-side-reopen{display:none;position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:8;width:20px;height:52px;border:1px solid var(--border);border-left:0;border-radius:0 8px 8px 0;background:var(--surface-2);color:var(--ink-2);cursor:pointer;font-size:12px}
+.stu-shell.side-hidden .stu-side-reopen{display:block}
+.stu-shell.side-hidden .stu-side-reopen:hover{background:var(--accent-soft);color:var(--accent)}
 .stu-toggle{background:var(--surface-2);border:1px solid var(--border);border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:15px;color:var(--ink-2);display:grid;place-items:center;flex:0 0 auto}
 .stu-toggle:hover{background:var(--accent-soft);color:var(--accent)}
 .stu-diagram{position:relative}
@@ -229,7 +232,10 @@ table.pm-grid{border-collapse:separate;border-spacing:0;font-size:12px;width:max
 .rs-split-v:hover{background:var(--accent-soft)}
 .rs-split-v::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--border)}
 /* run area fills remaining height; SFC + verify each scroll internally (#1,#5) */
-.rs-run{flex:1 1 auto;min-width:0;padding:14px 18px;overflow:hidden;display:grid;grid-template-columns:238px 1fr;grid-template-rows:1fr auto;gap:16px;overscroll-behavior:contain}
+.rs-run{flex:1 1 auto;min-width:0;padding:14px 18px;overflow:hidden;display:grid;grid-template-columns:1fr 6px 1fr;grid-template-rows:1fr auto;gap:0 12px;overscroll-behavior:contain}
+.rs-split-h{cursor:col-resize;position:relative;grid-row:1}
+.rs-split-h:hover{background:var(--accent-soft)}
+.rs-split-h::after{content:'';position:absolute;left:2px;top:0;bottom:0;width:1px;background:var(--border)}
 .rs-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin:0 0 8px}
 .rs-cmd{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;font-size:13px;background:var(--surface);color:var(--ink);margin-bottom:18px}
 .rs-devrow-cfg{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
@@ -1186,7 +1192,7 @@ _EXPORT_ICON = ('<svg viewBox="0 0 16 16" width="14" height="14" fill="none" '
                 'stroke-linecap="round" stroke-linejoin="round"/>'
                 '<path d="M2.8 10.5v1.7A1.3 1.3 0 004.1 13.5h7.8a1.3 1.3 0 001.3-1.3v-1.7" '
                 'stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>')
-_BUILD_ID = "20260709-2126"
+_BUILD_ID = "20260710-2012"
 
 
 def build_explorer_html(catalog, fname, phase_views=None, phase_names=None, fbd_views=None,
@@ -2075,6 +2081,25 @@ function rsWireConfigSplit(){
     document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
   });
 }
+// #2: drag the divider between the SFC panel and the verify panel so a wide,
+// multi-step SFC can be given more room.
+function rsWireSfcSplit(){
+  var sp=document.getElementById('rsSplitH'); if(!sp) return;
+  sp.addEventListener('mousedown',function(e){
+    var run=document.getElementById('rsRun'); if(!run) return;
+    var startX=e.clientX;
+    var sfcCol=run.querySelector('.rs-sfc-col');
+    var startW=sfcCol?sfcCol.getBoundingClientRect().width:300;
+    var total=run.getBoundingClientRect().width;
+    function mv(ev){
+      var w=Math.max(180,Math.min(total-200,startW+(ev.clientX-startX)));
+      RS.sfcCol=w+'px';
+      run.style.gridTemplateColumns=w+'px 6px 1fr';
+    }
+    function up(){ document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); document.body.style.userSelect=''; }
+    document.body.style.userSelect='none'; document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up); e.preventDefault();
+  });
+}
 // drag the floating sim window by its header
 function rsWireDrag(){
   var head=document.getElementById('rsHead'), card=document.getElementById('rsCard');
@@ -2231,12 +2256,15 @@ function rsRenderFrame(){
     +'<div class="rs-status"><span class="rs-clock">tick '+row.tick+' / '+last.tick+'</span>'
     +'<span class="rs-step-now">'+esc(curStep||'')+(row.step_desc?' \\u00b7 '+esc(row.step_desc):'')+'</span>'+badge+'</div>'
     +'<div class="rs-sfc-wrap">'+sfc+'</div></div>'
+    +'<div class="rs-split-h" id="rsSplitH" title="Drag to resize SFC / verify"></div>'
     +'<div class="rs-verify">'+verify+'</div>'
     +'<div class="rs-scrub"><button class="rs-play" title="Step back" onclick="rsStepBack()">\\u23ea</button>'
     +'<button class="rs-play" onclick="rsToggle()">'+(RS.playing?'\\u2759\\u2759':'\\u25b6')+'</button>'
     +'<button class="rs-play" title="Step forward" onclick="rsStepFwd()">\\u23e9</button>'
     +'<input type="range" min="0" max="'+(RS.trace.length-1)+'" value="'+RS.cur+'" oninput="rsSeek(this.value)">'
     +'<button class="rs-play" title="Speed" onclick="rsCycleSpeed()">'+RS.speed+'\\u00d7</button></div>';
+  rsWireSfcSplit();
+  if(RS.sfcCol){ var run0=document.getElementById('rsRun'); if(run0) run0.style.gridTemplateColumns=RS.sfcCol+' 6px 1fr'; }
   if(RS.faceInst) rsRenderFace();   // keep the floating faceplate in sync while animating
   rsFocusActive();                  // #4: highlight + scroll to the running action
 }
@@ -2384,7 +2412,7 @@ function rsRenderFace(){
   var famLabel=isMotor?'motor':(/valve|vlv/i.test(famRaw)?'valve':'device');
   if(!c){
     w.innerHTML='<div class="rs-face-head" id="rsFaceHead"><b>'+esc(meta.tag||inst)+'</b><span class="x" onclick="rsCloseFace()">\\u00d7</span></div>'
-      +'<div class="rs-face-body"><div class="rs-empty">This device isn\\'t part of the current command.</div></div>';
+      +'<div class="rs-face-body"><div class="rs-empty">This device isn\u2019t part of the current command.</div></div>';
     return;
   }
   var doA=rsIsActive(c.do), diA=rsIsActive(c.di), pvA=rsIsActive(c.pv), rspA=rsIsActive(c.rsp);
@@ -2633,7 +2661,10 @@ function stuTab(el,t){
   sp.querySelectorAll('.stu-tabpanel').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-t')===t);});
 }
 function stuToggleSide(){
-  var shell=document.querySelector('.stu-shell'); if(shell) shell.classList.toggle('side-hidden');
+  var shell=document.getElementById('stuShell')||document.querySelector('.stu-shell'); if(!shell) return;
+  var hidden=shell.classList.toggle('side-hidden');
+  var tog=document.getElementById('stuSideToggle');
+  if(tog){ tog.innerHTML=hidden?'\\u276f':'\\u276e'; tog.title=hidden?'Show object browser':'Hide object browser'; }
 }
 // dockable side panel: right (default) or bottom
 function stuDock(where){
@@ -5562,13 +5593,14 @@ function wireFbdLinks(){
 </main>
 <div id="view-converter"><iframe id="convFrame" title="FHX Converter"></iframe></div>
 <div id="view-studio">
-  <div class="stu-shell">
+  <div class="stu-shell" id="stuShell">
     <div class="stu-side">
-      <div class="stu-side-h">Studio</div>
+      <div class="stu-side-h">Studio <button class="stu-toggle" id="stuSideToggle" title="Hide object browser" onclick="stuToggleSide()" style="float:right">\u276e</button></div>
       <div class="stu-side-sub">Open a phase, class, or deployed instance in a focused, multi-panel workspace. Instances show their full equipment path (Plant Area \u203a Cell \u203a Unit).</div>
       <input class="alias-filter" id="stuFilter" placeholder="Filter objects & instances\u2026" oninput="stuFilterList(this)" style="margin:8px 0">
       <div id="stuList"></div>
     </div>
+    <button class="stu-side-reopen" id="stuSideReopen" title="Show object browser" onclick="stuToggleSide()">\u276f</button>
     <div class="stu-main" id="stuMain">
       <div class="stu-welcome"><h2>Studio</h2><p>Pick an object on the left \u2014 or right-click any instance in the Explorer and choose \u201cOpen in Studio\u201d to bring it here with its full S88 path. The diagram is fully interactive; the simulator runs inside the Studio too.</p></div>
     </div>

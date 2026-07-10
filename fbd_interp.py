@@ -849,6 +849,21 @@ class EMSim:
                 child.store.set('DO', 1 if _truthy(ov['force_do']) else 0)
             child.tick()
             pv = child.store.get('PV.CV', None)
+            # PV should follow confirmed feedback: once DI has reached the commanded
+            # DO state, the device has physically moved (limit switch / run proof made),
+            # so PV reflects that immediately rather than lagging the block graph by a
+            # tick — which previously made a device look stuck "moving" after it had
+            # actually opened/started.
+            do = child.store.get('DO', None)
+            di = child.store.get('DI', None)
+            if do is not None and di is not None and _truthy(do) == _truthy(di):
+                fb_active = _truthy(di)
+                if pv is None or (':' not in str(pv)):
+                    pv = 1 if fb_active else 0
+                else:
+                    fam0 = self.child_family.get(inst)
+                    if fam0:
+                        pv = _pv_enum_for(fam0, fb_active)
             if pv is None:
                 pv = 0  # unmodelled PV -> treat as passive so the enum still resolves
             fam = self.child_family.get(inst)
